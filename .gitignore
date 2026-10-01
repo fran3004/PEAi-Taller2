@@ -1,0 +1,52 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Compilación y paquetes
+build/
+out/
+dist/
+*.exe
+*.o
+*.dll
+entrega/*.zip
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+config/pea.config.json
+
+# Datos locales (solo se guarda el .gitkeep)
+datos/cache/*
+!datos/cache/.gitkeep
+datos/fuentes/*
+!datos/fuentes/.gitkeep
+!datos/fuentes/csv/
+datos/fuentes/csv/*
+!datos/fuentes/csv/.gitkeep
+datos/respaldos/*
+!datos/respaldos/.gitkeep
+
+# Documento Modelo: archivos intermedios
+docs/entrada/modelo-media/
+docs/entrada/*.limpio.html
+
+# Obsidian: estado de la ventana (no se comparte)
+brain/.obsidian/workspace*.json
+brain/.obsidian/cache
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Herramientas y sistema
+node_modules/
+.opencode/node_modules/
+*.log
+.DS_Store
+Thumbs.db

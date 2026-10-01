@@ -1,0 +1,11 @@
+filters:
+  and:
+    - tipo == "adr"
+views:
+  - type: table
+    name: Decisiones (ADR)
+    order:
+      - file.name
+      - numero
+      - estado
+      - decision

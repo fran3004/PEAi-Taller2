@@ -1,0 +1,11 @@
+filters:
+  and:
+    - tipo == "bitacora"
+views:
+  - type: table
+    name: Bitácora
+    order:
+      - file.name
+      - agente
+      - estado
+      - creado

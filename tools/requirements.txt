@@ -1,0 +1,7 @@
+requests
+beautifulsoup4
+lxml
+pydantic>=2
+pdfplumber
+pyyaml
+pytest

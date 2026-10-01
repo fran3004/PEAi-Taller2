@@ -1,0 +1,69 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "orquestador",
+  "instructions": [".opencode/protocolos/*.md"],
+  "permission": {
+    "*": "ask",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "task": "allow",
+    "skill": "allow",
+    "todowrite": "allow",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow"
+    },
+    "edit": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "supabase/migrations/*": "ask"
+    },
+    "webfetch": "allow",
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git add*": "allow",
+      "git commit*": "allow",
+      "git switch*": "allow",
+      "git branch*": "allow",
+      "git push*": "ask",
+      "git push --force*": "deny",
+      "git push -f*": "deny",
+      "git reset --hard*": "ask",
+      "python*": "allow",
+      "pytest*": "allow",
+      "pip*": "allow",
+      "ruff*": "allow",
+      "cmake*": "allow",
+      "ninja*": "allow",
+      "g++*": "allow",
+      "ctest*": "allow",
+      "pandoc*": "allow",
+      "npx supabase*": "ask",
+      "npx supabase migration*": "allow",
+      "npx supabase --version": "allow",
+      "npx supabase db push*": "ask",
+      "npx supabase db reset*": "deny",
+      "pyinstaller*": "allow",
+      "windeployqt*": "allow",
+      "powershell*scripts*verificar*": "allow",
+      "Remove-Item*-Recurse*": "ask",
+      "del *": "ask",
+      "rmdir *": "ask"
+    },
+    "external_directory": "ask"
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    }
+  }
+}

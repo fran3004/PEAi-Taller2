@@ -1,0 +1,12 @@
+filters:
+  and:
+    - file.inFolder("10-Requisitos")
+    - file.ext == "md"
+views:
+  - type: table
+    name: Requisitos
+    order:
+      - file.name
+      - tipo
+      - estado
+      - actualizado

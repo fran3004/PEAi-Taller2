@@ -1,0 +1,15 @@
+GRUPO: 8
+UNIVERSIDAD: Universidad Popular del Cesar
+FACULTAD: Facultad de Ingenierías y Tecnológicas
+PROGRAMA: Ingeniería de Sistemas
+ASIGNATURA: Estructura de Datos
+TALLER: 2
+INICIALES_ARCHIVOS: FF_SM
+
+INTEGRANTE 1
+  Nombre completo: franier fernandez
+  Iniciales: FF
+
+INTEGRANTE 2
+  Nombre completo: santiago moreno
+  Iniciales: SM
