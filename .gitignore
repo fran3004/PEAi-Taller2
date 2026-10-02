@@ -21,6 +21,9 @@ entrega/*.zip
 !.env.example
 config/pea.config.json
 
+# Datos personales privados (SCIENTI sin anonimizar)
+brain/40-Fuentes/privado/
+
 # Datos locales (solo se guarda el .gitkeep)
 datos/cache/*
 !datos/cache/.gitkeep

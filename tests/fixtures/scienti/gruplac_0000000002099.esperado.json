@@ -1,0 +1,28 @@
+{
+  "codigo_gruplac": "0000000002099",
+  "nombre_grupo": null,
+  "ano_mes_formacion": null,
+  "departamento_ciudad": null,
+  "lider": null,
+  "certificacion": null,
+  "pagina_web": null,
+  "email": null,
+  "clasificacion": null,
+  "area_conocimiento": null,
+  "programa_nacional": null,
+  "instituciones": [],
+  "lineas_investigacion": [],
+  "integrantes": [],
+  "articulos": [],
+  "libros": [],
+  "capitulos": [],
+  "softwares": [],
+  "trabajos_dirigidos": [],
+  "proyectos": [],
+  "origen": {
+    "url": "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=0000000002099",
+    "fecha_descarga": "2026-10-02T21:47:29.163469+00:00",
+    "sha256": "69b5e3001b1bf9921859e0ef368ee39ae95c2ffec9f1f992ba56696d3193f37c",
+    "metodo": "requests + bs4 + lxml"
+  }
+}
