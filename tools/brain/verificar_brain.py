@@ -100,6 +100,13 @@ def verificar_boveda(raiz_repo: Path) -> int:
         if any(part in {".obsidian", "90-Plantillas"} for part in rel.parts):
             continue
         nombres_notas[nota.stem.lower()] = nota
+        # Soportar enlaces relativos de carpeta como [[10-Requisitos/_Indice]]
+        rel_str = str(rel.with_suffix("")).lower().replace("\\", "/")
+        nombres_notas[rel_str] = nota
+        # Soportar también la última parte de la carpeta + archivo
+        if len(rel.parts) > 1:
+            sub_rel = f"{rel.parts[-2].lower()}/{nota.stem.lower()}"
+            nombres_notas[sub_rel] = nota
 
     # 1. Validar cada nota
     for nota in todas_notas:
