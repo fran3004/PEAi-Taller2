@@ -1,0 +1,15 @@
+{
+  "nombre": "Modelo-2024",
+  "titulo": "Modelo de Medición de Grupos de Investigación, Desarrollo Tecnológico o de Innovación y de Reconocimiento de Investigadores del Sistema Nacional de Ciencia, Tecnología e Innovación, Año 2024",
+  "codigo": "M601PR04G01",
+  "version": "02",
+  "url": "https://minciencias.gov.co/sites/default/files/upload/convocatoria/m601pr04g01_modelo_medicion_grupos_investigacion_tecnologica_o_innovacion_y_reconocimiento_investigadores_-_2024_1.pdf",
+  "archivo_original": "Modelo-2024.original.pdf",
+  "formato_original": ".pdf",
+  "paginas": 252,
+  "sha256": "19087a2190bbf44310deaf6de23349d7754bc4bab7f23292cea0fade50a40662",
+  "tamano_bytes": 5156037,
+  "fecha_extraccion": "2026-10-02T16:35:00-05:00",
+  "herramienta": "pdfplumber 0.11.10"
+}
+
