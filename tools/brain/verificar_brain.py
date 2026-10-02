@@ -81,7 +81,7 @@ def parse_frontmatter(texto: str) -> tuple[dict[str, Any] | None, str]:
     return data, ""
 
 
-def verificar_boveda(raiz_repo: Path) -> int:
+def verificar_boveda(raiz_repo: Path, restaurar: bool = False) -> int:
     boveda = raiz_repo / "brain"
     if not boveda.exists():
         print(f"ERROR: No se encontró la carpeta brain/ en {raiz_repo}")
@@ -123,6 +123,22 @@ def verificar_boveda(raiz_repo: Path) -> int:
 
         # Codificación UTF-8 sin BOM y LF
         raw_bytes = nota.read_bytes()
+
+        # Detección y auto-recuperación de archivos vacíos (0 bytes)
+        if len(raw_bytes) == 0:
+            if restaurar:
+                import subprocess
+                subprocess.run(["git", "checkout", "HEAD", "--", str(nota)], cwd=raiz_repo, capture_output=True)
+                raw_bytes = nota.read_bytes()
+                if len(raw_bytes) > 0:
+                    advertencias.append(f"[{rel}] Archivo estaba vacío en disco y fue RESTAURADO automáticamente desde Git HEAD.")
+                else:
+                    errores.append(f"[{rel}] Archivo vacío (0 bytes) en disco y no existe en Git HEAD.")
+                    continue
+            else:
+                errores.append(f"[{rel}] Archivo vacío (0 bytes). Recuperar con 'git checkout HEAD -- {nota.relative_to(raiz_repo)}' o ejecutar 'python tools/brain/verificar_brain.py --restaurar'")
+                continue
+
         if raw_bytes.startswith(b"\xef\xbb\xbf"):
             errores.append(f"[{rel}] Archivo contiene BOM UTF-8 (debe ser UTF-8 sin BOM)")
         if b"\r\n" in raw_bytes:
@@ -218,5 +234,6 @@ def verificar_boveda(raiz_repo: Path) -> int:
 
 if __name__ == "__main__":
     raiz = Path(__file__).resolve().parent.parent.parent
-    sys.exit(verificar_boveda(raiz))
+    restaurar = "--restaurar" in sys.argv
+    sys.exit(verificar_boveda(raiz, restaurar=restaurar))
 
