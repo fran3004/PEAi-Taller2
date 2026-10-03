@@ -4,10 +4,10 @@
 Construir el Taller 2 de Estructura de Datos (Universidad Popular del Cesar): PEA-i, Programa Estadístico de Análisis de Investigación (grupos, investigadores y productos, con datos de SCIENTI). Son dos aplicaciones de escritorio con interfaz gráfica, Python (PySide6) y C++ (Qt 6 Widgets), que comparten UNA base de datos PostgreSQL alojada en Supabase y accedida por HTTPS (REST/RPC). El proyecto es modular, escalable y mantenible; no se optimiza para "un solo archivo".
 
 ## Fuente de verdad (en este orden)
-1. docs/entrada/: el enunciado del taller y el documento "Modelo" (docs/entrada/Modelo.md, extraído de una URL; la fuente original está en docs/entrada/Modelo.fuente.json).
-2. brain/10-Requisitos/SPEC.md.
-3. brain/30-Decisiones/ (ADR) y brain/20-Diseno/.
-4. El código. Si algo contradice al enunciado, gana el enunciado y se avisa al usuario.
+1. docs/entrada/: el enunciado del taller y el documento "Modelo" (docs/entrada/Modelo-2024.md, extraído del PDF oficial M601PR04G01).
+2. brain/10-Requisitos/SPEC.md y documentos de requisitos.
+3. brain/20-Diseno/ (Arquitectura, Estructuras, Modelo de dominio, Contrato de datos) y brain/30-Decisiones/ (ADR).
+4. El código. Si algo contradice al enunciado o al Modelo, gana la fuente normativa y se avisa al usuario.
 No inventes requisitos, campos ni categorías. Lo que no esté en las fuentes se marca como "supuesto" en un ADR o se pregunta.
 
 ## Arquitectura
@@ -48,7 +48,7 @@ Existe UN solo proyecto: pea-prod. NO existe pea-test. Cuando un prompt, una not
 ## Trabajo con dos agentes (Antigravity y OpenCode)
 - Solo UN agente escribe a la vez sobre la misma rama. Antes de empezar: lee las últimas notas de brain/50-Bitacora/ y ejecuta git status. Al terminar: escribe tu nota de bitácora y haz commit.
 - Ramas: main (entrega) ← dev (integración) ← feat/<área>-<persona>. Nunca commits directos a main.
-- Las skills viven en .agents/skills/ (una sola copia, la leen los dos agentes). Las reglas y flujos de Antigravity están en .agents/rules/ y .agents/workflows/.
+- Las skills viven en .agent/skills/ (una sola copia, la leen los dos agentes). Las reglas y flujos de Antigravity están en .agent/rules/ y .agent/workflows/.
 
 ## Cerebro (Obsidian)
 - brain/ es la bóveda y la ÚNICA casa de la documentación viva. Toda nota tiene las propiedades: tipo, estado (borrador|revisado|aprobado), creado, actualizado, relacionado (enlaces [[...]] entre comillas) y origen.
