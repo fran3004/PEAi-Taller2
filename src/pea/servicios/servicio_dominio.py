@@ -221,11 +221,20 @@ class CatalogoInvestigacion:
         if grupo is None:
             raise RecursoNoEncontrado(f"Grupo {codigo_gruplac} no encontrado")
 
+        # 0. Instantánea de vínculos para poder deshacer la eliminación
+        vinculo_integrantes = [
+            (m.codigo_rh, m.rol) for m in self.integrantes if m.codigo_gruplac == codigo_gruplac
+        ]
+        vinculo_productos = [
+            p.codigo_identificador for p in self.multilista_productos.obtener_productos_grupo(codigo_gruplac)
+        ]
+
         # 1. Desenlazar productos del grupo en la multilista
         self.multilista_productos.desvincular_grupo_de_todos(codigo_gruplac)
 
-        # 2. Desvincular integrantes asociados en memoria
-        self.integrantes.eliminar_por_criterio(lambda m: m.codigo_gruplac == codigo_gruplac)
+        # 2. Desvincular TODAS las membresías asociadas en memoria
+        while self.integrantes.eliminar_por_criterio(lambda m: m.codigo_gruplac == codigo_gruplac) is not None:
+            pass
 
         # 3. Remover de la lista de grupos
         self.grupos.eliminar_por_criterio(lambda g: g.codigo_gruplac == codigo_gruplac)
@@ -246,7 +255,11 @@ class CatalogoInvestigacion:
                 tipo_operacion="eliminar",
                 tipo_entidad="grupo",
                 identificador=codigo_gruplac,
-                datos_reversion=grupo.model_dump(),
+                datos_reversion={
+                    **grupo.model_dump(),
+                    "_vinculo_integrantes": vinculo_integrantes,
+                    "_vinculo_productos": vinculo_productos,
+                },
                 descripcion=f"Eliminar grupo {codigo_gruplac}",
             )
         )
@@ -388,11 +401,18 @@ class CatalogoInvestigacion:
         if inv is None:
             raise RecursoNoEncontrado(f"Investigador {codigo_rh} no encontrado")
 
+        # 0. Instantánea de vínculos para poder deshacer la eliminación
+        vinculo_integrantes = [(m.codigo_gruplac, m.rol) for m in self.integrantes if m.codigo_rh == codigo_rh]
+        vinculo_productos = [
+            p.codigo_identificador for p in self.multilista_productos.obtener_productos_investigador(codigo_rh)
+        ]
+
         # 1. Remover de listas de coautorías en la multilista
         self.multilista_productos.desvincular_investigador_de_todos(codigo_rh)
 
-        # 2. Desvincular de integrantes en memoria
-        self.integrantes.eliminar_por_criterio(lambda m: m.codigo_rh == codigo_rh)
+        # 2. Desvincular TODAS sus membresías en memoria
+        while self.integrantes.eliminar_por_criterio(lambda m: m.codigo_rh == codigo_rh) is not None:
+            pass
 
         # 3. Remover de la lista de investigadores
         self.investigadores.eliminar_por_criterio(lambda i: i.codigo_rh == codigo_rh)
@@ -411,7 +431,11 @@ class CatalogoInvestigacion:
                 tipo_operacion="eliminar",
                 tipo_entidad="investigador",
                 identificador=codigo_rh,
-                datos_reversion=inv.model_dump(),
+                datos_reversion={
+                    **inv.model_dump(),
+                    "_vinculo_integrantes": vinculo_integrantes,
+                    "_vinculo_productos": vinculo_productos,
+                },
                 descripcion=f"Eliminar investigador {codigo_rh}",
             )
         )
@@ -622,7 +646,11 @@ class CatalogoInvestigacion:
                 tipo_operacion="eliminar",
                 tipo_entidad="producto",
                 identificador=codigo_identificador,
-                datos_reversion=prod.model_dump(),
+                datos_reversion={
+                    **prod.model_dump(),
+                    "_vinculo_grupo": getattr(grupo_asoc, "codigo_gruplac", None),
+                    "_vinculo_autores": [a.codigo_rh for a in autores_asoc],
+                },
                 descripcion=f"Eliminar producto {codigo_identificador}",
             )
         )
@@ -639,6 +667,7 @@ class CatalogoInvestigacion:
             return None
 
         comando = self.pila_deshacer.desapilar()
+        tamano_tras_desapilar = len(self.pila_deshacer)
 
         if comando.tipo_operacion == "crear":
             # Si se creó, el inverso es eliminar
@@ -674,12 +703,69 @@ class CatalogoInvestigacion:
             elif comando.tipo_entidad == "investigador":
                 self.actualizar_investigador(comando.identificador, comando.datos_reversion, persistir=persistir)
 
-        # Remueve de la pila el comando generado por la propia acción de reversión
-        if not self.pila_deshacer.esta_vacia():
+        elif comando.tipo_operacion == "eliminar":
+            # Si se eliminó, se reconstruye la entidad y sus vínculos desde la instantánea
+            self._restaurar_eliminado(comando, persistir=persistir)
+
+        # Retira solo los comandos que apiló la propia acción de reversión
+        while len(self.pila_deshacer) > tamano_tras_desapilar:
             self.pila_deshacer.desapilar()
 
         self.sincronizar_hipercubo()
         return comando
+
+    def _restaurar_eliminado(self, comando: ComandoInverso, persistir: bool) -> None:
+        """Reconstruye una entidad eliminada con sus membresías y enlaces de la multilista."""
+        datos = dict(comando.datos_reversion or {})
+        integrantes = datos.pop("_vinculo_integrantes", [])
+        productos = datos.pop("_vinculo_productos", [])
+        codigo_grupo = datos.pop("_vinculo_grupo", None)
+        autores = datos.pop("_vinculo_autores", [])
+        datos.pop("id", None)
+
+        if comando.tipo_entidad == "grupo":
+            grupo = Grupo.model_validate(datos)
+            self.crear_grupo(grupo, persistir=persistir)
+            for codigo_rh, rol in integrantes:
+                if self.buscar_investigador(codigo_rh) is not None:
+                    self.vincular_integrante(grupo.codigo_gruplac, codigo_rh, rol=rol, persistir=persistir)
+            for codigo_prod in productos:
+                prod = self.buscar_producto(codigo_prod)
+                if prod is None:
+                    continue
+                self.multilista_productos.agregar_producto(prod, grupo=grupo)
+                if persistir and self.cliente is not None and self.repo_productos is not None:
+                    if prod.id is not None and grupo.id is not None:
+                        self.controlador_revision.verificar_consistencia(self.cliente)
+                        self.repo_productos.asociar_grupo(prod.id, grupo.id, es_ejemplo=prod.es_ejemplo)
+                        self.controlador_revision.actualizar_local(self.controlador_revision.revision_local + 1)
+
+        elif comando.tipo_entidad == "investigador":
+            inv = Investigador.model_validate(datos)
+            self.crear_investigador(inv, persistir=persistir)
+            for codigo_gruplac, rol in integrantes:
+                if self.buscar_grupo(codigo_gruplac) is not None:
+                    self.vincular_integrante(codigo_gruplac, inv.codigo_rh, rol=rol, persistir=persistir)
+            for codigo_prod in productos:
+                prod = self.buscar_producto(codigo_prod)
+                if prod is None:
+                    continue
+                self.multilista_productos.agregar_autor_a_producto(codigo_prod, inv)
+                if persistir and self.cliente is not None and self.repo_productos is not None:
+                    if prod.id is not None and inv.id is not None:
+                        self.controlador_revision.verificar_consistencia(self.cliente)
+                        self.repo_productos.asociar_autor(prod.id, inv.id, es_ejemplo=prod.es_ejemplo)
+                        self.controlador_revision.actualizar_local(self.controlador_revision.revision_local + 1)
+
+        elif comando.tipo_entidad == "producto":
+            prod = Producto.model_validate(datos)
+            grupo_existente = codigo_grupo if codigo_grupo and self.buscar_grupo(codigo_grupo) else None
+            self.crear_producto(
+                prod,
+                codigo_gruplac=grupo_existente,
+                codigos_rh_autores=list(autores),
+                persistir=persistir,
+            )
 
     # =========================================================================
     # RECARGA TOTAL Y DETECCIÓN DE CONFLICTOS

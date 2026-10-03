@@ -17,8 +17,7 @@ import pytest
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
-from pea.estructuras.hipercubo import Coordenada5D, Hipercubo5D
-from pea.estructuras.multilista import Multilista
+from pea.estructuras.hipercubo import Hipercubo5D
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 from pea.servicios.servicio_estadisticas import ServicioEstadisticas
 

@@ -36,6 +36,9 @@ datos/fuentes/csv/*
 !datos/fuentes/csv/.gitkeep
 datos/respaldos/*
 !datos/respaldos/.gitkeep
+datos/capturas/*
+!datos/capturas/.gitkeep
+
 
 # Documento Modelo: archivos intermedios
 docs/entrada/modelo-media/

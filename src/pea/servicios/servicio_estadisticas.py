@@ -24,16 +24,20 @@ class ServicioEstadisticas:
         ventana_anios: int | None = None,
         modelo_2024: bool = False,
         anio_referencia: int = 2024,
+        anio_inicio: int | None = None,
+        anio_fin: int | None = None,
     ) -> Hipercubo5D:
         """Aplica la ventana solicitada sobre el hipercubo base o suministrado.
 
         Diferenciación conceptual:
-        1. Filtro de interfaz (ventana_anios): últimos N años consecutivos simétricos.
+        1. Filtro de interfaz (ventana_anios o rango anio_inicio..anio_fin): años consecutivos.
         2. Ventana del Modelo 2024: 5 años para ordinarios, 10 años para libros/patentes.
         """
         c = cubo if cubo is not None else self.hipercubo
         if modelo_2024:
             return c.subcubo_modelo_2024(anio_corte=2023)
+        if anio_inicio is not None or anio_fin is not None:
+            return c.subcubo_por_ventana(anio_inicio=anio_inicio, anio_fin=anio_fin)
         if ventana_anios is not None and ventana_anios > 0:
             inicio = anio_referencia - ventana_anios + 1
             return c.subcubo_por_ventana(anio_inicio=inicio, anio_fin=anio_referencia)
@@ -185,9 +189,13 @@ class ServicioEstadisticas:
         self,
         ventana_anios: int | None = None,
         modelo_2024: bool = False,
+        anio_inicio: int | None = None,
+        anio_fin: int | None = None,
     ) -> dict[str, Any]:
         """Vista 1: Vista Institucional General (Consolidado panorámico universitario)."""
-        c = self._resolver_cubo(ventana_anios=ventana_anios, modelo_2024=modelo_2024)
+        c = self._resolver_cubo(
+            ventana_anios=ventana_anios, modelo_2024=modelo_2024, anio_inicio=anio_inicio, anio_fin=anio_fin
+        )
         total_prods = c.total_productos_unicos()
 
         return {
@@ -208,9 +216,13 @@ class ServicioEstadisticas:
         id_grupo: str,
         ventana_anios: int | None = None,
         modelo_2024: bool = False,
+        anio_inicio: int | None = None,
+        anio_fin: int | None = None,
     ) -> dict[str, Any]:
         """Vista 2: Vista por Grupo de Investigación (Ficha analítica grupal)."""
-        c_inst = self._resolver_cubo(ventana_anios=ventana_anios, modelo_2024=modelo_2024)
+        c_inst = self._resolver_cubo(
+            ventana_anios=ventana_anios, modelo_2024=modelo_2024, anio_inicio=anio_inicio, anio_fin=anio_fin
+        )
         c_grp = c_inst.rebanada(Hipercubo5D.DIM_GRUPO, id_grupo)
 
         total_grupo = c_grp.total_productos_unicos()
@@ -239,9 +251,13 @@ class ServicioEstadisticas:
         id_investigador: str,
         ventana_anios: int | None = None,
         modelo_2024: bool = False,
+        anio_inicio: int | None = None,
+        anio_fin: int | None = None,
     ) -> dict[str, Any]:
         """Vista 3: Vista por Investigador (Ficha analítica individual de autoría)."""
-        c_inst = self._resolver_cubo(ventana_anios=ventana_anios, modelo_2024=modelo_2024)
+        c_inst = self._resolver_cubo(
+            ventana_anios=ventana_anios, modelo_2024=modelo_2024, anio_inicio=anio_inicio, anio_fin=anio_fin
+        )
         c_inv = c_inst.rebanada(Hipercubo5D.DIM_INVESTIGADOR, id_investigador)
 
         total_inv = c_inv.total_productos_unicos()

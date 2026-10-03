@@ -183,6 +183,33 @@ class ClienteHTTPSupabase:
             prefer="return=representation",
         )
 
+    def autenticar(self, correo: str, clave: str) -> dict[str, Any]:
+        """Inicia sesión en Supabase Auth (grant password) y guarda el JWT solo en memoria.
+
+        Devuelve el cuerpo de la respuesta (access_token, expires_in, user...).
+        La contraseña no se conserva en ningún atributo.
+        """
+        try:
+            resp = self._ejecutar(
+                "POST",
+                "auth/v1/token",
+                params={"grant_type": "password"},
+                json_data={"email": correo, "password": clave},
+            )
+        except ErrorAutenticacion:
+            raise
+        except ErrorPEA as err:
+            # Supabase Auth responde 400 ante credenciales inválidas.
+            if "400" in err.mensaje:
+                raise ErrorAutenticacion("Correo o contraseña incorrectos", err.detalle) from err
+            raise
+        cuerpo = resp.json() if resp.text else {}
+        token = cuerpo.get("access_token") if isinstance(cuerpo, dict) else None
+        if not token:
+            raise ErrorAutenticacion("Supabase Auth no devolvió un token de acceso")
+        self.establecer_token_acceso(str(token))
+        return cuerpo
+
     def rpc(self, funcion: str, params: dict[str, Any] | None = None) -> Any:
         """Ejecuta una función RPC atómica en Supabase."""
         resp = self._ejecutar(
