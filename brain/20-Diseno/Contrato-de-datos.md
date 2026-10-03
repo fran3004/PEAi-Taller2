@@ -25,76 +25,69 @@ El repositorio remoto de datos de PEA-i es una base de datos PostgreSQL alojada 
 
 ## 2. Esquema Relacional Canónico
 
-Las migraciones oficiales residen en `supabase/migrations/` y definen las siguientes tablas base estructuradas con identificadores de tipo `UUID` (o códigos de texto oficiales de Minciencias como clave natural secundaria):
+Las migraciones oficiales residen en `supabase/migrations/` y definen las siguientes tablas base estructuradas con identificadores de tipo `bigint generated always as identity` y claves naturales secundarias normalizadas:
 
 ```mermaid
 erDiagram
-    INSTITUCION ||--o{ GRUPO : patrocina
-    GRUPO ||--o{ MIEMBRO_GRUPO : contiene
-    INVESTIGADOR ||--o{ MIEMBRO_GRUPO : pertenece
-    GRUPO ||--o{ PRODUCTO : registra
-    PRODUCTO ||--o{ AUTOR_PRODUCTO : acredita
-    INVESTIGADOR ||--o{ AUTOR_PRODUCTO : participa
-
-    INSTITUCION {
-        uuid id PK
-        varchar nombre
-        varchar sigla
-        boolean es_ejemplo
-    }
+    GRUPO ||--o{ INTEGRANTE_GRUPO : contiene
+    INVESTIGADOR ||--o{ INTEGRANTE_GRUPO : pertenece
+    GRUPO ||--o{ PRODUCTO_GRUPO : registra
+    PRODUCTO ||--o{ PRODUCTO_GRUPO : asigna
+    PRODUCTO ||--o{ PRODUCTO_AUTOR : acredita
+    INVESTIGADOR ||--o{ PRODUCTO_AUTOR : participa
 
     GRUPO {
-        uuid id PK
-        varchar codigo_minciencias UK
+        bigint id PK
+        varchar codigo_gruplac UK
         varchar nombre
-        varchar clasificacion
-        uuid institucion_id FK
+        varchar categoria
+        varchar institucion_principal
         boolean activo
         boolean es_ejemplo
-        timestamp creado_en
-        timestamp actualizado_en
+        timestamptz creado_en
+        timestamptz actualizado_en
     }
 
     INVESTIGADOR {
-        uuid id PK
-        varchar codigo_cvlac UK
+        bigint id PK
+        varchar codigo_rh UK
         varchar nombre_completo
         varchar categoria
         boolean activo
         boolean es_ejemplo
-        timestamp creado_en
-        timestamp actualizado_en
+        timestamptz creado_en
+        timestamptz actualizado_en
     }
 
-    MIEMBRO_GRUPO {
-        uuid id PK
-        uuid grupo_id FK
-        uuid investigador_id FK
-        varchar rol_en_grupo
-        date fecha_vinculacion
-        date fecha_desvinculacion
+    INTEGRANTE_GRUPO {
+        bigint id PK
+        bigint grupo_id FK
+        bigint investigador_id FK
+        varchar rol
+        varchar fecha_inicio
+        varchar fecha_fin
         boolean activo
         boolean es_ejemplo
     }
 
     PRODUCTO {
-        uuid id PK
+        bigint id PK
         varchar codigo_identificador UK
         varchar titulo
-        varchar tipo_categoria
-        int anio
+        varchar tipo_mayor
+        varchar subtipo
+        int ano
         varchar estado_validacion
-        uuid grupo_principal_id FK
         boolean activo
         boolean es_ejemplo
-        timestamp creado_en
-        timestamp actualizado_en
+        timestamptz creado_en
+        timestamptz actualizado_en
     }
 
-    AUTOR_PRODUCTO {
-        uuid id PK
-        uuid producto_id FK
-        uuid investigador_id FK
+    PRODUCTO_AUTOR {
+        bigint id PK
+        bigint producto_id FK
+        bigint investigador_id FK
         int orden_autoria
         boolean activo
         boolean es_ejemplo
@@ -104,7 +97,7 @@ erDiagram
         int id PK
         bigint revision
         varchar entorno
-        timestamp ultima_modificacion
+        timestamptz ultima_modificacion
     }
 ```
 
