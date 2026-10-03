@@ -11,6 +11,8 @@ from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.excepciones import ErrorPEA
+from pea.ingesta.lector_csv import LectorCSV
+from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 from pea.version import APP_NAME, APP_VERSION, INSTITUCION, obtener_version
 
@@ -50,16 +52,30 @@ def crear_parser() -> argparse.ArgumentParser:
     parser_resumen.add_argument("--json", action="store_true", help="Emite el resumen en formato JSON compacto canónico")
 
 
+    # Comando importar-url
+    parser_url = subparsers.add_parser("importar-url", help="Extrae e ingesta datos desde portales SCIENTI (GrupLAC o CvLAC)")
+    parser_url.add_argument("--url", "-u", required=True, help="URL HTTPS de GrupLAC o CvLAC")
+    parser_url.add_argument("--persistir", "-p", action="store_true", help="Persiste las entidades en la base de datos remota")
+    parser_url.add_argument("--anonimizar", action="store_true", help="Anonimiza correos y nombres personales en notas públicas")
+    parser_url.add_argument("--privado", action="store_true", help="Guarda la transcripción en carpeta privada")
+    parser_url.add_argument("--salida", "-s", default="datos/fuentes/extraccion", help="Directorio destino para Markdown, JSON y CSV")
+
+    # Comando importar-pdf
+    parser_pdf = subparsers.add_parser("importar-pdf", help="Extrae texto y tablas desde documentos oficiales PDF")
+    parser_pdf.add_argument("--archivo", "-a", required=True, help="Ruta al archivo PDF a procesar")
+    parser_pdf.add_argument("--salida", "-s", default="datos/fuentes/pdf", help="Directorio destino para transcripción Markdown")
+
     # Comando importar-csv
-    parser_importar = subparsers.add_parser("importar-csv", help="Importa entidades desde archivos CSV")
+    parser_importar = subparsers.add_parser("importar-csv", help="Importa entidades desde archivos CSV tolerante a fallos")
     parser_importar.add_argument("--archivo", "-a", required=True, help="Ruta al archivo CSV a importar")
     parser_importar.add_argument(
         "--tipo",
         "-t",
-        required=True,
-        choices=["grupos", "investigadores", "productos"],
-        help="Tipo de entidad contenida en el CSV",
+        choices=["grupos", "investigadores", "productos", "autores"],
+        default=None,
+        help="Tipo de entidad contenida en el CSV (opcional, se detecta automáticamente si se omite)",
     )
+    parser_importar.add_argument("--persistir", "-p", action="store_true", help="Persiste las entidades en la base de datos remota")
 
     # Comando exportar-csv
     parser_exportar = subparsers.add_parser("exportar-csv", help="Exporta entidades actuales a archivos CSV")
@@ -145,39 +161,112 @@ def comando_resumen(salida_json: bool = False) -> int:
 
 
 
-def comando_importar_csv(archivo_str: str, tipo: str) -> int:
+def comando_importar_url(
+    url: str,
+    persistir: bool = False,
+    anonimizar: bool = False,
+    es_privado: bool = False,
+    salida_str: str = "datos/fuentes/extraccion",
+) -> int:
+    cliente = _obtener_cliente_desde_entorno() if persistir else None
+    catalogo = CatalogoInvestigacion(cliente=cliente)
+    servicio = ServicioIngesta(catalogo)
+
+    print(f"Encolando extracción web: {url}")
+    tarea = servicio.encolar_url(
+        url=url,
+        persistir=persistir,
+        anonimizar=anonimizar,
+        es_privado=es_privado,
+        salida_dir=Path(salida_str),
+    )
+    print(f"Tarea encolada: ID={tarea.id_tarea}, Estado={tarea.estado}")
+
+    informe = servicio.procesar_siguiente()
+    if informe and informe.exito:
+        print("============================================================")
+        print("EXTRACCIÓN WEB Y PROCESAMIENTO COMPLETADOS")
+        print("============================================================")
+        print(f"Grupos:        {informe.grupos_procesados}")
+        print(f"Investigadores:{informe.investigadores_procesados}")
+        print(f"Productos:     {informe.productos_procesados}")
+        print("Archivos generados:")
+        for k, v in informe.archivos_generados.items():
+            print(f" - {k}: {v}")
+        print("============================================================")
+        return 0
+    else:
+        err_msg = informe.mensaje if informe else "Fallo desconocido"
+        print(f"Error en la extracción web: {err_msg}", file=sys.stderr)
+        return 1
+
+
+def comando_importar_pdf(archivo_str: str, salida_str: str = "datos/fuentes/pdf") -> int:
+    archivo = Path(archivo_str)
+    if not archivo.exists():
+        print(f"Error: El archivo PDF {archivo} no existe.", file=sys.stderr)
+        return 1
+
+    catalogo = CatalogoInvestigacion()
+    servicio = ServicioIngesta(catalogo)
+
+    print(f"Encolando procesamiento de PDF: {archivo.name}")
+    tarea = servicio.encolar_pdf(ruta_pdf=archivo, salida_dir=Path(salida_str))
+    print(f"Tarea encolada: ID={tarea.id_tarea}, Estado={tarea.estado}")
+    informe = servicio.procesar_siguiente()
+
+    if informe and informe.exito:
+        print("============================================================")
+        print("PROCESAMIENTO DE PDF COMPLETADO")
+        print("============================================================")
+        print(f"Mensaje: {informe.mensaje}")
+        if informe.advertencias:
+            print("Avisos:")
+            for adv in informe.advertencias:
+                print(f" - ⚠️ {adv}")
+        for k, v in informe.archivos_generados.items():
+            print(f" - {k}: {v}")
+        print("============================================================")
+        return 0
+    else:
+        err_msg = informe.mensaje if informe else "Error al procesar PDF"
+        print(f"Error al procesar PDF: {err_msg}", file=sys.stderr)
+        return 1
+
+
+def comando_importar_csv(archivo_str: str, tipo: str | None = None, persistir: bool = False) -> int:
     archivo = Path(archivo_str)
     if not archivo.exists():
         print(f"Error: El archivo {archivo} no existe.", file=sys.stderr)
         return 1
 
-    cliente = _obtener_cliente_desde_entorno()
+    cliente = _obtener_cliente_desde_entorno() if persistir else None
     catalogo = CatalogoInvestigacion(cliente=cliente)
-    procesados = 0
+    servicio = ServicioIngesta(catalogo)
 
-    with archivo.open("r", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            # Limpiar espacios en claves y valores
-            datos = {k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in fila.items() if k}
-            try:
-                if tipo == "grupos":
-                    g = Grupo.model_validate(datos)
-                    catalogo.crear_grupo(g, persistir=(cliente is not None))
-                    procesados += 1
-                elif tipo == "investigadores":
-                    inv = Investigador.model_validate(datos)
-                    catalogo.crear_investigador(inv, persistir=(cliente is not None))
-                    procesados += 1
-                elif tipo == "productos":
-                    p = Producto.model_validate(datos)
-                    catalogo.crear_producto(p, persistir=(cliente is not None))
-                    procesados += 1
-            except Exception as err:
-                print(f"Aviso al importar fila {datos}: {err}", file=sys.stderr)
+    tipo_resuelto = tipo or LectorCSV.detectar_tipo_archivo(archivo)
+    print(f"Encolando importación CSV: {archivo.name} (tipo resuelto: '{tipo_resuelto}')")
+    servicio.encolar_csv(ruta_csv=archivo, tipo_entidad=tipo_resuelto, persistir=persistir)
 
-    print(f"Importación completada: {procesados} entidades de tipo '{tipo}' procesadas con éxito.")
-    return 0
+    informe = servicio.procesar_siguiente()
+    if informe and informe.exito:
+        print("============================================================")
+        print(f"IMPORTACIÓN CSV ({tipo_resuelto}) COMPLETADA")
+        print("============================================================")
+        print(f"Grupos:        {informe.grupos_procesados}")
+        print(f"Investigadores:{informe.investigadores_procesados}")
+        print(f"Productos:     {informe.productos_procesados}")
+        print(f"Autores:       {informe.autores_procesados}")
+        if informe.filas_erroneas:
+            print(f"Avisos: {len(informe.filas_erroneas)} filas con errores ignoradas:")
+            for err in informe.filas_erroneas:
+                print(f" - Fila {err.get('fila')}: {err.get('error')}")
+        print("============================================================")
+        return 0
+    else:
+        err_msg = informe.mensaje if informe else "Fallo durante la importación CSV"
+        print(f"Error al importar CSV: {err_msg}", file=sys.stderr)
+        return 1
 
 
 def comando_exportar_csv(directorio_str: str) -> int:
@@ -338,8 +427,18 @@ def main(argv: list[str] | None = None) -> int:
     elif args.comando == "resumen":
         return comando_resumen(salida_json=args.json)
 
+    elif args.comando == "importar-url":
+        return comando_importar_url(
+            url=args.url,
+            persistir=args.persistir,
+            anonimizar=args.anonimizar,
+            es_privado=args.privado,
+            salida_str=args.salida,
+        )
+    elif args.comando == "importar-pdf":
+        return comando_importar_pdf(archivo_str=args.archivo, salida_str=args.salida)
     elif args.comando == "importar-csv":
-        return comando_importar_csv(args.archivo, args.tipo)
+        return comando_importar_csv(args.archivo, tipo=args.tipo, persistir=args.persistir)
     elif args.comando == "exportar-csv":
         return comando_exportar_csv(args.directorio)
     elif args.comando == "cargar-ejemplo":

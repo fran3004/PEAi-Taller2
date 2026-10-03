@@ -158,6 +158,14 @@ class Multilista:
                 resultado.insertar_final(nodo.producto)
         return resultado
 
+    def agregar_autor_a_producto(self, codigo_identificador: str, investigador: Any) -> bool:
+        """Asocia un nuevo coautor a un nodo de producto existente en la Multilista."""
+        nodo = self.buscar_nodo(codigo_identificador)
+        if nodo is not None:
+            nodo.agregar_autor(investigador)
+            return True
+        return False
+
     def obtener_todos(self) -> ListaDoble[Any]:
         """Retorna todos los productos almacenados en una ListaDoble."""
         resultado: ListaDoble[Any] = ListaDoble()
