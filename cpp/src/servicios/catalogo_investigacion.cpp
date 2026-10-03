@@ -18,6 +18,11 @@ CatalogoInvestigacion::CatalogoInvestigacion(ClienteHTTPSupabase* cliente,
         m_repo_productos = std::make_unique<datos::RepositorioProductos>(*m_cliente);
         m_repo_proyectos = std::make_unique<datos::RepositorioProyectos>(*m_cliente);
     }
+    estadisticas.setHipercubo(&hipercubo);
+}
+
+void CatalogoInvestigacion::sincronizarHipercubo() {
+    hipercubo.poblarDesdeMultilista(multilista_productos);
 }
 
 void CatalogoInvestigacion::verificar_autenticacion_si_aplica() {
@@ -244,6 +249,7 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::eliminar_grupo(const QStr
             "Eliminar grupo " + codigo_gruplac
         )
     );
+    sincronizarHipercubo();
     return grupo;
 }
 
@@ -461,6 +467,7 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::eliminar_investiga
             "Eliminar investigador " + codigo_rh
         )
     );
+    sincronizarHipercubo();
     return inv;
 }
 
@@ -602,6 +609,7 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
             "Crear producto " + producto->titulo
         )
     );
+    sincronizarHipercubo();
     return producto;
 }
 
@@ -638,6 +646,7 @@ void CatalogoInvestigacion::desactivar_producto(const QString& codigo_identifica
             "Desactivar producto " + codigo_identificador
         )
     );
+    sincronizarHipercubo();
 }
 
 void CatalogoInvestigacion::activar_producto(const QString& codigo_identificador, bool persistir) {
@@ -672,6 +681,7 @@ void CatalogoInvestigacion::activar_producto(const QString& codigo_identificador
             "Activar producto " + codigo_identificador
         )
     );
+    sincronizarHipercubo();
 }
 
 std::shared_ptr<dominio::Producto> CatalogoInvestigacion::eliminar_producto(
@@ -716,6 +726,7 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::eliminar_producto(
             "Eliminar producto " + codigo_identificador
         )
     );
+    sincronizarHipercubo();
     return prod;
 }
 
@@ -767,6 +778,7 @@ std::optional<estructuras::ComandoInverso> CatalogoInvestigacion::deshacer(bool 
         pila_deshacer.desapilar();
     }
 
+    sincronizarHipercubo();
     return cmd;
 }
 
@@ -870,6 +882,8 @@ void CatalogoInvestigacion::recargar_todo() {
             }
         }
     }
+
+    sincronizarHipercubo();
 
     // 6. Sincronizar número de revisión
     controlador_revision.sincronizar(*m_cliente);

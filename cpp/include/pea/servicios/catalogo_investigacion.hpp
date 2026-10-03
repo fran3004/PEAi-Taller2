@@ -17,9 +17,11 @@
 #include "pea/dominio/producto.hpp"
 #include "pea/dominio/proyecto.hpp"
 #include "pea/estructuras/cola.hpp"
+#include "pea/estructuras/hipercubo.hpp"
 #include "pea/estructuras/lista_doble.hpp"
 #include "pea/estructuras/multilista.hpp"
 #include "pea/estructuras/pila.hpp"
+#include "pea/servicios/servicio_estadisticas.hpp"
 
 namespace pea {
 class ClienteHTTPSupabase;
@@ -49,6 +51,11 @@ public:
     // Historial e ingesta
     estructuras::Pila<estructuras::ComandoInverso> pila_deshacer;
     estructuras::Cola<estructuras::TareaIngesta> cola_importacion;
+
+    // Hipercubo 5D y cálculo estadístico en memoria
+    estructuras::Hipercubo5D hipercubo;
+    ServicioEstadisticas estadisticas;
+    void sincronizarHipercubo();
 
     // Sesión y control de concurrencia
     std::shared_ptr<datos::Sesion> sesion;

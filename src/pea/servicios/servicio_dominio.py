@@ -23,10 +23,12 @@ from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.dominio.proyecto import Proyecto
 from pea.estructuras.cola import Cola, TareaIngesta
+from pea.estructuras.hipercubo import Hipercubo5D
 from pea.estructuras.lista_doble import ListaDoble
 from pea.estructuras.multilista import Multilista
 from pea.estructuras.pila import ComandoInverso, Pila
 from pea.excepciones import ErrorAutenticacion, RecursoNoEncontrado
+from pea.servicios.servicio_estadisticas import ServicioEstadisticas
 
 
 class CatalogoInvestigacion:
@@ -52,6 +54,10 @@ class CatalogoInvestigacion:
         self.pila_deshacer: Pila[ComandoInverso] = Pila()
         self.cola_importacion: Cola[TareaIngesta] = Cola()
 
+        # Hipercubo 5D para cálculo estadístico y agregaciones analíticas en memoria
+        self.hipercubo: Hipercubo5D = Hipercubo5D()
+        self.estadisticas: ServicioEstadisticas = ServicioEstadisticas(self.hipercubo)
+
         # Repositorios
         if self.cliente is not None:
             self.repo_grupos = RepositorioGrupos(self.cliente)
@@ -71,6 +77,10 @@ class CatalogoInvestigacion:
         if self.cliente is not None and self.sesion.esta_expirada():
             self.sesion.cerrar_sesion()
             raise ErrorAutenticacion("La sesión ha expirado.")
+
+    def sincronizar_hipercubo(self) -> None:
+        """Sincroniza el Hipercubo 5D a partir del estado actual de la Multilista."""
+        self.hipercubo.poblar_desde_multilista(self.multilista_productos)
 
     # =========================================================================
     # GESTIÓN DE GRUPOS
@@ -240,6 +250,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Eliminar grupo {codigo_gruplac}",
             )
         )
+        self.sincronizar_hipercubo()
         return grupo
 
     # =========================================================================
@@ -404,6 +415,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Eliminar investigador {codigo_rh}",
             )
         )
+        self.sincronizar_hipercubo()
         return inv
 
     # =========================================================================
@@ -522,6 +534,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Crear producto {producto.titulo}",
             )
         )
+        self.sincronizar_hipercubo()
         return producto
 
     def buscar_producto(self, codigo_identificador: str) -> Producto | None:
@@ -552,6 +565,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Desactivar producto {codigo_identificador}",
             )
         )
+        self.sincronizar_hipercubo()
 
     def activar_producto(self, codigo_identificador: str, persistir: bool = True) -> None:
         self._verificar_autenticacion_si_aplica()
@@ -578,6 +592,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Activar producto {codigo_identificador}",
             )
         )
+        self.sincronizar_hipercubo()
 
     def eliminar_producto(self, codigo_identificador: str, persistir: bool = True) -> Producto:
         self._verificar_autenticacion_si_aplica()
@@ -611,6 +626,7 @@ class CatalogoInvestigacion:
                 descripcion=f"Eliminar producto {codigo_identificador}",
             )
         )
+        self.sincronizar_hipercubo()
         return prod
 
     # =========================================================================
@@ -662,6 +678,7 @@ class CatalogoInvestigacion:
         if not self.pila_deshacer.esta_vacia():
             self.pila_deshacer.desapilar()
 
+        self.sincronizar_hipercubo()
         return comando
 
     # =========================================================================
@@ -738,6 +755,9 @@ class CatalogoInvestigacion:
             grp = grupo_de_prod.get(p.id) if p.id else None
             auts = autores_de_prod.get(p.id, []) if p.id else []
             self.multilista_productos.agregar_producto(p, grupo=grp, autores=auts)
+
+        # Sincronizar Hipercubo 5D
+        self.sincronizar_hipercubo()
 
         # 6. Sincronizar número de revisión
         self.controlador_revision.sincronizar(self.cliente)

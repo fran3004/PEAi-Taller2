@@ -28,6 +28,7 @@ add_library(pea_core STATIC
     include/pea/estructuras/multilista.hpp
     include/pea/estructuras/pila.hpp
     include/pea/estructuras/cola.hpp
+    include/pea/estructuras/hipercubo.hpp
     include/pea/dominio/grupo.hpp
     include/pea/dominio/investigador.hpp
     include/pea/dominio/integrante.hpp
@@ -38,6 +39,7 @@ add_library(pea_core STATIC
     include/pea/datos/revision.hpp
     include/pea/datos/repositorios.hpp
     include/pea/servicios/catalogo_investigacion.hpp
+    include/pea/servicios/servicio_estadisticas.hpp
     include/pea/ingesta/modelos.hpp
     include/pea/ingesta/parser_html.hpp
     include/pea/ingesta/lector_csv.hpp
@@ -49,6 +51,7 @@ add_library(pea_core STATIC
     src/datos/revision.cpp
     src/datos/repositorios.cpp
     src/servicios/catalogo_investigacion.cpp
+    src/servicios/servicio_estadisticas.cpp
     src/ingesta/parser_html.cpp
     src/ingesta/lector_csv.cpp
     src/ingesta/extractor_url.cpp
@@ -87,6 +90,7 @@ add_executable(pruebas_cpp
     tests/test_deshacer.cpp
     tests/test_resiliencia.cpp
     tests/test_ingesta.cpp
+    tests/test_hipercubo.cpp
 )
 
 target_link_libraries(pruebas_cpp PRIVATE
