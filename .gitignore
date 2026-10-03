@@ -8,10 +8,12 @@ __pycache__/
 
 # Compilación y paquetes
 build/
+cpp/build/
 out/
 dist/
 *.exe
 *.o
+*.a
 *.dll
 entrega/*.zip
 

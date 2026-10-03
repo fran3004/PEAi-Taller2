@@ -43,16 +43,28 @@ if ($LASTEXITCODE -eq 0) {
 
 # 3. Pruebas de C++
 Write-Host "`n[3/3] Verificando nucleo C++..." -ForegroundColor Yellow
-if (Test-Path "build\CMakeCache.txt") {
-    ctest --test-dir build --output-on-failure
+if (Test-Path "C:\msys64\ucrt64\bin") {
+    $env:PATH = "C:\msys64\ucrt64\bin;" + $env:PATH
+}
+
+$cpp_build_dir = if (Test-Path "cpp\build\CMakeCache.txt") { "cpp\build" } elseif (Test-Path "build\CMakeCache.txt") { "build" } else { "" }
+
+if ($cpp_build_dir -ne "") {
+    cmake --build $cpp_build_dir
     if ($LASTEXITCODE -eq 0) {
-        $tabla_resultados += [PSCustomObject]@{ Componente = "Pruebas C++"; Estado = "OK"; Detalle = "Suites CTest aprobadas" }
+        ctest --test-dir $cpp_build_dir --output-on-failure
+        if ($LASTEXITCODE -eq 0) {
+            $tabla_resultados += [PSCustomObject]@{ Componente = "Pruebas C++"; Estado = "OK"; Detalle = "Compilación (-Werror) y suites doctest aprobadas" }
+        } else {
+            $tabla_resultados += [PSCustomObject]@{ Componente = "Pruebas C++"; Estado = "FALLA"; Detalle = "Fallos en CTest" }
+            $codigo_salida = 1
+        }
     } else {
-        $tabla_resultados += [PSCustomObject]@{ Componente = "Pruebas C++"; Estado = "FALLA"; Detalle = "Fallos en CTest" }
+        $tabla_resultados += [PSCustomObject]@{ Componente = "Compilación C++"; Estado = "FALLA"; Detalle = "Error de compilación" }
         $codigo_salida = 1
     }
 } else {
-    $tabla_resultados += [PSCustomObject]@{ Componente = "Compilacion/Pruebas C++"; Estado = "sin pruebas aun"; Detalle = "Fase de diseno (previo a A6/A8)" }
+    $tabla_resultados += [PSCustomObject]@{ Componente = "Compilacion/Pruebas C++"; Estado = "sin pruebas aun"; Detalle = "No se encontró directorio cpp/build" }
 }
 
 # Resumen Final
