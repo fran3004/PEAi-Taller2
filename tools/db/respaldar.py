@@ -67,7 +67,11 @@ def cargar_configuracion() -> tuple[str, str]:
                 except Exception:
                     pass
 
-    return url.rstrip("/"), anon_key
+    url = url.rstrip("/")
+    if url.endswith("/rest/v1"):
+        url = url[:-len("/rest/v1")]
+
+    return url, anon_key
 
 
 def descargar_tabla(url: str, anon_key: str, tabla: str) -> list[dict]:

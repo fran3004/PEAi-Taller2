@@ -55,13 +55,15 @@ Implementar y formalizar el contrato real de base de datos relacional PostgreSQL
 
 ## Comandos y resultados
 - `pytest`: 13 pruebas pasadas, 1 deseleccionada (red), 0 fallas en 0.44s.
-- `python tools/db/respaldar.py`: Respaldo exitoso generado en `datos/respaldos/respaldo_20261003_060720.json`.
-- `npx supabase db push --dry-run`: Simulación exitosa contra la base remota de Supabase (`pea-prod` / `wdmchsncexayqbjueamb`), reconociendo la migración `20261003055532_001_esquema_inicial.sql`.
+- `npx supabase db push`: Migraciones `20261003055532_001_esquema_inicial.sql` y `20261003061247_002_permisos_meta_y_ping.sql` aplicadas exitosamente en la base de datos remota (`pea-prod`).
+- `python tools/db/ping.py`: Conexión HTTPS exitosa con código HTTP 200, revisión remota `11` y latencia sub-segundo.
+- `pytest -m red`: 1 prueba de red remota ejecutada y aprobada (100% verde).
 - `powershell -File scripts/verificar.ps1`: Todo en verde (Bóveda 65 notas íntegras, Pruebas Python 13/13 OK).
 
 ## Decisiones
 - Se adoptó `id bigint generated always as identity` para todas las entidades del dominio de acuerdo con la instrucción explícita del prompt y la skill `postgresql-supabase`.
 - Se configuró la lectura segura de credenciales de Supabase soportando `PEA_SUPABASE_URL_PROD` y `PEA_SUPABASE_KEY_PROD` conforme al contrato de proyecto único.
+- Se implementó la migración `002_permisos_meta_y_ping.sql` para definir `ping()` como `SECURITY DEFINER` y conceder lectura anónima sobre `meta`, permitiendo el sondeo y keep-alive de revisión sin exponer las tablas de dominio protegidas por RLS.
 
 ## Pendientes y siguiente paso
-- Presentar el reporte al usuario con el resultado del dry-run y solicitar su confirmación explícita para la ejecución de `npx supabase db push` definitivo.
+- Iniciar la Fase A6: Implementación de las estructuras de datos hechas a mano y modelos de dominio en C++17.

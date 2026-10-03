@@ -59,7 +59,11 @@ def cargar_configuracion() -> tuple[str, str]:
             except Exception as e:
                 print(f"[ADVERTENCIA] Error leyendo configuración: {e}", file=sys.stderr)
 
-    return url.rstrip("/"), anon_key
+    url = url.rstrip("/")
+    if url.endswith("/rest/v1"):
+        url = url[:-len("/rest/v1")]
+
+    return url, anon_key
 
 
 def ejecutar_ping() -> int:
