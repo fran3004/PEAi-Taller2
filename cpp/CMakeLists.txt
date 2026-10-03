@@ -38,12 +38,21 @@ add_library(pea_core STATIC
     include/pea/datos/revision.hpp
     include/pea/datos/repositorios.hpp
     include/pea/servicios/catalogo_investigacion.hpp
+    include/pea/ingesta/modelos.hpp
+    include/pea/ingesta/parser_html.hpp
+    include/pea/ingesta/lector_csv.hpp
+    include/pea/ingesta/extractor_url.hpp
+    include/pea/ingesta/servicio_ingesta.hpp
     src/cliente_http.cpp
     src/gui/ventana_principal.cpp
     src/datos/sesion.cpp
     src/datos/revision.cpp
     src/datos/repositorios.cpp
     src/servicios/catalogo_investigacion.cpp
+    src/ingesta/parser_html.cpp
+    src/ingesta/lector_csv.cpp
+    src/ingesta/extractor_url.cpp
+    src/ingesta/servicio_ingesta.cpp
     src/cli.cpp
 )
 
@@ -77,6 +86,7 @@ add_executable(pruebas_cpp
     tests/test_cascadas.cpp
     tests/test_deshacer.cpp
     tests/test_resiliencia.cpp
+    tests/test_ingesta.cpp
 )
 
 target_link_libraries(pruebas_cpp PRIVATE

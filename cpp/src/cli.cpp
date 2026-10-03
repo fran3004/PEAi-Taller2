@@ -2,6 +2,8 @@
 #include "pea/cliente_http.hpp"
 #include "pea/excepciones.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
+#include "pea/ingesta/servicio_ingesta.hpp"
+#include "pea/ingesta/extractor_url.hpp"
 #include "pea/version.hpp"
 
 #include <iostream>
@@ -39,6 +41,7 @@ void mostrarAyuda() {
               << "  ping                     Alias de verificar\n"
               << "  resumen [--json]         Muestra el resumen de entidades (o JSON canónico)\n"
               << "  importar-csv -a <f> -t <t> Importa entidades desde archivo CSV (grupos|investigadores|productos)\n"
+              << "  importar-url -u <u>        Importa entidades desde URL SCIENTI (GrupLAC o CvLAC)\n"
               << "  exportar-csv -d <dir>    Exporta entidades del catálogo a archivos CSV\n"
               << "  cargar-ejemplo           Carga datos oficiales de prueba con prefijo PRUEBA-\n"
               << "  aplicar-escenario        Ejecuta escenario de mutación y reversión (Undo LIFO)\n"
@@ -113,54 +116,58 @@ int comandoResumen(bool salidaJson) {
 }
 
 int comandoImportarCsv(const QString& rutaArchivo, const QString& tipo) {
-    QFile archivo(rutaArchivo);
-    if (!archivo.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        std::cerr << "Error: El archivo " << rutaArchivo.toStdString() << " no existe o no se puede leer.\n";
+    auto cliente = obtenerClienteDesdeEntorno();
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(cliente.get());
+    bool persistir = (cliente != nullptr);
+
+    ingesta::ServicioIngesta servicio(catalogo);
+    servicio.encolar_csv(rutaArchivo, tipo, persistir);
+    auto informe = servicio.procesar_siguiente();
+
+    if (!informe || !informe->exito) {
+        std::cerr << "Error al importar CSV: " << (informe ? informe->mensaje.toStdString() : "Error desconocido") << "\n";
         return 1;
     }
 
-    auto cliente = obtenerClienteDesdeEntorno();
-    servicios::CatalogoInvestigacion catalogo(cliente.get());
-    bool persistir = (cliente != nullptr);
-    int procesados = 0;
-
-    QTextStream in(&archivo);
-    QString cabecera = in.readLine();
-    QStringList columnas = cabecera.split(',');
-    for (int i = 0; i < columnas.size(); ++i) {
-        columnas[i] = columnas[i].trimmed();
+    int total = informe->grupos_procesados + informe->investigadores_procesados + informe->productos_procesados + informe->autores_procesados;
+    std::cout << "Importación completada: " << total << " entidades procesadas con éxito.\n";
+    if (!informe->filas_erroneas.isEmpty()) {
+        std::cout << "Aviso: " << informe->filas_erroneas.size() << " filas omitidas por inconsistencias.\n";
     }
-
-    while (!in.atEnd()) {
-        QString linea = in.readLine().trimmed();
-        if (linea.isEmpty()) continue;
-        QStringList valores = linea.split(',');
-        QJsonObject datos;
-        for (int i = 0; i < columnas.size() && i < valores.size(); ++i) {
-            datos[columnas[i]] = valores[i].trimmed();
-        }
-
-        try {
-            if (tipo == "grupos") {
-                auto g = std::make_shared<dominio::Grupo>(dominio::Grupo::desdeJson(datos));
-                catalogo.crear_grupo(g, persistir);
-                procesados++;
-            } else if (tipo == "investigadores") {
-                auto inv = std::make_shared<dominio::Investigador>(dominio::Investigador::desdeJson(datos));
-                catalogo.crear_investigador(inv, persistir);
-                procesados++;
-            } else if (tipo == "productos") {
-                auto p = std::make_shared<dominio::Producto>(dominio::Producto::desdeJson(datos));
-                catalogo.crear_producto(p, QString(), {}, persistir);
-                procesados++;
-            }
-        } catch (const std::exception& err) {
-            std::cerr << "Aviso al importar fila: " << err.what() << "\n";
-        }
-    }
-
-    std::cout << "Importación completada: " << procesados << " entidades de tipo '" << tipo.toStdString() << "' procesadas con éxito.\n";
     return 0;
+}
+
+int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
+    auto cliente = obtenerClienteDesdeEntorno();
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(cliente.get());
+    if (!cliente) {
+        persistir = false;
+    }
+
+    ingesta::ServicioIngesta servicio(catalogo);
+    try {
+        servicio.encolar_url(url, persistir, anonimizar);
+        auto informe = servicio.procesar_siguiente();
+        if (!informe || !informe->exito) {
+            std::cerr << "Error en extracción web: " << (informe ? informe->mensaje.toStdString() : "Error desconocido") << "\n";
+            return 1;
+        }
+
+        std::cout << "============================================================\n";
+        std::cout << "INFORME DE EXTRACCIÓN SCIENTI\n";
+        std::cout << "============================================================\n";
+        std::cout << "Origen:                   " << informe->origen.toStdString() << "\n";
+        std::cout << "Tipo de Fuente:           " << informe->tipo_fuente.toStdString() << "\n";
+        std::cout << "Grupos procesados:        " << informe->grupos_procesados << "\n";
+        std::cout << "Investigadores procesados: " << informe->investigadores_procesados << "\n";
+        std::cout << "Productos procesados:      " << informe->productos_procesados << "\n";
+        std::cout << "Estado:                   Extracción completada con éxito.\n";
+        std::cout << "============================================================\n";
+        return 0;
+    } catch (const std::exception& err) {
+        std::cerr << "Error: " << err.what() << "\n";
+        return 1;
+    }
 }
 
 int comandoExportarCsv(const QString& dirDestino) {
@@ -378,6 +385,26 @@ int ejecutar(const QStringList& args) {
             return 1;
         }
         return comandoImportarCsv(archivo, tipo);
+    }
+
+    if (comando == "importar-url") {
+        QString url;
+        bool persistir = false;
+        bool anonimizar = false;
+        for (int i = 1; i < args.size(); ++i) {
+            if ((args[i] == "-u" || args[i] == "--url") && i + 1 < args.size()) {
+                url = args[++i];
+            } else if (args[i] == "--persistir") {
+                persistir = true;
+            } else if (args[i] == "--anonimizar") {
+                anonimizar = true;
+            }
+        }
+        if (url.isEmpty()) {
+            std::cerr << "Error: Debe especificar la URL con -u o --url.\n";
+            return 1;
+        }
+        return comandoImportarUrl(url, persistir, anonimizar);
     }
 
     if (comando == "exportar-csv") {
