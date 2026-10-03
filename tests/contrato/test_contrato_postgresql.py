@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+
 import pytest
 
 
@@ -24,10 +25,10 @@ def contenido_migracion() -> str:
     dir_migraciones = Path("supabase/migrations")
     archivos = sorted(dir_migraciones.glob("*.sql"))
     assert len(archivos) > 0, "No se encontró ningún archivo de migración en supabase/migrations/"
-    
+
     contenido_total = ""
     for archivo in archivos:
-        with open(archivo, "r", encoding="utf-8") as f:
+        with open(archivo, encoding="utf-8") as f:
             contenido_total += f.read() + "\n"
     return contenido_total
 
@@ -83,7 +84,7 @@ def test_tabla_meta_y_mecanismo_revision(contenido_migracion: str):
         "producto_grupos",
     ]
     for t in tablas_revision:
-        patron_trg = rf"FOR\s+EACH\s+STATEMENT\s+EXECUTE\s+FUNCTION\s+public\.fn_incrementar_meta_revision\(\)"
+        patron_trg = r"FOR\s+EACH\s+STATEMENT\s+EXECUTE\s+FUNCTION\s+public\.fn_incrementar_meta_revision\(\)"
         assert re.search(patron_trg, contenido_migracion, re.IGNORECASE), \
             f"Falta trigger FOR EACH STATEMENT de revisión en {t}"
 

@@ -1,36 +1,23 @@
 #include <QApplication>
+#include <QStringList>
 #include <iostream>
 #include <string>
 #include "pea/version.hpp"
-#include "pea/cliente_http.hpp"
+#include "pea/cli.hpp"
 #include "pea/gui/ventana_principal.hpp"
 
 int main(int argc, char* argv[]) {
-    // Verificar argumentos de línea de comandos antes de QApplication si no requiere GUI
+    QStringList args;
     for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--version" || arg == "-v") {
-            std::cout << pea::obtener_version() << std::endl;
-            std::cout << "Soporte TLS/SSL: " << (pea::ClienteHTTPSupabase::soportaTLS() ? "Activado (" + pea::ClienteHTTPSupabase::backendTLS().toStdString() + ")" : "No disponible") << std::endl;
-            return 0;
-        }
-        if (arg == "--help" || arg == "-h") {
-            std::cout << "PEA-i · Programa Estadístico de Análisis de Investigación\n"
-                      << "Uso: pea-cpp [OPCIONES]\n\n"
-                      << "Opciones:\n"
-                      << "  -v, --version      Muestra la versión de la aplicación y sale\n"
-                      << "  -h, --help         Muestra este mensaje de ayuda y sale\n"
-                      << "  --autoprueba       Ejecuta un ciclo de verificación de GUI offscreen y sale\n";
-            return 0;
-        }
+        args.append(QString::fromLocal8Bit(argv[i]));
     }
 
-    bool autoprueba = false;
-    for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--autoprueba") {
-            autoprueba = true;
-            break;
-        }
+    // Si se pasa --autoprueba para prueba offscreen de GUI
+    bool autoprueba = args.contains("--autoprueba");
+
+    // Si hay argumentos de CLI y no es autoprueba de GUI, ejecutar CLI directamente
+    if (!args.isEmpty() && !autoprueba) {
+        return pea::cli::ejecutar(args);
     }
 
     if (autoprueba) {

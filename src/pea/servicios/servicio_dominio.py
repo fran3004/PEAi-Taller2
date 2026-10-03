@@ -748,3 +748,28 @@ class CatalogoInvestigacion:
             return False
         remota = self.controlador_revision.consultar_remota(self.cliente)
         return remota != self.controlador_revision.revision_local
+
+    def resumen_dict(self) -> dict[str, int]:
+        """Calcula el resumen de KPIs institucionales ordenado alfabéticamente."""
+        total_grupos = len(self.grupos)
+        grupos_activos = sum(1 for g in self.grupos if g.activo)
+        total_invs = len(self.investigadores)
+        invs_activos = sum(1 for i in self.investigadores if i.activo)
+        total_prods = len(self.multilista_productos)
+        prods_activos = sum(1 for p in self.multilista_productos if p.activo)
+        pila_tam = len(self.pila_deshacer)
+        return {
+            "grupos_activos": grupos_activos,
+            "grupos_totales": total_grupos,
+            "investigadores_activos": invs_activos,
+            "investigadores_totales": total_invs,
+            "pila_deshacer_tamano": pila_tam,
+            "productos_activos": prods_activos,
+            "productos_totales": total_prods,
+        }
+
+    def resumen_json(self) -> str:
+        """Genera el JSON compacto canónico byte-a-byte interoperable con C++."""
+        import json
+        return json.dumps(self.resumen_dict(), sort_keys=True, separators=(",", ":"))
+

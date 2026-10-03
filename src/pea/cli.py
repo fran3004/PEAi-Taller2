@@ -46,7 +46,9 @@ def crear_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("ping", help="Alias de verificar")
 
     # Comando resumen
-    subparsers.add_parser("resumen", help="Muestra el resumen estadístico de entidades en memoria y remotas")
+    parser_resumen = subparsers.add_parser("resumen", help="Muestra el resumen estadístico de entidades en memoria y remotas")
+    parser_resumen.add_argument("--json", action="store_true", help="Emite el resumen en formato JSON compacto canónico")
+
 
     # Comando importar-csv
     parser_importar = subparsers.add_parser("importar-csv", help="Importa entidades desde archivos CSV")
@@ -108,14 +110,19 @@ def comando_verificar() -> int:
         return 1
 
 
-def comando_resumen() -> int:
+def comando_resumen(salida_json: bool = False) -> int:
     cliente = _obtener_cliente_desde_entorno()
     catalogo = CatalogoInvestigacion(cliente=cliente)
     if cliente is not None:
         try:
             catalogo.recargar_todo()
         except Exception as err:
-            print(f"Aviso: no se pudo recargar de la base remota ({err}). Mostrando estado local.")
+            if not salida_json:
+                print(f"Aviso: no se pudo recargar de la base remota ({err}). Mostrando estado local.")
+
+    if salida_json:
+        print(catalogo.resumen_json())
+        return 0
 
     total_grupos = len(catalogo.grupos)
     grupos_activos = sum(1 for g in catalogo.grupos if g.activo)
@@ -135,6 +142,7 @@ def comando_resumen() -> int:
     print(f"Pila de Deshacer:        {len(catalogo.pila_deshacer)} operaciones apiladas")
     print("============================================================")
     return 0
+
 
 
 def comando_importar_csv(archivo_str: str, tipo: str) -> int:
@@ -328,7 +336,8 @@ def main(argv: list[str] | None = None) -> int:
     elif args.comando in ("verificar", "ping"):
         return comando_verificar()
     elif args.comando == "resumen":
-        return comando_resumen()
+        return comando_resumen(salida_json=args.json)
+
     elif args.comando == "importar-csv":
         return comando_importar_csv(args.archivo, args.tipo)
     elif args.comando == "exportar-csv":
