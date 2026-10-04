@@ -83,15 +83,15 @@ from pea.gui.estilo import (
     UPC_VERDE_CLARO,
     UPC_VERDE_OSCURO,
 )
+from pea.gui.pantallas.acerca import PantallaAcerca
+from pea.gui.pantallas.configuracion import PantallaConfiguracion
 from pea.gui.pantallas.grupos import PantallaGrupos
+from pea.gui.pantallas.importar import PantallaImportar
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
-from pea.gui.pantallas.pantalla_acerca import PantallaAcerca
-from pea.gui.pantallas.pantalla_conectar import PantallaConectar
 from pea.gui.pantallas.pantalla_cruzada import PantallaCruzada
 from pea.gui.pantallas.pantalla_gestion import PantallaGestion
 from pea.gui.pantallas.pantalla_grupo import PantallaGrupo
-from pea.gui.pantallas.pantalla_importar import PantallaImportar
 from pea.gui.pantallas.pantalla_investigador import PantallaInvestigador
 from pea.gui.pantallas.pantalla_producto import PantallaProducto
 from pea.gui.pantallas.pantalla_resumen import PantallaResumen
@@ -724,11 +724,24 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_redes_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
         self._pantalla_redes_modulo.abrir_investigador_solicitado.connect(self._al_solicitar_abrir_investigador)
 
-        # Módulos ya funcionales integrados
+        # Módulos oficiales rediseñados (Secciones 6.6, 6.7 y 6.8)
         self._pantalla_importar = PantallaImportar(self._servicio, self._ejecutor, parent=self._apilador)
-        self._pantalla_conectar = PantallaConectar(self._servicio, self._ejecutor, parent=self._apilador)
+        self._pantalla_importar.datos_modificados.connect(self.actualizar_estado_global)
+        self._pantalla_importar.solicitar_navegacion.connect(self.seleccionar_pantalla)
+
+        self._pantalla_configuracion_modulo = PantallaConfiguracion(
+            self._servicio, self._ejecutor, parent=self._apilador
+        )
+        self._pantalla_configuracion_modulo.estado_actualizado.connect(self.actualizar_estado_global)
+        self._pantalla_configuracion_modulo.datos_modificados.connect(self.actualizar_estado_global)
+        self._pantalla_configuracion_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_conectar = self._pantalla_configuracion_modulo  # alias retrocompatible
+
         self._pantalla_cruzada = PantallaCruzada(self._servicio, self._ejecutor, parent=self._apilador)
+
         self._pantalla_acerca = PantallaAcerca(self._servicio, parent=self._apilador)
+        self._pantalla_acerca.volver_solicitado.connect(lambda: self.seleccionar_pantalla(Pantalla.INICIO))
+        self._pantalla_acerca.solicitar_navegacion.connect(self.seleccionar_pantalla)
 
         # Pantallas anteriores retenidas para retrocompatibilidad interna
         self._pantalla_resumen = PantallaResumen(self._servicio, parent=self)
@@ -736,9 +749,6 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_investigador = PantallaInvestigador(self._servicio, parent=self)
         self._pantalla_producto = PantallaProducto(self._servicio, parent=self)
         self._pantalla_gestion = PantallaGestion(self._servicio, parent=self)
-
-        # Configuración contiene Conectar
-        self._pantalla_configuracion_modulo = self._pantalla_conectar
 
         self._pantallas_apiladas: list[QWidget] = [
             self._pantalla_inicio,  # 0: INICIO
@@ -754,8 +764,7 @@ class VentanaPrincipal(QMainWindow):
         for p in self._pantallas_apiladas:
             self._apilador.addWidget(p)
 
-        # Conectar señales
-        self._pantalla_conectar.estado_actualizado.connect(self.actualizar_estado_global)
+        # Conectar señales adicionales
         self._pantalla_gestion.datos_modificados.connect(self.actualizar_estado_global)
 
     # -----------------------------------------------------------------------
@@ -1224,6 +1233,39 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         ruta_red = salida_dir / f"pantalla_redes_{etiqueta}.png"
         pix.save(str(ruta_red), "PNG")
         print(f"[AUTOPRUEBA] Captura de redes guardada en {ruta_red}")
+
+    # Recorrido de la pantalla de Importación (Sección 6.6)
+    ventana.seleccionar_pantalla(Pantalla.IMPORTAR)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_imp = salida_dir / f"pantalla_importar_{etiqueta}.png"
+        pix.save(str(ruta_imp), "PNG")
+        print(f"[AUTOPRUEBA] Captura de importar guardada en {ruta_imp}")
+
+    # Recorrido de la pantalla de Configuración (Sección 6.7)
+    ventana.seleccionar_pantalla(Pantalla.CONFIGURACION)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_cfg = salida_dir / f"pantalla_configuracion_{etiqueta}.png"
+        pix.save(str(ruta_cfg), "PNG")
+        print(f"[AUTOPRUEBA] Captura de configuracion guardada en {ruta_cfg}")
+
+    # Recorrido de la pantalla Acerca de (Sección 6.8)
+    ventana.seleccionar_pantalla(Pantalla.ACERCA)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_ace = salida_dir / f"pantalla_acerca_{etiqueta}.png"
+        pix.save(str(ruta_ace), "PNG")
+        print(f"[AUTOPRUEBA] Captura de acerca guardada en {ruta_ace}")
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)

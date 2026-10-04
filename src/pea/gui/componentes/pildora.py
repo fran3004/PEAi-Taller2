@@ -107,6 +107,10 @@ class Pildora(QFrame):
     def texto(self) -> str:
         return self._lbl_texto.text()
 
+    def text(self) -> str:
+        """Alias para compatibilidad con interfaz convencional de widgets Qt."""
+        return self._lbl_texto.text()
+
     @property
     def color_fondo(self) -> str:
         return self._fondo
@@ -121,6 +125,10 @@ class Pildora(QFrame):
         clave = variante if variante is not None else texto
         fondo, color_texto = resolver_estilo_pildora(clave)
         self.establecer_colores(fondo, color_texto)
+
+    def establecer_variante(self, variante: str) -> None:
+        """Actualiza la variante semántica de color manteniendo el texto actual."""
+        self.establecer_texto(self._lbl_texto.text(), variante=variante)
 
     def establecer_colores(self, fondo: str, color_texto: str) -> None:
         """Aplica colores específicos de fondo y texto asegurando bordes redondeados."""

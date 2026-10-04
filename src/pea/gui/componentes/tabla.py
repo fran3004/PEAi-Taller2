@@ -441,6 +441,10 @@ class TablaEstilizada(QWidget):
         """Acceso al QSortFilterProxyModel para configurar filtros de texto o columnas."""
         return self._proxy
 
+    def model(self) -> Any:
+        """Devuelve el modelo activo (proxy) para compatibilidad directa con QTableView."""
+        return self._proxy
+
     def establecer_modelo(self, modelo: Any) -> None:
         """Asigna el modelo de datos de origen al proxy y actualiza el pie."""
         self._proxy.setSourceModel(modelo)
