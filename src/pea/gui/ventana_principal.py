@@ -84,6 +84,7 @@ from pea.gui.estilo import (
     UPC_VERDE_OSCURO,
 )
 from pea.gui.pantallas.inicio import PantallaInicio
+from pea.gui.pantallas.investigadores import PantallaInvestigadores
 from pea.gui.pantallas.pantalla_acerca import PantallaAcerca
 from pea.gui.pantallas.pantalla_conectar import PantallaConectar
 from pea.gui.pantallas.pantalla_cruzada import PantallaCruzada
@@ -672,13 +673,15 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_inicio.solicitar_navegacion.connect(self.seleccionar_pantalla)
         self._pantalla_inicio.filtro_cambiado.connect(self._al_cambiar_filtro_global)
 
-        self._pantalla_investigadores_modulo = MarcadorPantalla(
-            titulo="Directorio de Investigadores",
-            descripcion="Directorio institucional de investigadores con categorización CvLAC y producción.",
-            icono="investigadores.svg",
+        self._pantalla_investigadores_modulo = PantallaInvestigadores(
+            servicio=self._servicio,
+            ejecutor=self._ejecutor,
             filtro_global=self._filtro_global,
             parent=self._apilador,
         )
+        self._pantalla_investigadores_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_investigadores_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
+        self._pantalla_investigadores_modulo.datos_modificados.connect(self.actualizar_estado_global)
 
         self._pantalla_grupos_modulo = MarcadorPantalla(
             titulo="Directorio de Grupos",
@@ -1140,6 +1143,21 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         print(f"[AUTOPRUEBA] Captura de grupo guardada en {ruta_grp}")
         ventana._pantalla_inicio._selector_ambito.seleccionar("institucion")
         app.processEvents()
+
+    # Recorrido de la pantalla de Investigadores (Sección 6.2)
+    ventana.seleccionar_pantalla(Pantalla.INVESTIGADORES)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_inv = salida_dir / f"pantalla_investigadores_{etiqueta}.png"
+        pix.save(str(ruta_inv), "PNG")
+        print(f"[AUTOPRUEBA] Captura de investigadores guardada en {ruta_inv}")
+
+    # Restaurar a Inicio
+    ventana.seleccionar_pantalla(Pantalla.INICIO)
+    app.processEvents()
 
     print("[AUTOPRUEBA] Autoprueba completada exitosamente.")
     return 0

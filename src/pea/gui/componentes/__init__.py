@@ -16,11 +16,13 @@ from pea.gui.componentes.pildora import Pildora
 from pea.gui.componentes.popover_historial import PopoverHistorial
 from pea.gui.componentes.selector_segmentado import SelectorSegmentado
 from pea.gui.componentes.tabla import (
+    ROL_ACTIVO,
     AvatarNombreDelegate,
     EnlaceDelegate,
     NumeroDelegate,
     PildoraDelegate,
     TablaEstilizada,
+    TextoDelegate,
 )
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI, Minigrafico, TarjetaKPI
@@ -44,10 +46,12 @@ __all__ = [
     "PildoraDelegate",
     "PopoverFiltroAnios",
     "PopoverHistorial",
+    "ROL_ACTIVO",
     "SelectorSegmentado",
     "TablaEstilizada",
     "Tarjeta",
     "TarjetaKPI",
+    "TextoDelegate",
     "Toast",
     "animaciones_habilitadas",
     "duracion_efectiva",

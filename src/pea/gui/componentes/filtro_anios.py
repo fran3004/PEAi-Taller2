@@ -258,6 +258,10 @@ class ChipVentana(QPushButton):
         self.clicked.connect(self._abrir_popover)
         self._actualizar_etiqueta()
 
+    @property
+    def filtro(self) -> FiltroAnios:
+        return self._filtro
+
     def obtener_filtro(self) -> FiltroAnios:
         return self._filtro
 

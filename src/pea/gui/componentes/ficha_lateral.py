@@ -44,9 +44,10 @@ class FichaLateral(QFrame):
     cambiar_estado_solicitado = Signal()
     eliminar_solicitado = Signal()
     ver_completa_solicitado = Signal()
+    ver_productos_solicitado = Signal()
     accion_extra_solicitada = Signal(str)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, diametro_avatar: int = 80) -> None:
         super().__init__(parent)
         self.setObjectName("fichaLateral")
         self.setFixedWidth(360)
@@ -86,7 +87,7 @@ class FichaLateral(QFrame):
         layout_cab.setSpacing(6)
         layout_cab.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self._avatar = Avatar(diametro=80, nombre="", con_anillo=True, parent=self._contenedor_cabecera)
+        self._avatar = Avatar(diametro=diametro_avatar, nombre="", con_anillo=True, parent=self._contenedor_cabecera)
         layout_cab.addWidget(self._avatar, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._lbl_nombre = QLabel("Nombre de entidad", self._contenedor_cabecera)
@@ -186,6 +187,18 @@ class FichaLateral(QFrame):
         )
         self.btn_ver_completa.clicked.connect(self.ver_completa_solicitado.emit)
         self._layout_acciones.addWidget(self.btn_ver_completa)
+
+        # Botón para navegar a catálogo de productos («Ver productos»)
+        self.btn_ver_productos = QPushButton("Ver productos", self._contenedor_acciones)
+        self.btn_ver_productos.setAccessibleName("Abrir catálogo de productos de esta entidad")
+        self.btn_ver_productos.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ver_productos.setStyleSheet(
+            f"QPushButton {{ background-color: transparent; color: {PRIMARIO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
+            f"QPushButton:hover {{ background-color: #F1F5F9; border-color: {PRIMARIO}; }}"
+        )
+        self.btn_ver_productos.clicked.connect(self.ver_productos_solicitado.emit)
+        self._layout_acciones.addWidget(self.btn_ver_productos)
 
         layout_raiz.addWidget(self._contenedor_acciones)
 

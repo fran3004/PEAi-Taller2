@@ -80,6 +80,13 @@ class CampoBusqueda(QLineEdit):
         self.busqueda_ejecutada.emit(self.text().strip())
         self.texto_cambiado.emit(self.text().strip())
 
+    def establecer_texto(self, texto: str) -> None:
+        """Asigna texto programáticamente y emite la señal de inmediato."""
+        self._timer.stop()
+        self.setText(texto)
+        self.accion_limpiar.setVisible(bool(texto))
+        self.texto_cambiado.emit(texto.strip())
+
     def limpiar(self) -> None:
         """Limpia el contenido del campo y emite texto vacío inmediatamente."""
         self._timer.stop()

@@ -1032,7 +1032,7 @@ class ServicioAplicacion:
             claves=tuple(str(f[0]) for f in filas),
         )
 
-    def tabla_investigadores(self, texto: str = "") -> TablaDatos:
+    def tabla_investigadores(self, texto: str = "", filtro: FiltroAnios | None = None) -> TablaDatos:
         cat = self._catalogo
         texto_bajo = texto.strip().lower()
         filas: list[tuple[Any, ...]] = []
@@ -1040,7 +1040,10 @@ class ServicioAplicacion:
             if texto_bajo and texto_bajo not in f"{i.codigo_rh} {i.nombre_completo}".lower():
                 continue
             grupos = ", ".join(m.codigo_gruplac for m in cat.integrantes if m.codigo_rh == i.codigo_rh)
-            n_prod = sum(1 for p in cat.multilista_productos.obtener_productos_investigador(i.codigo_rh) if p.activo)
+            n_prod = sum(
+                1 for p in cat.multilista_productos.obtener_productos_investigador(i.codigo_rh)
+                if p.activo and (self._producto_en_filtro(p, filtro) if filtro else True)
+            )
             filas.append(
                 (
                     i.codigo_rh,

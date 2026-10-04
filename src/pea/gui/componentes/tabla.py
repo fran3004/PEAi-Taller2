@@ -64,8 +64,47 @@ from pea.gui.estilo import (
 from pea.gui.formato import formatear_decimal, formatear_entero, iniciales_nombre
 
 # ---------------------------------------------------------------------------
+# Rol de modelo para estado activo/inactivo (60% opacidad en delegados)
+# ---------------------------------------------------------------------------
+ROL_ACTIVO = int(Qt.ItemDataRole.UserRole) + 10
+
+
+# ---------------------------------------------------------------------------
 # Delegados
 # ---------------------------------------------------------------------------
+
+
+class TextoDelegate(QStyledItemDelegate):
+    """Renderiza texto en celdas normales con soporte para selección, hover y opacidad de inactivos."""
+
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+        texto = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        if option.state & QStyle.StateFlag.State_Selected:
+            painter.fillRect(option.rect, QColor("#E3EEF7"))
+        elif option.state & QStyle.StateFlag.State_MouseOver:
+            painter.fillRect(option.rect, QColor("#F3F7FB"))
+        else:
+            painter.fillRect(option.rect, QColor("#FFFFFF"))
+
+        if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
+            painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
+
+        if index.data(ROL_ACTIVO) is False:
+            painter.setOpacity(0.60)
+
+        fuente = QFont()
+        fuente.setPointSize(11)
+        painter.setFont(fuente)
+        painter.setPen(QPen(QColor(TEXTO)))
+
+        rect_txt = option.rect.adjusted(12, 0, -12, 0)
+        painter.drawText(rect_txt, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto)
+
+        painter.restore()
 
 
 class PildoraDelegate(QStyledItemDelegate):
@@ -91,6 +130,9 @@ class PildoraDelegate(QStyledItemDelegate):
         # Barra de acento si es primera columna y seleccionada
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
+
+        if index.data(ROL_ACTIVO) is False:
+            painter.setOpacity(0.60)
 
         fondo_hex, texto_hex = resolver_estilo_pildora(valor)
 
@@ -133,9 +175,14 @@ class AvatarNombreDelegate(QStyledItemDelegate):
             painter.fillRect(option.rect, QColor("#E3EEF7"))
         elif option.state & QStyle.StateFlag.State_MouseOver:
             painter.fillRect(option.rect, QColor("#F3F7FB"))
+        else:
+            painter.fillRect(option.rect, QColor("#FFFFFF"))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
+
+        if index.data(ROL_ACTIVO) is False:
+            painter.setOpacity(0.60)
 
         if not nombre:
             painter.restore()
@@ -195,9 +242,14 @@ class EnlaceDelegate(QStyledItemDelegate):
             painter.fillRect(option.rect, QColor("#E3EEF7"))
         elif option.state & QStyle.StateFlag.State_MouseOver:
             painter.fillRect(option.rect, QColor("#F3F7FB"))
+        else:
+            painter.fillRect(option.rect, QColor("#FFFFFF"))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
+
+        if index.data(ROL_ACTIVO) is False:
+            painter.setOpacity(0.60)
 
         if not texto or texto == "—":
             painter.restore()
@@ -245,9 +297,14 @@ class NumeroDelegate(QStyledItemDelegate):
             painter.fillRect(option.rect, QColor("#E3EEF7"))
         elif option.state & QStyle.StateFlag.State_MouseOver:
             painter.fillRect(option.rect, QColor("#F3F7FB"))
+        else:
+            painter.fillRect(option.rect, QColor("#FFFFFF"))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
+
+        if index.data(ROL_ACTIVO) is False:
+            painter.setOpacity(0.60)
 
         if val is None or val == "—":
             texto_formateado = "—"
@@ -353,6 +410,7 @@ class TablaEstilizada(QWidget):
         self._vista.setModel(self._proxy)
 
         # Delegados predeterminados disponibles
+        self.delegado_texto = TextoDelegate(self)
         self.delegado_pildora = PildoraDelegate(self)
         self.delegado_avatar = AvatarNombreDelegate(self)
         self.delegado_enlace = EnlaceDelegate(self)
@@ -395,6 +453,15 @@ class TablaEstilizada(QWidget):
             sm = self._vista.selectionModel()
             if sm is not None:
                 sm.selectionChanged.connect(self._al_cambiar_seleccion)
+
+    def establecer_proxy(self, proxy: QSortFilterProxyModel) -> None:
+        """Asigna un proxy personalizado para ordenamiento y filtrado avanzado."""
+        self._proxy = proxy
+        self._vista.setModel(proxy)
+        self.actualizar_pie()
+        sm = self._vista.selectionModel()
+        if sm is not None:
+            sm.selectionChanged.connect(self._al_cambiar_seleccion)
 
     def establecer_delegado_columna(self, columna: int, delegado: QStyledItemDelegate) -> None:
         """Asigna un delegado visual a una columna específica."""
