@@ -561,6 +561,80 @@ class CatalogoInvestigacion:
         self.sincronizar_hipercubo()
         return producto
 
+    def actualizar_producto(
+        self,
+        codigo_identificador: str,
+        datos: dict[str, Any],
+        persistir: bool = True,
+    ) -> Producto:
+        """Actualiza metadatos y/o grupo de un producto con soporte de reversión y deshacer."""
+        self._verificar_autenticacion_si_aplica()
+        nodo = self.multilista_productos.buscar_nodo(codigo_identificador)
+        if nodo is None:
+            raise RecursoNoEncontrado(f"Producto {codigo_identificador} no encontrado")
+
+        prod = nodo.producto
+        valores_anteriores: dict[str, Any] = {}
+        cambio_grupo = False
+        nuevo_grupo = None
+        grupo_antiguo_codigo = getattr(nodo.grupo, "codigo_gruplac", None)
+
+        # 1. Aplicar cambios en memoria
+        for campo, valor in datos.items():
+            if campo in ("codigo_grupo", "grupo", "_vinculo_grupo"):
+                cambio_grupo = True
+                valores_anteriores["codigo_grupo"] = grupo_antiguo_codigo
+                if valor:
+                    nuevo_grupo = self.buscar_grupo(str(valor))
+                    if nuevo_grupo is None:
+                        raise RecursoNoEncontrado(f"Grupo {valor} no encontrado")
+                else:
+                    nuevo_grupo = None
+                self.multilista_productos.cambiar_grupo_de_producto(codigo_identificador, nuevo_grupo)
+            elif hasattr(prod, campo):
+                valores_anteriores[campo] = getattr(prod, campo)
+                setattr(prod, campo, valor)
+
+        # 2. Persistir si aplica
+        if persistir and self.cliente is not None and self.repo_productos is not None and prod.id is not None:
+            try:
+                self.controlador_revision.verificar_consistencia(self.cliente)
+                campos_bd = {
+                    k: v
+                    for k, v in datos.items()
+                    if k not in ("codigo_grupo", "grupo", "_vinculo_grupo") and hasattr(prod, k)
+                }
+                if campos_bd:
+                    self.repo_productos.actualizar(codigo_identificador, campos_bd)
+                if cambio_grupo:
+                    self.repo_productos.desasociar_grupos(prod.id)
+                    if nuevo_grupo is not None and nuevo_grupo.id is not None:
+                        self.repo_productos.asociar_grupo(prod.id, nuevo_grupo.id, es_ejemplo=prod.es_ejemplo)
+                self.controlador_revision.actualizar_local(self.controlador_revision.revision_local + 1)
+            except Exception:
+                # Compensación en memoria tras fallo
+                for campo, val_ant in valores_anteriores.items():
+                    if campo == "codigo_grupo":
+                        grp_rest = self.buscar_grupo(val_ant) if val_ant else None
+                        self.multilista_productos.cambiar_grupo_de_producto(codigo_identificador, grp_rest)
+                    elif hasattr(prod, campo):
+                        setattr(prod, campo, val_ant)
+                self.sincronizar_hipercubo()
+                raise
+
+        # 3. Registrar en la pila de deshacer
+        self.pila_deshacer.apilar(
+            ComandoInverso(
+                tipo_operacion="editar",
+                tipo_entidad="producto",
+                identificador=codigo_identificador,
+                datos_reversion=valores_anteriores,
+                descripcion=f"Editar producto {codigo_identificador}",
+            )
+        )
+        self.sincronizar_hipercubo()
+        return prod
+
     def buscar_producto(self, codigo_identificador: str) -> Producto | None:
         return self.multilista_productos.buscar_producto(codigo_identificador)
 
@@ -702,6 +776,8 @@ class CatalogoInvestigacion:
                 self.actualizar_grupo(comando.identificador, comando.datos_reversion, persistir=persistir)
             elif comando.tipo_entidad == "investigador":
                 self.actualizar_investigador(comando.identificador, comando.datos_reversion, persistir=persistir)
+            elif comando.tipo_entidad == "producto":
+                self.actualizar_producto(comando.identificador, comando.datos_reversion, persistir=persistir)
 
         elif comando.tipo_operacion == "eliminar":
             # Si se eliminó, se reconstruye la entidad y sus vínculos desde la instantánea

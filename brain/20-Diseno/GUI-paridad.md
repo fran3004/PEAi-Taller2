@@ -58,9 +58,10 @@ Servicios nuevos creados para la interfaz de Python que C++ deberá replicar:
 
 | Servicio | Para qué sirve | Verificación |
 |---|---|---|
-| `serie_anual_por_categoria` | Barras apiladas por año y tipología (calculado desde el [[Hipercubo]]) | Comparar contra el oráculo |
-| `red_coautoria` (con grado, intermediación y densidad) | Análisis de redes (calculado desde la [[Multilista]]) | Mismo grafo y mismas métricas con datos canónicos |
-| `actualizar_producto` | Editar cualquier dato de un producto (requisito 9 y 11 del taller) | Prueba de cascada y deshacer |
+| `serie_anual_por_categoria` | Barras apiladas por año y tipología (calculado desde el [[Hipercubo]] con rebanada y enrollar) | Comparar contra el oráculo; suma por año coincide con `productos_por_anio` |
+| `red_coautoria` (con grado, intermediación y densidad) | Análisis de redes (calculado desde la [[Multilista]], con algoritmo de Brandes escrito a mano, determinista y coautores externos) | Mismo grafo y mismas métricas con datos canónicos |
+| `actualizar_producto` | Editar cualquier dato de un producto (título, tipología, subtipo, año, validación, grupo) con compensación y deshacer | Pruebas de edición, reversión en memoria y pila de deshacer |
+| `datos_ficha_grupo` / `datos_ficha_investigador` | Métricas para fichas: estudiantes del grupo, productos avalados, años con producción, coautores y aporte institucional | Comparar valores escalares contra la suite de pruebas unitarias |
 
 ## Decisiones relacionadas
 - [[ADR-0011-Paridad-arquitectural-Python-Cpp]]

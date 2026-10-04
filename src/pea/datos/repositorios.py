@@ -190,6 +190,18 @@ class RepositorioProductos:
             return Producto.model_validate(res[0])
         return producto
 
+    def actualizar(self, codigo_identificador: str, datos: dict[str, Any]) -> Producto:
+        res = self.cliente.patch("productos", datos, params={"codigo_identificador": f"eq.{codigo_identificador}"})
+        if isinstance(res, list) and len(res) > 0:
+            return Producto.model_validate(res[0])
+        p = self.obtener_por_codigo(codigo_identificador)
+        if p is None:
+            raise ValueError(f"Producto con código {codigo_identificador} no encontrado tras actualizar")
+        return p
+
+    def desasociar_grupos(self, producto_id: int) -> None:
+        self.cliente.eliminar("producto_grupos", params={"producto_id": f"eq.{producto_id}"})
+
     def asociar_grupo(self, producto_id: int, grupo_id: int, es_ejemplo: bool = False) -> None:
         self.cliente.post(
             "producto_grupos",

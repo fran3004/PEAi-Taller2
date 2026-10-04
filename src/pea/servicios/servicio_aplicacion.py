@@ -30,6 +30,7 @@ from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.estructuras.cola import EstadoTarea, TareaIngesta
+from pea.estructuras.hipercubo import Hipercubo5D
 from pea.estructuras.lista_doble import ListaDoble
 from pea.excepciones import ConflictoRevision, ErrorConexion, ErrorPEA, ErrorValidacion, RecursoNoEncontrado
 from pea.ingesta.servicio_ingesta import ServicioIngesta
@@ -80,6 +81,16 @@ _CAMPOS_EDITABLES_INVESTIGADOR = (
     "formacion_academica",
     "nacionalidad",
     "sexo",
+)
+_CAMPOS_EDITABLES_PRODUCTO = (
+    "titulo",
+    "tipo_mayor",
+    "subtipo",
+    "ano",
+    "mes",
+    "pais",
+    "estado_validacion",
+    "codigo_grupo",
 )
 
 
@@ -446,6 +457,45 @@ class ServicioAplicacion:
 
         return self._escribir(accion)
 
+    def actualizar_producto(self, codigo: str, datos: dict[str, Any]) -> str:
+        bruto = _limpiar(datos)
+        # Normalizar sinónimos comunes
+        if "tipologia" in bruto and "tipo_mayor" not in bruto:
+            bruto["tipo_mayor"] = bruto["tipologia"]
+        if "validacion" in bruto and "estado_validacion" not in bruto:
+            bruto["estado_validacion"] = bruto["validacion"]
+        if "grupo" in bruto and "codigo_grupo" not in bruto:
+            bruto["codigo_grupo"] = bruto["grupo"]
+        if "anio" in bruto and "ano" not in bruto:
+            bruto["ano"] = bruto["anio"]
+
+        valores = {k: v for k, v in bruto.items() if k in _CAMPOS_EDITABLES_PRODUCTO}
+
+        if "titulo" in valores and not valores.get("titulo"):
+            raise ErrorValidacion("El título del producto es obligatorio.")
+        if "tipo_mayor" in valores and valores["tipo_mayor"] not in TIPOLOGIAS:
+            raise ErrorValidacion("La tipología debe ser GNC, DTI, ASC o FRH.")
+        if "estado_validacion" in valores and valores["estado_validacion"] not in VALIDACIONES:
+            raise ErrorValidacion("La validación debe ser Avalado, Con soporte o No avalado.")
+        if "ano" in valores:
+            try:
+                anio = int(valores["ano"] or 0)
+            except (TypeError, ValueError) as err:
+                raise ErrorValidacion("El año debe ser un número entero.") from err
+            if not 1900 <= anio <= self._anio_actual() + 1:
+                raise ErrorValidacion(f"El año debe estar entre 1900 y {self._anio_actual() + 1}.")
+            valores["ano"] = anio
+        if "codigo_grupo" in valores and valores["codigo_grupo"]:
+            grp = self._catalogo.buscar_grupo(str(valores["codigo_grupo"]))
+            if grp is None:
+                raise RecursoNoEncontrado(f"Grupo {valores['codigo_grupo']} no encontrado")
+
+        def accion(persistir: bool) -> str:
+            self._catalogo.actualizar_producto(codigo, valores, persistir=persistir)
+            return f"Producto {codigo} actualizado."
+
+        return self._escribir(accion)
+
     # ------------------------------------------------------------------ comunes
     def cambiar_estado(self, entidad: str, codigo: str, activo: bool) -> str:
         """Activa o desactiva (activo=false, reversible) una entidad."""
@@ -597,6 +647,10 @@ class ServicioAplicacion:
             if not any(m.codigo_rh == cod for m in integrantes):
                 filas_int.append((cod, self._nombre_investigador(cod), "Coautor externo", n))
         filas_int.sort(key=lambda f: (-int(f[3]), str(f[1])))
+        estudiantes = sum(
+            1 for m in integrantes if "estudiante" in (m.rol or "").lower()
+        )
+        prod_avalados = int(vista["productos_por_validacion"].get("Avalado", 0))
         return {
             "codigo": codigo,
             "nombre": grupo.nombre,
@@ -605,6 +659,8 @@ class ServicioAplicacion:
             "activo": grupo.activo,
             "filtro": self.descripcion_filtro(filtro),
             "total_productos": vista["total_productos"],
+            "productos_avalados": prod_avalados,
+            "estudiantes": estudiantes,
             "porcentaje_sobre_institucion": vista["porcentaje_sobre_institucion"],
             "promedio_por_investigador": vista["promedio_por_investigador"],
             "productos_por_anio": dict(vista["productos_por_anio"]),
@@ -644,6 +700,17 @@ class ServicioAplicacion:
             for m in cat.integrantes
             if m.codigo_rh == codigo
         )
+        anios_con_prod = sum(1 for cant in vista["productos_por_anio"].values() if cant > 0)
+        coautores_set: set[str] = set()
+        for nodo in cat.multilista_productos.iterar_nodos():
+            if not nodo.producto.activo:
+                continue
+            autores_rh = [a.codigo_rh for a in nodo.autores if getattr(a, "codigo_rh", None)]
+            if codigo in autores_rh:
+                for a_rh in autores_rh:
+                    if a_rh != codigo:
+                        coautores_set.add(a_rh)
+        prod_avalados = int(vista["productos_por_validacion"].get("Avalado", 0))
         return {
             "codigo": codigo,
             "nombre": inv.nombre_completo,
@@ -652,6 +719,9 @@ class ServicioAplicacion:
             "activo": inv.activo,
             "filtro": self.descripcion_filtro(filtro),
             "total_productos": vista["total_productos"],
+            "productos_avalados": prod_avalados,
+            "anios_con_produccion": anios_con_prod,
+            "coautores": len(coautores_set),
             "productos_por_anio": dict(vista["productos_por_anio"]),
             "productos_por_categoria": dict(vista["productos_por_categoria"]),
             "porcentajes_categoria": dict(vista["porcentajes_categoria"]),
@@ -667,6 +737,201 @@ class ServicioAplicacion:
                 claves=tuple(m[0] for m in membresias),
             ),
             "productos": self.tabla_productos(filtro, codigo_investigador=codigo),
+        }
+
+    def datos_ficha_grupo(self, codigo: str, filtro: FiltroAnios) -> dict[str, Any]:
+        """Datos consolidados para la FichaGrupo (lateral o Inicio en modo grupo)."""
+        vg = self.vista_grupo(codigo, filtro)
+        return {
+            "codigo": vg["codigo"],
+            "nombre": vg["nombre"],
+            "categoria": vg["categoria"],
+            "lider": vg["lider"],
+            "activo": vg["activo"],
+            "filtro": vg["filtro"],
+            "total_productos": vg["total_productos"],
+            "productos_avalados": vg["productos_avalados"],
+            "estudiantes": vg["estudiantes"],
+            "porcentaje_sobre_institucion": vg["porcentaje_sobre_institucion"],
+            "promedio_por_investigador": vg["promedio_por_investigador"],
+            "productos_por_anio": vg["productos_por_anio"],
+            "productos_por_categoria": vg["productos_por_categoria"],
+            "productos_por_validacion": vg["productos_por_validacion"],
+        }
+
+    def datos_ficha_investigador(self, codigo: str, filtro: FiltroAnios) -> dict[str, Any]:
+        """Datos consolidados para la FichaInvestigador (lateral en pantalla Investigadores)."""
+        vi = self.vista_investigador(codigo, filtro)
+        mems = vi["membresias"].filas
+        grp_ppal = mems[0][1] if mems else "Sin grupo"
+        return {
+            "codigo": vi["codigo"],
+            "nombre": vi["nombre"],
+            "categoria": vi["categoria"],
+            "formacion": vi["formacion"],
+            "grupo_principal": grp_ppal,
+            "activo": vi["activo"],
+            "filtro": vi["filtro"],
+            "total_productos": vi["total_productos"],
+            "productos_avalados": vi["productos_avalados"],
+            "anios_con_produccion": vi["anios_con_produccion"],
+            "coautores": vi["coautores"],
+            "productos_por_anio": vi["productos_por_anio"],
+            "productos_por_categoria": vi["productos_por_categoria"],
+            "productos_por_validacion": vi["productos_por_validacion"],
+        }
+
+    def serie_anual_por_categoria(
+        self,
+        filtro: FiltroAnios,
+        codigo_grupo: str | None = None,
+    ) -> dict[int, dict[str, int]]:
+        """Calcula la matriz año × tipología (GNC, DTI, ASC, FRH) desde el hipercubo con rebanada y enrollar."""
+        cat = self._catalogo
+        if codigo_grupo:
+            grp = cat.buscar_grupo(codigo_grupo)
+            if grp is None:
+                raise RecursoNoEncontrado(f"Grupo {codigo_grupo} no encontrado")
+            cubo_base = cat.hipercubo.rebanada(Hipercubo5D.DIM_GRUPO, codigo_grupo)
+        else:
+            cubo_base = cat.hipercubo
+
+        inicio, fin, modelo = self._rango(filtro)
+        cubo_ventana = cat.estadisticas._resolver_cubo(
+            cubo=cubo_base,
+            modelo_2024=modelo,
+            anio_inicio=inicio,
+            anio_fin=fin,
+        )
+        return cat.estadisticas.serie_anual_por_categoria(cubo_ventana)
+
+    def red_coautoria(
+        self,
+        filtro: FiltroAnios,
+        codigo_grupo: str | None = None,
+        min_coautorias: int = 2,
+    ) -> dict[str, Any]:
+        """Calcula el grafo de coautorías y sus métricas topológicas desde la Multilista.
+
+        - Nodos: código, nombre, categoría, grupo principal, grado e intermediación de Brandes.
+        - Aristas: origen, destino y productos compartidos (>= min_coautorias).
+        - Resumen: investigadores, vínculos y densidad de la red.
+        - Si se filtra por grupo, incluye a sus integrantes y a los coautores externos participantes.
+        - Todo el cálculo y ordenamiento es determinista.
+        """
+        cat = self._catalogo
+        if codigo_grupo:
+            if cat.buscar_grupo(codigo_grupo) is None:
+                raise RecursoNoEncontrado(f"Grupo {codigo_grupo} no encontrado")
+
+        candidate_nodes: set[str] = set()
+        if codigo_grupo:
+            for m in cat.integrantes:
+                if m.codigo_gruplac == codigo_grupo:
+                    candidate_nodes.add(m.codigo_rh)
+
+        pesos: dict[tuple[str, str], int] = {}
+        for nodo in cat.multilista_productos.iterar_nodos():
+            prod: Producto = nodo.producto
+            if not prod.activo:
+                continue
+            if not self._producto_en_filtro(prod, filtro):
+                continue
+            cod_grp = getattr(nodo.grupo, "codigo_gruplac", None)
+            if codigo_grupo and cod_grp != codigo_grupo:
+                continue
+
+            autores_rh = sorted(
+                list({a.codigo_rh for a in nodo.autores if getattr(a, "codigo_rh", None)})
+            )
+            for a_rh in autores_rh:
+                candidate_nodes.add(a_rh)
+
+            if len(autores_rh) >= 2:
+                for i in range(len(autores_rh)):
+                    for j in range(i + 1, len(autores_rh)):
+                        par = (autores_rh[i], autores_rh[j])
+                        pesos[par] = pesos.get(par, 0) + 1
+
+        aristas: list[dict[str, Any]] = []
+        vecinos: dict[str, set[str]] = {u: set() for u in candidate_nodes}
+        for (u, v), peso in sorted(pesos.items()):
+            if peso >= min_coautorias:
+                aristas.append({"origen": u, "destino": v, "productos_compartidos": peso})
+                vecinos[u].add(v)
+                vecinos[v].add(u)
+
+        aristas.sort(key=lambda e: (-e["productos_compartidos"], e["origen"], e["destino"]))
+
+        # Algoritmo de Brandes para intermediación (Betweenness Centrality)
+        V = sorted(list(candidate_nodes))
+        n = len(V)
+        cb: dict[str, float] = {v: 0.0 for v in V}
+        for s in V:
+            S: list[str] = []
+            P: dict[str, list[str]] = {w: [] for w in V}
+            sigma: dict[str, int] = {w: 0 for w in V}
+            sigma[s] = 1
+            d: dict[str, int] = {w: -1 for w in V}
+            d[s] = 0
+            Q: list[str] = [s]
+            q_idx = 0
+            while q_idx < len(Q):
+                v = Q[q_idx]
+                q_idx += 1
+                S.append(v)
+                for w in sorted(vecinos.get(v, set())):
+                    if d[w] < 0:
+                        d[w] = d[v] + 1
+                        Q.append(w)
+                    if d[w] == d[v] + 1:
+                        sigma[w] += sigma[v]
+                        P[w].append(v)
+            delta: dict[str, float] = {w: 0.0 for w in V}
+            while S:
+                w = S.pop()
+                coeff = (1.0 + delta[w]) / sigma[w]
+                for v in P[w]:
+                    delta[v] += sigma[v] * coeff
+                if w != s:
+                    cb[w] += delta[w]
+
+        cb = {v: cb[v] / 2.0 for v in V}
+        norm_factor = 2.0 / ((n - 1) * (n - 2)) if n > 2 else 0.0
+        cb_norm = {v: round(cb[v] * norm_factor, 4) if n > 2 else 0.0 for v in V}
+
+        nodos: list[dict[str, Any]] = []
+        for u in V:
+            inv = cat.buscar_investigador(u)
+            nombre = inv.nombre_completo if inv else u
+            cat_inv = inv.categoria if inv and inv.categoria else "Sin categoría"
+            mems = [m for m in cat.integrantes if m.codigo_rh == u]
+            grp_ppal = self._nombre_grupo(mems[0].codigo_gruplac) if mems else "Sin grupo"
+            es_externo = bool(codigo_grupo and not any(m.codigo_gruplac == codigo_grupo for m in mems))
+            grado = len(vecinos.get(u, set()))
+            nodos.append(
+                {
+                    "codigo": u,
+                    "nombre": nombre,
+                    "categoria": cat_inv,
+                    "grupo_principal": grp_ppal,
+                    "grado": grado,
+                    "intermediacion": cb_norm[u],
+                    "es_externo": es_externo,
+                }
+            )
+
+        nodos.sort(key=lambda nd: (-nd["grado"], -nd["intermediacion"], nd["codigo"]))
+        densidad = round((2.0 * len(aristas)) / (n * (n - 1)), 4) if n > 1 else 0.0
+
+        return {
+            "nodos": tuple(nodos),
+            "aristas": tuple(aristas),
+            "resumen": {
+                "investigadores": n,
+                "vinculos": len(aristas),
+                "densidad": densidad,
+            },
         }
 
     def tabla_productos(

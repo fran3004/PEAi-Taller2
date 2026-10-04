@@ -242,6 +242,47 @@ class Multilista:
                 afectados += 1
         return afectados
 
+    def _reconstruir_enlaces_grupo(self, codigo_gruplac: str | None) -> None:
+        """Reconstruye los punteros anterior_en_grupo y siguiente_en_grupo para un grupo específico."""
+        if not codigo_gruplac:
+            return
+        prev: NodoProductoMultilista | None = None
+        for nodo in self.iterar_nodos():
+            if nodo.grupo is not None and getattr(nodo.grupo, "codigo_gruplac", None) == codigo_gruplac:
+                nodo.anterior_en_grupo = prev
+                if prev is not None:
+                    prev.siguiente_en_grupo = nodo
+                prev = nodo
+        if prev is not None:
+            prev.siguiente_en_grupo = None
+
+    def cambiar_grupo_de_producto(self, codigo_identificador: str, nuevo_grupo: Any | None) -> bool:
+        """Cambia el grupo asignado a un producto y actualiza los punteros intra-grupo."""
+        nodo = self.buscar_nodo(codigo_identificador)
+        if nodo is None:
+            return False
+
+        codigo_antiguo = getattr(nodo.grupo, "codigo_gruplac", None)
+        codigo_nuevo = getattr(nuevo_grupo, "codigo_gruplac", None)
+
+        if codigo_antiguo == codigo_nuevo:
+            return True
+
+        if nodo.anterior_en_grupo is not None:
+            nodo.anterior_en_grupo.siguiente_en_grupo = nodo.siguiente_en_grupo
+        if nodo.siguiente_en_grupo is not None:
+            nodo.siguiente_en_grupo.anterior_en_grupo = nodo.anterior_en_grupo
+        nodo.anterior_en_grupo = None
+        nodo.siguiente_en_grupo = None
+
+        nodo.grupo = nuevo_grupo
+        if codigo_antiguo:
+            self._reconstruir_enlaces_grupo(codigo_antiguo)
+        if codigo_nuevo:
+            self._reconstruir_enlaces_grupo(codigo_nuevo)
+
+        return True
+
     def limpiar(self) -> None:
         """Vacía y desvincula completamente la multilista."""
         actual = self.cabeza_global

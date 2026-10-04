@@ -76,6 +76,26 @@ class ServicioEstadisticas:
                 resultado[str(cat)] = cnt
         return resultado
 
+    def serie_anual_por_categoria(
+        self,
+        cubo: Hipercubo5D | None = None,
+    ) -> dict[int, dict[str, int]]:
+        """Calcula la matriz año × tipología (GNC, DTI, ASC, FRH) desde el hipercubo con rebanada y enrollar."""
+        c = cubo if cubo is not None else self.hipercubo
+        anios = sorted(c.enrollar(Hipercubo5D.DIM_ANIO).keys(), key=lambda x: int(x))
+        resultado: dict[int, dict[str, int]] = {}
+        for a in anios:
+            anio_int = int(a)
+            cubo_anio = c.rebanada(Hipercubo5D.DIM_ANIO, anio_int)
+            tipos = self.productos_por_categoria(cubo_anio)
+            resultado[anio_int] = {
+                "GNC": int(tipos.get("GNC", 0)),
+                "DTI": int(tipos.get("DTI", 0)),
+                "ASC": int(tipos.get("ASC", 0)),
+                "FRH": int(tipos.get("FRH", 0)),
+            }
+        return resultado
+
     def productos_por_validacion(
         self,
         cubo: Hipercubo5D | None = None,
