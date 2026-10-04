@@ -280,7 +280,7 @@ Referencia: ![[ref-red-coautorias.png]]. Detalle técnico en [[ADR-0015-Analisis
   - Leyenda abajo a la izquierda: categorías y «Tamaño = coautores · Grosor = productos compartidos».
 - **Panel de métricas**: fichas **Grado de conexión** («14 coautores») · **Intermediación** («0,084») · **Grupo principal** · **Categoría** · **Productos compartidos**. Sin selección: texto «Selecciona un nodo para ver su posición en la red.» y la lista **«Más conectados»** (5, clicables). Al fondo, tarjeta «Resumen de la red»: investigadores, vínculos y densidad.
 - **Rendimiento**: la disposición por fuerzas corre en `EjecutorAsincrono` con semilla fija (resultado repetible); más de 400 nodos → se muestran los 400 de mayor grado con aviso.
-- **Servicios**: `red_coautoria(filtro, codigo_grupo, min_coautorias)` (nuevo) que devuelve nodos, aristas y métricas calculadas en memoria desde la [[Multilista]].
+- **Servicios**: `red_coautoria(filtro, codigo_grupo, min_coautorias)` (nuevo) que devuelve nodos, aristas y métricas calculadas en memoria desde la [[Multilista]]. Al filtrar por un grupo específico, la red incluye tanto a los integrantes del grupo como a los coautores externos que participaron en productos del grupo (diferenciando su vinculación).
 
 ### 6.6 Importar
 

@@ -30,6 +30,7 @@ Se adopta el dibujo nativo. Detalle visual en la sección 6.5 de [[GUI-Diseno-Py
 - **Disposición**: algoritmo de fuerzas (Hooke y Coulomb) en un hilo secundario, con semilla fija para que el resultado se repita.
 - **Interacción**: zoom con la rueda, arrastre del lienzo, resaltado de vecinos al pasar el ratón, selección de nodo que llena el panel de métricas y doble clic que abre la ficha del investigador.
 - **Métricas** calculadas en memoria desde la [[Multilista]]: grado de conexión, intermediación (algoritmo de Brandes propio) y densidad de la red. Se exponen mediante el servicio `red_coautoria`.
+- **Alcance por grupo**: al filtrar por un grupo específico, la red incluye a los investigadores del grupo y también a los coautores externos que colaboren en productos de dicho grupo.
 - **Límites**: más de 400 nodos se recortan a los de mayor grado con aviso.
 
 ## Consecuencias
