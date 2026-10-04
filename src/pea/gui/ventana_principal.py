@@ -83,6 +83,7 @@ from pea.gui.estilo import (
     UPC_VERDE_CLARO,
     UPC_VERDE_OSCURO,
 )
+from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.pantalla_acerca import PantallaAcerca
 from pea.gui.pantallas.pantalla_conectar import PantallaConectar
 from pea.gui.pantallas.pantalla_cruzada import PantallaCruzada
@@ -662,13 +663,14 @@ class VentanaPrincipal(QMainWindow):
 
     def _inicializar_pantallas(self) -> None:
         # Pantallas existentes y marcadores modulares
-        self._pantalla_inicio = MarcadorPantalla(
-            titulo="Inicio · Panorama General",
-            descripcion="Panorama estadístico general y producción científica por grupos e investigadores.",
-            icono="inicio.svg",
+        self._pantalla_inicio = PantallaInicio(
+            servicio=self._servicio,
+            ejecutor=self._ejecutor,
             filtro_global=self._filtro_global,
             parent=self._apilador,
         )
+        self._pantalla_inicio.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_inicio.filtro_cambiado.connect(self._al_cambiar_filtro_global)
 
         self._pantalla_investigadores_modulo = MarcadorPantalla(
             titulo="Directorio de Investigadores",
@@ -883,6 +885,13 @@ class VentanaPrincipal(QMainWindow):
         self._timer_revision.setInterval(10000)
         self._timer_revision.timeout.connect(self._verificar_revision_en_segundo_plano)
         self._timer_revision.start()
+
+    def _al_cambiar_filtro_global(self, filtro: FiltroAnios) -> None:
+        """Propaga el filtro temporal a todas las pantallas apiladas."""
+        self._filtro_global = filtro
+        for p in self._pantallas_apiladas:
+            if hasattr(p, "establecer_filtro"):
+                p.establecer_filtro(filtro)
 
     # -----------------------------------------------------------------------
     # Navegación y Transición de Pantallas
@@ -1099,14 +1108,17 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     # Cargar demostración
     ventana._servicio.cargar_demostracion()
     ventana.actualizar_estado_global()
+    if hasattr(ventana._pantalla_inicio, "refrescar"):
+        ventana._pantalla_inicio.refrescar()
     ventana.show()
     app.processEvents()
 
-    # Recorrido de las 3 resoluciones oficiales de la sección 11
+    # Recorrido de las resoluciones oficiales de la sección 11
     tamanos = [
-        (1360, 820, "1360x820"),
+        (1366, 768, "1366x768"),
+        (1920, 1080, "1920x1080"),
         (1100, 700, "1100x700"),
-        (1600, 900, "1600x900"),
+        (1360, 820, "1360x820"),
     ]
 
     for ancho, alto, etiqueta in tamanos:
@@ -1116,6 +1128,18 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         ruta = salida_dir / f"pantalla_inicio_{etiqueta}.png"
         pix.save(str(ruta), "PNG")
         print(f"[AUTOPRUEBA] Captura guardada en {ruta}")
+
+    # Captura en modo Grupo a 1920x1080
+    if hasattr(ventana, "_pantalla_inicio") and hasattr(ventana._pantalla_inicio, "_selector_ambito"):
+        ventana.resize(1920, 1080)
+        ventana._pantalla_inicio._selector_ambito.seleccionar("grupo")
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_grp = salida_dir / "pantalla_inicio_grupo_1920x1080.png"
+        pix.save(str(ruta_grp), "PNG")
+        print(f"[AUTOPRUEBA] Captura de grupo guardada en {ruta_grp}")
+        ventana._pantalla_inicio._selector_ambito.seleccionar("institucion")
+        app.processEvents()
 
     print("[AUTOPRUEBA] Autoprueba completada exitosamente.")
     return 0

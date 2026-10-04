@@ -168,13 +168,14 @@ class GestorAvisos(QObject):
     """Administra y posiciona toasts apilables en la esquina inferior derecha de la ventana."""
 
     def __init__(self, ventana_padre: QWidget) -> None:
-        super().__init__(ventana_padre)
-        self._ventana = ventana_padre
+        self._ventana: QWidget = ventana_padre
         self._toasts: list[Toast] = []
+        super().__init__(ventana_padre)
         self._ventana.installEventFilter(self)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if watched == self._ventana and event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
+        ventana = getattr(self, "_ventana", None)
+        if ventana is not None and watched == ventana and event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
             self._reubicar_toasts()
         return super().eventFilter(watched, event)
 

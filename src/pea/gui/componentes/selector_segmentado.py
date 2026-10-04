@@ -99,13 +99,16 @@ class SelectorSegmentado(QFrame):
         if not self._clave_activa:
             self.seleccionar(clave)
 
-    def seleccionar(self, clave: str) -> None:
-        """Selecciona el segmento correspondiente a la clave sin emitir señal duplicada si ya está activo."""
+    def seleccionar(self, clave: str, emitir_senal: bool = True) -> None:
+        """Selecciona el segmento correspondiente a la clave y emite señal si cambió."""
         if clave not in self._botones:
             return
+        cambio = self._clave_activa != clave
         self._clave_activa = clave
         self._botones[clave].setChecked(True)
         self._actualizar_accesibilidad()
+        if emitir_senal and cambio:
+            self.opcion_cambiada.emit(clave)
 
     def clave_seleccionada(self) -> str:
         """Devuelve la clave de la opción actualmente activa."""
