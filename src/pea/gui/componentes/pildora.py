@@ -50,15 +50,15 @@ def resolver_estilo_pildora(variante_o_texto: str) -> tuple[str, str]:
         return (COLOR_VALIDACION_NO_AVALADO, TEXTO)
 
     # 3. Categorías de Investigadores
-    if clave == "Emérito":
+    if "Emérito" in clave or "Emerito" in clave:
         return (COLOR_CAT_EMERITO, TEXTO_SOBRE_OSCURO)
-    if clave == "Senior":
+    if "Senior" in clave:
         return (COLOR_CAT_SENIOR, TEXTO_SOBRE_OSCURO)
-    if clave == "Asociado":
+    if "Asociado" in clave:
         return (COLOR_CAT_ASOCIADO, TEXTO_SOBRE_OSCURO)
-    if clave == "Junior":
+    if "Junior" in clave:
         return (COLOR_CAT_JUNIOR, TEXTO_SOBRE_OSCURO)
-    if clave in ("Sin categoría", "Sin categoria", "Ninguna"):
+    if "Sin categoría" in clave or "Sin categoria" in clave or clave == "Ninguna":
         return (COLOR_CAT_SIN_CATEGORIA_FONDO, COLOR_CAT_SIN_CATEGORIA_TEXTO)
 
     # 4. Estados semánticos

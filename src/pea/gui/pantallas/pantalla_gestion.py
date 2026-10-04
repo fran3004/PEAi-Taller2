@@ -2,21 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QComboBox,
     QDialog,
-    QDialogButtonBox,
-    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
-    QSpinBox,
     QTableView,
     QTabWidget,
     QVBoxLayout,
@@ -24,180 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 from pea.gui.componentes.modelo_tabla import ModeloTabla
+from pea.gui.dialogos import DialogoGrupo, DialogoInvestigador, DialogoProducto
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
-
-
-class DialogoGrupo(QDialog):
-    """Formulario modal para crear o editar un grupo de investigación."""
-
-    def __init__(self, datos_previos: dict[str, Any] | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Nuevo Grupo" if datos_previos is None else "Editar Grupo")
-        self.setMinimumWidth(420)
-        self.es_edicion = datos_previos is not None
-
-        layout = QVBoxLayout(self)
-        layout_form = QFormLayout()
-
-        self.txt_codigo = QLineEdit(self)
-        self.txt_codigo.setPlaceholderText("Ej. COL0001234")
-        if self.es_edicion:
-            self.txt_codigo.setText(datos_previos.get("codigo_gruplac", ""))
-            self.txt_codigo.setEnabled(False)
-        layout_form.addRow("Código GrupLAC *:", self.txt_codigo)
-
-        self.txt_nombre = QLineEdit(self)
-        if datos_previos:
-            self.txt_nombre.setText(datos_previos.get("nombre", ""))
-        layout_form.addRow("Nombre del grupo *:", self.txt_nombre)
-
-        self.combo_cat = QComboBox(self)
-        self.combo_cat.addItems(["A1", "A", "B", "C", "Reconocido", "Sin clasificar"])
-        if datos_previos and datos_previos.get("categoria"):
-            self.combo_cat.setCurrentText(datos_previos["categoria"])
-        layout_form.addRow("Categoría Minciencias:", self.combo_cat)
-
-        self.txt_lider = QLineEdit(self)
-        if datos_previos:
-            self.txt_lider.setText(datos_previos.get("lider", "") or "")
-        layout_form.addRow("Líder del grupo:", self.txt_lider)
-
-        self.txt_inst = QLineEdit(self)
-        self.txt_inst.setText(
-            datos_previos.get("institucion_principal", "Universidad Popular del Cesar")
-            if datos_previos
-            else "Universidad Popular del Cesar"
-        )
-        layout_form.addRow("Institución principal:", self.txt_inst)
-
-        layout.addLayout(layout_form)
-
-        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        botones.accepted.connect(self.accept)
-        botones.rejected.connect(self.reject)
-        layout.addWidget(botones)
-
-    def obtener_datos(self) -> dict[str, Any]:
-        return {
-            "codigo_gruplac": self.txt_codigo.text().strip(),
-            "nombre": self.txt_nombre.text().strip(),
-            "categoria": self.combo_cat.currentText(),
-            "lider": self.txt_lider.text().strip() or None,
-            "institucion_principal": self.txt_inst.text().strip() or "Universidad Popular del Cesar",
-        }
-
-
-class DialogoInvestigador(QDialog):
-    """Formulario modal para crear o editar un investigador."""
-
-    def __init__(self, datos_previos: dict[str, Any] | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Nuevo Investigador" if datos_previos is None else "Editar Investigador")
-        self.setMinimumWidth(420)
-        self.es_edicion = datos_previos is not None
-
-        layout = QVBoxLayout(self)
-        layout_form = QFormLayout()
-
-        self.txt_codigo = QLineEdit(self)
-        self.txt_codigo.setPlaceholderText("Ej. 0000494917")
-        if self.es_edicion:
-            self.txt_codigo.setText(datos_previos.get("codigo_rh", ""))
-            self.txt_codigo.setEnabled(False)
-        layout_form.addRow("Código CvLAC (RH) *:", self.txt_codigo)
-
-        self.txt_nombre = QLineEdit(self)
-        if datos_previos:
-            self.txt_nombre.setText(datos_previos.get("nombre_completo", ""))
-        layout_form.addRow("Nombre completo *:", self.txt_nombre)
-
-        self.combo_cat = QComboBox(self)
-        self.combo_cat.addItems(["Emerito", "Senior", "Asociado", "Junior", "Sin categoria"])
-        if datos_previos and datos_previos.get("categoria"):
-            self.combo_cat.setCurrentText(datos_previos["categoria"])
-        layout_form.addRow("Categoría Minciencias:", self.combo_cat)
-
-        self.combo_form = QComboBox(self)
-        self.combo_form.addItems(["Doctorado", "Maestria", "Especializacion", "Pregrado"])
-        if datos_previos and datos_previos.get("formacion_academica"):
-            self.combo_form.setCurrentText(datos_previos["formacion_academica"])
-        layout_form.addRow("Formación académica:", self.combo_form)
-
-        layout.addLayout(layout_form)
-
-        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        botones.accepted.connect(self.accept)
-        botones.rejected.connect(self.reject)
-        layout.addWidget(botones)
-
-    def obtener_datos(self) -> dict[str, Any]:
-        return {
-            "codigo_rh": self.txt_codigo.text().strip(),
-            "nombre_completo": self.txt_nombre.text().strip(),
-            "categoria": self.combo_cat.currentText(),
-            "formacion_academica": self.combo_form.currentText(),
-        }
-
-
-class DialogoProducto(QDialog):
-    """Formulario modal para registrar un nuevo producto enlazado en multilista."""
-
-    def __init__(self, grupos: list[tuple[str, str]], parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Nuevo Producto Científico")
-        self.setMinimumWidth(460)
-
-        layout = QVBoxLayout(self)
-        layout_form = QFormLayout()
-
-        self.txt_codigo = QLineEdit(self)
-        self.txt_codigo.setPlaceholderText("Ej. PROD-00123")
-        layout_form.addRow("Código identificador *:", self.txt_codigo)
-
-        self.txt_titulo = QLineEdit(self)
-        layout_form.addRow("Título del producto *:", self.txt_titulo)
-
-        self.combo_tipo = QComboBox(self)
-        self.combo_tipo.addItems(["GNC", "DTI", "ASC", "FRH"])
-        layout_form.addRow("Tipología mayor *:", self.combo_tipo)
-
-        self.txt_subtipo = QLineEdit(self)
-        self.txt_subtipo.setPlaceholderText("Artículo, Libro, Software...")
-        layout_form.addRow("Subtipo:", self.txt_subtipo)
-
-        self.spin_ano = QSpinBox(self)
-        self.spin_ano.setRange(1950, 2030)
-        self.spin_ano.setValue(2024)
-        layout_form.addRow("Año de publicación *:", self.spin_ano)
-
-        self.combo_val = QComboBox(self)
-        self.combo_val.addItems(["Avalado", "Con soporte", "No avalado"])
-        layout_form.addRow("Estado de validación:", self.combo_val)
-
-        self.combo_grupo = QComboBox(self)
-        self.combo_grupo.addItem("Sin grupo asignado", None)
-        for cod, nom in grupos:
-            self.combo_grupo.addItem(f"{nom} ({cod})", cod)
-        layout_form.addRow("Grupo asociado:", self.combo_grupo)
-
-        layout.addLayout(layout_form)
-
-        botones = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        botones.accepted.connect(self.accept)
-        botones.rejected.connect(self.reject)
-        layout.addWidget(botones)
-
-    def obtener_datos(self) -> tuple[dict[str, Any], str | None]:
-        datos = {
-            "codigo_identificador": self.txt_codigo.text().strip(),
-            "titulo": self.txt_titulo.text().strip(),
-            "tipo_mayor": self.combo_tipo.currentText(),
-            "subtipo": self.txt_subtipo.text().strip() or None,
-            "ano": self.spin_ano.value(),
-            "estado_validacion": self.combo_val.currentText(),
-        }
-        grupo_cod = self.combo_grupo.currentData()
-        return datos, grupo_cod
 
 
 class PantallaGestion(QWidget):
