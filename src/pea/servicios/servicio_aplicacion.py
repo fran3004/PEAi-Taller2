@@ -1006,7 +1006,7 @@ class ServicioAplicacion:
             "en_ventana_modelo_2024": self._producto_en_filtro(prod, FiltroAnios(modo=ModoFiltroAnios.MODELO_2024)),
         }
 
-    def tabla_grupos(self, texto: str = "") -> TablaDatos:
+    def tabla_grupos(self, texto: str = "", filtro: FiltroAnios | None = None) -> TablaDatos:
         cat = self._catalogo
         texto_bajo = texto.strip().lower()
         filas: list[tuple[Any, ...]] = []
@@ -1014,7 +1014,10 @@ class ServicioAplicacion:
             if texto_bajo and texto_bajo not in f"{g.codigo_gruplac} {g.nombre} {g.lider or ''}".lower():
                 continue
             n_int = sum(1 for m in cat.integrantes if m.codigo_gruplac == g.codigo_gruplac)
-            n_prod = sum(1 for p in cat.multilista_productos.obtener_productos_grupo(g.codigo_gruplac) if p.activo)
+            n_prod = sum(
+                1 for p in cat.multilista_productos.obtener_productos_grupo(g.codigo_gruplac)
+                if p.activo and (self._producto_en_filtro(p, filtro) if filtro else True)
+            )
             filas.append(
                 (
                     g.codigo_gruplac,

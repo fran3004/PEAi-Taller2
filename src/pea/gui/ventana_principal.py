@@ -83,6 +83,7 @@ from pea.gui.estilo import (
     UPC_VERDE_CLARO,
     UPC_VERDE_OSCURO,
 )
+from pea.gui.pantallas.grupos import PantallaGrupos
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
 from pea.gui.pantallas.pantalla_acerca import PantallaAcerca
@@ -683,13 +684,15 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_investigadores_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
         self._pantalla_investigadores_modulo.datos_modificados.connect(self.actualizar_estado_global)
 
-        self._pantalla_grupos_modulo = MarcadorPantalla(
-            titulo="Directorio de Grupos",
-            descripcion="Directorio de grupos de investigación clasificados según GrupLAC.",
-            icono="grupos.svg",
+        self._pantalla_grupos_modulo = PantallaGrupos(
+            servicio=self._servicio,
+            ejecutor=self._ejecutor,
             filtro_global=self._filtro_global,
             parent=self._apilador,
         )
+        self._pantalla_grupos_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_grupos_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
+        self._pantalla_grupos_modulo.datos_modificados.connect(self.actualizar_estado_global)
 
         self._pantalla_productos_modulo = MarcadorPantalla(
             titulo="Catálogo de Productos",
@@ -1154,6 +1157,17 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         ruta_inv = salida_dir / f"pantalla_investigadores_{etiqueta}.png"
         pix.save(str(ruta_inv), "PNG")
         print(f"[AUTOPRUEBA] Captura de investigadores guardada en {ruta_inv}")
+
+    # Recorrido de la pantalla de Grupos (Sección 6.3)
+    ventana.seleccionar_pantalla(Pantalla.GRUPOS)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_grp = salida_dir / f"pantalla_grupos_{etiqueta}.png"
+        pix.save(str(ruta_grp), "PNG")
+        print(f"[AUTOPRUEBA] Captura de grupos guardada en {ruta_grp}")
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)
