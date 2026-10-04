@@ -1,32 +1,36 @@
 ---
 tipo: adr
-estado: aprobado
+estado: revisado
 creado: 2026-10-03
 actualizado: 2026-10-03
 relacionado:
   - "[[_Indice]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
   - "[[Pila-deshacer]]"
   - "[[Cola-importacion]]"
-origen: "AGENTS.md y AUDITORIA-DISENO-PEAI.md - Fase 12"
+origen: "Rediseño de la interfaz de Python, 2026-10-03"
 ---
 
-# ADR-0013 · Integración de Vistas Secundarias: Historial, Cola y Gestión
+# ADR-0013 · Vistas secundarias: historial, cola, formularios y verificación cruzada
 
 ## Contexto
-Además de la consulta analítica y visualización de productos, el sistema PEA-i debe proveer visibilidad sobre las operaciones en curso: tareas asíncronas de importación web, historial de mutaciones para deshacer/rehacer y formularios de gestión de entidades. Esconder estas operaciones o dejarlas sin interfaz visual genera incertidumbre en el usuario sobre el estado de sus datos.
+Además de consultar datos, la persona necesita ver qué puede deshacer, cómo avanza la importación, crear o corregir registros y, para el taller, comprobar que Python y C++ dan el mismo resultado. Dejar estas tareas ocultas genera incertidumbre; ponerlas todas en la navegación principal la satura.
 
 ## Opciones consideradas
-1. **Ocultar el estado en segundo plano y limitar la interacción a atajos ciegos (Ctrl+Z)**: El usuario desconoce cuántos cambios puede deshacer o si una descarga web de CvLAC continúa ejecutándose.
-2. **Diálogos modales y paneles secundarios acoplables (*QDockWidget* o pestañas de vista)**: Integrar vistas secundarias dedicadas para:
-   - Panel de Historial de Operaciones: Visualiza el contenido de la [[Pila-deshacer]].
-   - Monitor de la Cola de Importación: Muestra el progreso de la [[Cola-importacion]] con estado de reintentos y tiempo transcurrido.
-   - Vistas de Formulario: Creación y edición validada de grupos, investigadores y productos.
+1. **Paneles acoplables (`QDockWidget`) y una pantalla por tarea**: flexible, pero fragmenta la ventana y no encaja con el diseño de barra superior.
+2. **Cada vista secundaria donde se usa**: el historial junto al botón Deshacer, la cola dentro de Importar, los formularios como diálogos y la verificación cruzada dentro de Configuración. **Elegida.**
 
 ## Decisión
-Se adopta la **integración de vistas secundarias acoplables y paneles de monitoreo** formalizada en [[GUI-paridad]].
-El usuario puede inspeccionar en cualquier momento el historial de deshacer y el avance de las colas de importación asíncronas, garantizando transparencia operativa total sin bloquear el uso regular del panel principal.
+| Vista | Dónde vive |
+|---|---|
+| Historial de operaciones ([[Pila-deshacer]]) | Popover del botón Deshacer en la barra superior |
+| Monitor de la [[Cola-importacion]] | Pantalla **Importar**, tarjeta «Cola de importación» (con estados y progreso) |
+| Altas y ediciones de grupos, investigadores y productos | Diálogos modales con el estilo del sistema, abiertos desde cada directorio |
+| Activar/desactivar y eliminar con cascada | Botones de la ficha lateral de cada directorio |
+| Verificación cruzada Python / C++ | **Configuración › Verificación cruzada** |
+| Conexión con Supabase | **Configuración › Conexión** |
 
 ## Consecuencias
-- **Positivas**: Control absoluto del usuario sobre los procesos en segundo plano y el historial de cambios reversibles.
-- **Costos**: Requiere la implementación de modelos de tabla adicionales para alimentar las vistas secundarias a partir de la pila y la cola.
+- **Positivas**: la navegación principal queda limpia; cada herramienta está junto a lo que afecta.
+- **Costos**: la antigua pantalla «Gestión de datos» desaparece y sus diálogos se reubican en `src/pea/gui/dialogos.py`.

@@ -18,6 +18,9 @@ commit: "pendiente"
 
 # Bitácora · Hipercubo 5D y Estadísticas en Memoria (Python y C++)
 
+> [!WARNING] Nota de vigencia (2026-10-03)
+> Registro histórico. Los gráficos de Python se hacen con `QPainter`, **no** con `matplotlib` ([[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]); el diseño vigente está en [[GUI-Diseno-Python]].
+
 ## Objetivo
 Implementar la estructura de datos hecha a mano **Hipercubo 5D** (Grupo × Investigador × Categoría × Año × Validación) y la capa analítica de **Servicio de Estadísticas** en Python y C++17, garantizando que el 100% de las métricas estadísticas se calculen exclusivamente en memoria sin recurrir a consultas de agregación SQL (`GROUP BY`, `SUM`, `COUNT`), documentando con rigor normativo la distinción entre filtros de interfaz, ventana general del Modelo 2024 y ventanas diferenciadas por tipología.
 

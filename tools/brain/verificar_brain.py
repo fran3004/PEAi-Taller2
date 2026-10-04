@@ -108,6 +108,11 @@ def verificar_boveda(raiz_repo: Path, restaurar: bool = False) -> int:
             sub_rel = f"{rel.parts[-2].lower()}/{nota.stem.lower()}"
             nombres_notas[sub_rel] = nota
 
+    # Adjuntos (imágenes y otros archivos) que se enlazan como ![[nombre.png]]
+    adjuntos = {
+        f.name.lower() for f in (boveda / "_adjuntos").rglob("*") if f.is_file()
+    } if (boveda / "_adjuntos").exists() else set()
+
     # 1. Validar cada nota
     for nota in todas_notas:
         rel = nota.relative_to(boveda)
@@ -186,7 +191,7 @@ def verificar_boveda(raiz_repo: Path, restaurar: bool = False) -> int:
         # Enlaces rotos en todo el contenido
         for link in WIKILINK_RE.findall(contenido):
             link_clean = link.strip().lower()
-            if link_clean and link_clean not in nombres_notas:
+            if link_clean and link_clean not in nombres_notas and link_clean not in adjuntos:
                 # Si el enlace apunta a un archivo que aún no existe
                 advertencias.append(f"[{rel}] Enlace a nota no encontrada: [[{link}]]")
 

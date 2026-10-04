@@ -35,6 +35,10 @@ origen: "Ejecución de tarea A4-D2"
 
 # Bitácora de Sesión · A4-D2: Materialización y Reconciliación del Diseño PEA-i
 
+> [!WARNING] Nota de vigencia (2026-10-03)
+> Este documento es un registro histórico. **El diseño de la interfaz de Python que rige hoy** está en [[GUI-Diseno-Python]] (con [[ADR-0012-Diseno-GUI-y-navegacion]], [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]] y [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]). Lo que aquí se diga sobre barra lateral, cuatro zonas, nueve pantallas o `matplotlib` quedó **reemplazado**.
+
+
 - **Agente**: Antigravity (Pair Programming con Desarrollador)
 - **Fecha**: 2026-10-03
 - **Rol**: Arquitecto de Software / Ingeniero de Datos / QA

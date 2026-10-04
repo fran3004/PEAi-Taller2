@@ -1,6 +1,6 @@
 ---
 name: python-pyside6
-description: Usar al escribir o depurar el paquete Python pea (arquitectura por capas, PySide6, matplotlib embebido, hilos para la red, pruebas con pytest-qt en modo offscreen, tipos y ruff).
+description: Usar al escribir o depurar el paquete Python pea (arquitectura por capas, PySide6 con Qt Widgets, QSS y QPainter, hilos para la red, pruebas con pytest-qt en modo offscreen, tipos y ruff). La interfaz sigue brain/20-Diseno/GUI-Diseno-Python.md.
 ---
 # Python 3.12 y PySide6 en PEA-i
 
@@ -11,10 +11,14 @@ description: Usar al escribir o depurar el paquete Python pea (arquitectura por 
 - Tokens y claves solo en memoria; nunca en logs ni en disco.
 
 ## Interfaz
-- PySide6. Una ventana principal con barra lateral y páginas apiladas (Resumen general, Por grupo, Por investigador, Por producto, Gestión de datos, Importar, Verificación cruzada, Acerca del proyecto).
-- Gráficos con matplotlib dentro de Qt: `matplotlib.use("QtAgg")` y `FigureCanvasQTAgg`. Ejes y leyendas en español; paleta de la UPC.
-- Tablas con un modelo `QAbstractTableModel` y `QSortFilterProxyModel` para ordenar y buscar.
-- Todo texto en español. Si no hay datos, "Sin datos".
+- **Antes de tocar `src/pea/gui/`**: lee `brain/20-Diseno/GUI-Diseno-Python.md` completo y mira las imágenes de `brain/_adjuntos/ref-*`. Esa nota manda sobre cualquier otro texto.
+- Una ventana principal con barra superior de siete pestañas (Inicio, Investigadores, Grupos, Productos, Análisis de redes, Importar, Configuración) sobre un `QStackedWidget`, filete institucional y pie con estado de conexión. No hay barra lateral.
+- Solo Qt Widgets + hoja de estilo central (`estilo.py` con tokens) + `QPainter` + `QtSvg`. Gráficos propios (`GraficoBarrasApiladas`, `GraficoDonaDoble`, `GraficoSerieAnual`, `Minigrafico`, `MiniRed`) y red con `QGraphicsView`. **Prohibido** QML, QtWebEngine, matplotlib y QtCharts (ADR-0017).
+- Tablas con `QAbstractTableModel` + `QSortFilterProxyModel` y delegados (píldoras, avatar + nombre, enlace, número).
+- Sombras con `QGraphicsDropShadowEffect` solo en tarjetas contenedoras. Animaciones con `QVariantAnimation`, desactivables con `PEA_SIN_ANIMACIONES=1`.
+- Números con `QLocale(Spanish, Colombia)` a través de `gui/formato.py`.
+- Todo texto en español. Si no hay datos, "Sin datos en esta ventana".
+- No se muestra nada que PEA-i no tenga (H-Index, ORCID, semilleros, centros, logos de terceros): ver ADR-0016.
 
 ## Hilos y red
 - La red y la importación NUNCA bloquean la interfaz: usar `QThreadPool` con `QRunnable` o un `QThread` con señales.
@@ -28,6 +32,7 @@ description: Usar al escribir o depurar el paquete Python pea (arquitectura por 
 
 ## Lista de comprobación
 - [ ] `ruff check` y `pytest` en verde.
-- [ ] La ventana abre en 1280x720 y responde mientras carga datos.
+- [ ] La ventana abre en 1360x820 (mínimo 1100x700) y responde mientras carga datos.
+- [ ] Capturas de la autoprueba en 1100x700, 1366x768 y 1920x1080 comparadas con las referencias.
 - [ ] Sin textos en inglés en pantalla.
 - [ ] El archivo de arranque `Taller2_AB_PO_XX.py` solo llama a `pea.gui`.

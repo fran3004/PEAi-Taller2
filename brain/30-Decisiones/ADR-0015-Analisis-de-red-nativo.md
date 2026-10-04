@@ -1,32 +1,37 @@
 ---
 tipo: adr
-estado: aprobado
+estado: revisado
 creado: 2026-10-03
 actualizado: 2026-10-03
 relacionado:
   - "[[_Indice]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
   - "[[Multilista]]"
+  - "[[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]"
   - "[[SPEC]]"
-origen: "AGENTS.md y AUDITORIA-DISENO-PEAI.md - Fase 12"
+origen: "AGENTS.md y AUDITORIA-DISENO-PEAI.md - Fase 12; detalle ajustado al boceto de red de coautorías, 2026-10-03"
 ---
 
-# ADR-0015 · Renderizado Nativo del Grafo de Red de Coautoría
+# ADR-0015 · Renderizado nativo del grafo de red de coautoría
 
 ## Contexto
-El análisis de redes complejas y coautorías entre investigadores y grupos requiere representar visualmente un grafo interactivo de nodos (investigadores) y aristas (productos compartidos). En entornos de escritorio existen soluciones comunes basadas en renderizar librerías JavaScript (como D3.js o Vis.js) incrustando un motor web completo (Chromium / `QWebEngineView`). Sin embargo, incrustar un navegador web incrementa el peso del ejecutable en cientos de megabytes, consume memoria excesiva y complica la compilación cruzada en C++ con MinGW.
+El análisis de relaciones entre investigadores se representa como un grafo: nodos = investigadores, aristas = productos compartidos. Existen soluciones que incrustan un navegador web (D3.js, Vis.js), pero aumentan cientos de megabytes el ejecutable, consumen memoria y complican la compilación cruzada en C++.
 
 ## Opciones consideradas
-1. **Navegador web incrustado (`QWebEngineView` / WebView)**: Permite reutilizar gráficos HTML5/JS pero añade más de 120 MB de binarios, dependencias pesadas y dificultades de enlace en entornos UCRT64.
-2. **Visualización nativa con Qt Graphics Framework (`QGraphicsView` / `QGraphicsScene`)**: Implementación directa en C++ y Python utilizando primitivas vectoriales aceleradas por hardware de Qt, con algoritmo de fuerzas en hilo secundario.
+1. **Navegador incrustado (`QWebEngineView`)**: reutiliza librerías de JavaScript, pero añade más de 120 MB y dependencias pesadas.
+2. **Dibujo nativo con `QGraphicsView` y `QGraphicsScene`**: ligero, sin dependencias externas, integrado con los estilos de Qt. **Elegida.**
 
 ## Decisión
-Se adopta la **visualización nativa de red mediante `QGraphicsView` y `QGraphicsScene`** formalizada en [[GUI-paridad]].
-Tanto en Python como en C++, el grafo de coautoría se dibuja mediante objetos gráficos nativos de Qt:
-- Los nodos son círculos interactivos con eventos de puntero.
-- Las aristas son líneas vectoriales con grosor proporcional al número de colaboraciones.
-- La física de relajación (*force-directed layout*) se ejecuta de manera asíncrona sin bloquear el hilo principal de la interfaz.
+Se adopta el dibujo nativo. Detalle visual en la sección 6.5 de [[GUI-Diseno-Python]]:
+
+- **Nodos**: círculos cuyo radio crece con el número de coautores y cuyo color indica la categoría de Minciencias.
+- **Aristas**: líneas con grosor proporcional a los productos compartidos.
+- **Disposición**: algoritmo de fuerzas (Hooke y Coulomb) en un hilo secundario, con semilla fija para que el resultado se repita.
+- **Interacción**: zoom con la rueda, arrastre del lienzo, resaltado de vecinos al pasar el ratón, selección de nodo que llena el panel de métricas y doble clic que abre la ficha del investigador.
+- **Métricas** calculadas en memoria desde la [[Multilista]]: grado de conexión, intermediación (algoritmo de Brandes propio) y densidad de la red. Se exponen mediante el servicio `red_coautoria`.
+- **Límites**: más de 400 nodos se recortan a los de mayor grado con aviso.
 
 ## Consecuencias
-- **Positivas**: Ejecutables ligeros y rápidos; arranque instantáneo; cero dependencias de motores de renderizado web pesados; integración fluida con el sistema de estilos de Qt.
-- **Costos**: Requiere programar manualmente el algoritmo de disposición física de nodos por fuerzas.
+- **Positivas**: ejecutables ligeros, arranque rápido, sin motor web; el mismo enfoque sirve luego para C++.
+- **Costos**: hay que programar la disposición por fuerzas y las métricas de centralidad a mano; el servicio `red_coautoria` es nuevo y debe replicarse en C++ (ver [[GUI-paridad]]).

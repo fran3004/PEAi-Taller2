@@ -27,7 +27,9 @@ Este registro documenta todas las decisiones no triviales de diseño, arquitectu
 | [[ADR-0009-RPC-y-control-de-revision-optimista]] | Procedimientos RPC y bloqueo optimista por revisión | Aprobado | 2026-10-03 | [[Contrato-de-datos]], [[Arquitectura]] |
 | [[ADR-0010-Limites-y-responsabilidad-de-ingesta]] | Restricciones éticas y técnicas de ingesta web | Aprobado | 2026-10-03 | [[Ingesta]], [[Cola-importacion]] |
 | [[ADR-0011-Paridad-arquitectural-Python-Cpp]] | Paridad arquitectural y funcional Python / C++ | Aprobado | 2026-10-03 | [[Interoperabilidad]], [[Despliegue]] |
-| [[ADR-0012-Diseno-GUI-y-navegacion]] | Diseño visual institucional y ergonomía en 4 zonas | Aprobado | 2026-10-03 | [[GUI-paridad]], [[SPEC]] |
-| [[ADR-0013-Vistas-secundarias]] | Vistas secundarias: historial, cola y entidades | Aprobado | 2026-10-03 | [[GUI-paridad]], [[Pila-deshacer]], [[Cola-importacion]] |
+| [[ADR-0012-Diseno-GUI-y-navegacion]] | Diseño visual institucional y navegación por barra superior | Revisado | 2026-10-03 | [[GUI-Diseno-Python]], [[SPEC]] |
+| [[ADR-0013-Vistas-secundarias]] | Vistas secundarias: historial, cola, formularios y verificación cruzada | Revisado | 2026-10-03 | [[GUI-Diseno-Python]], [[Pila-deshacer]], [[Cola-importacion]] |
 | [[ADR-0014-Nomenclatura-del-dominio-y-base-de-datos]] | Nomenclatura del dominio en español y API snake_case | Aprobado | 2026-10-03 | [[Modelo-de-dominio]], [[Contrato-de-datos]] |
-| [[ADR-0015-Analisis-de-red-nativo]] | Renderizado nativo del grafo de red de coautoría | Aprobado | 2026-10-03 | [[GUI-paridad]], [[Multilista]] |
+| [[ADR-0015-Analisis-de-red-nativo]] | Renderizado nativo del grafo de red de coautoría | Revisado | 2026-10-03 | [[GUI-Diseno-Python]], [[Multilista]] |
+| [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]] | Qué pantallas y datos del boceto se adoptan y cuáles se reemplazan | Revisado | 2026-10-03 | [[GUI-Diseno-Python]], [[Modelo-de-dominio]] |
+| [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]] | Qt Widgets, QSS, QPainter y QtSvg; sin QML ni matplotlib | Revisado | 2026-10-03 | [[GUI-Diseno-Python]], [[ADR-0015-Analisis-de-red-nativo]] |

@@ -19,6 +19,10 @@ commit: "pendiente"
 
 # Bitácora · Interfaz Gráfica de Usuario PySide6 (PEA-i)
 
+> [!WARNING] Nota de vigencia (2026-10-03)
+> Este documento es un registro histórico. **El diseño de la interfaz de Python que rige hoy** está en [[GUI-Diseno-Python]] (con [[ADR-0012-Diseno-GUI-y-navegacion]], [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]] y [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]). Lo que aquí se diga sobre barra lateral, cuatro zonas, nueve pantallas o `matplotlib` quedó **reemplazado**.
+
+
 ## Objetivo
 Implementar la interfaz gráfica de escritorio completa en Python con **PySide6** conforme a [[GUI-paridad]], [[ADR-0012-Diseno-GUI-y-navegacion]] y [[SPEC]], manteniendo estricta separación de capas arquitectónicas (la GUI nunca accede directamente a Supabase, SQL ni a estructuras internas hechas a mano, interactuando exclusivamente a través de la fachada de servicios y modelos DTO inmutables). Integrar las 9 pantallas reglamentarias, control de estado de conexión, revisión remota (`meta.revision`) con banner de detección de cambios externos, sistema de deshacer con reversión completa en estructuras y base de datos, gráficos nativos con `QPainter` y exportación a PNG y CSV, cola visual de ingesta y modo de autoprueba automatizado *offscreen* con captura de pantallas y código de retorno 0.
 

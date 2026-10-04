@@ -21,6 +21,10 @@ commit: "solo auditoria (sin commit de codigo)"
 
 # Auditoría integral del diseño PEA-i
 
+> [!WARNING] Nota de vigencia (2026-10-03)
+> Este documento es un registro histórico. **El diseño de la interfaz de Python que rige hoy** está en [[GUI-Diseno-Python]] (con [[ADR-0012-Diseno-GUI-y-navegacion]], [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]] y [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]). Lo que aquí se diga sobre barra lateral, cuatro zonas, nueve pantallas o `matplotlib` quedó **reemplazado**.
+
+
 ## 1. Estado actual
 
 El proyecto **PEA-i** (Programa Estadístico de Análisis de Investigación - Taller 2 de Estructuras de Datos, Universidad Popular del Cesar) se encuentra en la transición exacta entre la fase de formalización de requisitos (**A3**) y la fase de diseño formal (**A4**). 

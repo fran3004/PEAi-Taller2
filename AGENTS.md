@@ -50,6 +50,13 @@ Existe UN solo proyecto: pea-prod. NO existe pea-test. Cuando un prompt, una not
 - Ramas: main (entrega) ← dev (integración) ← feat/<área>-<persona>. Nunca commits directos a main.
 - Las skills viven en .agent/skills/ (una sola copia, la leen los dos agentes). Las reglas y flujos de Antigravity están en .agent/rules/ y .agent/workflows/.
 
+## Interfaz gráfica de Python
+- Fuente de verdad visual: brain/20-Diseno/GUI-Diseno-Python.md (tokens, siete pantallas, componentes, gráficos, estados y criterios de aceptación). Las imágenes de referencia están en brain/_adjuntos/ (ref-*.png / .jpg) y se mira antes de construir cada pantalla.
+- Navegación: barra superior con siete pestañas (Inicio, Investigadores, Grupos, Productos, Análisis de redes, Importar, Configuración), más Deshacer, avatar, "Cerrar sesión" y "Acerca de". Directorios con tabla y ficha lateral. No hay barra lateral.
+- Se imita la estructura del boceto, no sus datos: nada de H-Index, ORCID, semilleros, centros, convocatorias ni logos de terceros (ADR-0016). Todo número sale de los servicios.
+- Tecnología: Qt Widgets + QSS + QPainter + QtSvg (ADR-0017). Prohibido QML, QtWebEngine, matplotlib y QtCharts.
+- La interfaz de C++ NO sigue este diseño hasta que se rehaga con prompts aparte; no se usa como referencia visual (brain/20-Diseno/GUI-paridad.md).
+
 ## Cerebro (Obsidian)
 - brain/ es la bóveda y la ÚNICA casa de la documentación viva. Toda nota tiene las propiedades: tipo, estado (borrador|revisado|aprobado), creado, actualizado, relacionado (enlaces [[...]] entre comillas) y origen.
 - Usa SIEMPRE la plantilla de brain/90-Plantillas/ que corresponda. Fechas en formato AAAA-MM-DD. Archivos en UTF-8 sin BOM y fin de línea LF.

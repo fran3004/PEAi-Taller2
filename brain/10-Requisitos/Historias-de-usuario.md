@@ -83,12 +83,12 @@ Este documento define las Historias de Usuario que describen las capacidades del
 ## HU-06: Visualización del Panel de Control con Métricas del Hipercubo
 - **Identificador**: HU-06
 - **Rol**: Directivo de Investigación / Decano
-- **Narrativa**: **Como** directivo de investigación, **quiero** abrir el Panel de Control para visualizar las métricas consolidadas institucionales (total de grupos, investigadores activos, desglose GNC/DTI/ASC/FRH y gráficos temporales), **para** evaluar el rendimiento científico de la institución.
+- **Narrativa**: **Como** directivo de investigación, **quiero** abrir la pestaña Inicio para visualizar las métricas consolidadas institucionales (total de grupos, investigadores activos, desglose GNC/DTI/ASC/FRH y gráficos temporales), **para** evaluar el rendimiento científico de la institución.
 - **Criterios de Aceptación**:
   - [ ] Todos los indicadores numéricos y gráficos se calculan directamente desde el `Hipercubo` en memoria mediante operaciones de `Roll-up`.
   - [ ] No se emiten consultas SQL agregadas (`GROUP BY`) a Supabase para armar el panel.
   - [ ] Todos los textos y etiquetas están en español correcto ("Panel", "Resumen", "Productos").
-  - [ ] Los gráficos se renderizan fluidamente en PySide6 (`matplotlib`) y C++ (`QPainter` / Qt Charts).
+  - [ ] Los gráficos se renderizan fluidamente en PySide6 con `QPainter` ([[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]); la interfaz de C++ se definirá aparte.
 - **Requisitos Relacionados**: [[SPEC#RF-09: Modelo de Hipercubo Multidimensional de Métricas]], [[SPEC#RF-10: Cálculo Estadístico y Agregaciones en Memoria]], [[SPEC#RF-11: Interfaz Gráfica de Usuario (GUI) y Vistas Estadísticas]], [[SPEC#RNF-03: Confinamiento Estadístico al Hipercubo]].
 
 ---

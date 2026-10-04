@@ -209,16 +209,21 @@ Ambas aplicaciones comparten de manera concurrente una única base de datos rela
 | Prioridad | Alta |
 | Punto del taller | **R10** (Interfaz Gráfica) |
 
-- **Descripción**: La aplicación de escritorio debe proporcionar una GUI completa y ergonómica construida sobre Qt 6, compuesta por:
-  - **Barra Lateral de Navegación**: Acceso directo al Panel Principal (*Dashboard*), Gestión de Grupos, Gestión de Investigadores, Inventario de Productos, Importación por Lotes y Configuración de Conexión.
-  - **Panel Principal (Resumen/Dashboard)**: Tarjetas resumen con métricas clave (total de grupos activos, investigadores, total de productos clasificados GNC/DTI/ASC/FRH) y gráficos estadísticos (distribución por categorías, evolución temporal por año).
-  - **Vistas Maestras con Búsqueda y Filtros**: Tablas interactivas con paginación local, ordenamiento por columnas y filtros reactivos.
-  - **Gráficos Integrados**: Visualización mediante `matplotlib` embebido en PySide6 y gráficos con `QPainter` / Qt Charts en C++.
-  - **Internacionalización y Ortografía**: Todos los textos, etiquetas, títulos de gráficos, mensajes de diálogo y advertencias deben presentarse en idioma **español correcto**, con renderizado adecuado de tildes y caracteres especiales (ñ, comillas). Queda prohibida la presencia de etiquetas en inglés ("Dashboard", "Summary", etc.).
+- **Descripción**: La aplicación de escritorio en Python debe proporcionar una GUI completa y agradable construida sobre Qt 6 (PySide6), según el diseño de [[GUI-Diseno-Python]], compuesta por:
+  - **Barra superior de navegación** con siete pestañas: Inicio, Investigadores, Grupos, Productos, Análisis de redes, Importar y Configuración; además Deshacer, avatar, «Cerrar sesión» y «Acerca de».
+  - **Inicio (Panel principal)**: ámbito (institución o grupo) con fichas de métricas, gráfico de producción por año y tipología, gráfico de tipología y validación, vista previa de la red de colaboración y rankings.
+  - **Directorios con tabla y ficha lateral** (Investigadores, Grupos, Productos): búsqueda, filtros, ordenamiento y las operaciones de datos (crear, editar, activar/desactivar, eliminar con cascada).
+  - **Filtro de años** compartido por las pantallas (todos, últimos N, rango, ventana del Modelo 2024).
+  - **Análisis de redes**: grafo interactivo de coautorías con métricas de centralidad.
+  - **Gráficos propios con `QPainter`** y exportación a PNG; tablas exportables a CSV (ver [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]).
+  - **Pie institucional** con la identidad de la Universidad Popular del Cesar y el estado de conexión.
+  - **Español y ortografía**: todos los textos, etiquetas, títulos de gráficos, mensajes y advertencias en español correcto, con tildes y ñ. Queda prohibida la presencia de etiquetas en inglés ("Dashboard", "Summary", etc.).
+  - La interfaz de C++ **no** se rige por este diseño hasta su rediseño (ver [[GUI-paridad]]).
 - **Criterio de aceptación**:
   1. La GUI nunca realiza llamadas directas a la base de datos ni manipula las estructuras de datos nativas directamente; interactúa únicamente a través de la capa de Servicios.
   2. Todos los textos en pantalla cumplen con la regla de idioma español estricto sin excepciones.
-- **Origen**: `AGENTS.md` (Misión, Idioma y estilo); `.agent/rules/01-idioma-y-estilo.md`.
+  3. Cada pantalla respeta la estructura de las imágenes de referencia y los tokens de [[GUI-Diseno-Python]]; ninguna cifra, nombre o logo del boceto aparece en pantalla.
+- **Origen**: `AGENTS.md` (Misión, Idioma y estilo); `.agent/rules/01-idioma-y-estilo.md`; bocetos de referencia del usuario en `brain/_adjuntos/`.
 
 ---
 

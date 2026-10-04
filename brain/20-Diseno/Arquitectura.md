@@ -8,6 +8,7 @@ relacionado:
   - "[[SPEC]]"
   - "[[Estructuras]]"
   - "[[Contrato-de-datos]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
   - "[[ADR-0001-Boveda-viva]]"
   - "[[ADR-0002-Unico-proyecto-Supabase]]"

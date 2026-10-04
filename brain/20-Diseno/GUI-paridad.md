@@ -5,89 +5,68 @@ creado: 2026-10-03
 actualizado: 2026-10-03
 relacionado:
   - "[[_Indice]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[Arquitectura]]"
+  - "[[Interoperabilidad]]"
+  - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"
   - "[[ADR-0012-Diseno-GUI-y-navegacion]]"
-  - "[[ADR-0013-Vistas-secundarias]]"
-  - "[[ADR-0015-Analisis-de-red-nativo]]"
+  - "[[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]"
   - "[[SPEC]]"
-origen: "brain/50-Bitacora/AUDITORIA-DISENO-PEAI.md - Fase 9"
+origen: "Rediseño de la interfaz de Python (2026-10-03); contrato para el rediseño posterior de C++"
 ---
 
-# Especificación UX/UI y Paridad Visual de Interfaz Gráfica
+# Diseño · Contrato visual entre Python y C++
 
-## 1. Identidad Visual y Principios Generales
+## Propósito
 
-Tanto la aplicación en **Python (PySide6)** como en **C++ (Qt 6 Widgets)** comparten la misma disposición espacial, paleta de colores y componentes visuales, brindando una experiencia indistinguible para el usuario final.
+Esta nota responde una sola pregunta: **qué deberá igualar la interfaz de C++ cuando se rediseñe**, tomando como modelo la de Python.
 
-> [!IMPORTANT] Prohibición de Términos en Inglés en la Interfaz
-> La totalidad de la interfaz de usuario se expresa en español correcto:
-> - *Dashboard* $\rightarrow$ **Panel Principal** o **Panel**
-> - *Summary* $\rightarrow$ **Resumen**
-> - *Undo / Redo* $\rightarrow$ **Deshacer / Rehacer**
-> - *Refresh* $\rightarrow$ **Recargar**
-> - *Settings* $\rightarrow$ **Configuración**
+- La **fuente de verdad visual** es [[GUI-Diseno-Python]]. Esta nota no describe pantallas; solo fija el contrato.
+- La interfaz de **C++ todavía no está rediseñada** y se hará con prompts aparte. Mientras tanto, `cpp/src/gui/` conserva su primera versión y **no debe usarse como referencia visual**.
+- La paridad **arquitectónica y funcional** (mismas capas, mismas estructuras, mismos resultados) sigue vigente por [[ADR-0011-Paridad-arquitectural-Python-Cpp]].
 
-### Paleta de Colores Institucional
-- **Azul Primario UPC**: `#003366` (Barra superior y encabezados).
-- **Azul Acento**: `#0D47A1` (Botones de acción principal y pestañas activas).
-- **Fondo General**: `#F5F7FA` (Gris suave neutro de alto contraste).
-- **Fondo de Contenedores**: `#FFFFFF` (Blanco puro para tarjetas y tablas).
-- **Texto Principal**: `#1A1A1A` / Texto Secundario: `#5F6368`.
-- **Estados Semánticos**:
-  - Éxito / Vigente: `#2E7D32` (Verde).
-  - Advertencia / En Revisión: `#ED6C02` (Naranja).
-  - Error / Inactivo: `#D32F2F` (Rojo).
+## Estado
 
-## 2. Estructura y Distribución de la Ventana Principal
+| Elemento | Python | C++ |
+|---|---|---|
+| Diseño visual | Definido en [[GUI-Diseno-Python]] | **Pendiente** (prompts aparte) |
+| Navegación | Barra superior con 7 pestañas | Pendiente |
+| Gráficos | `QPainter` | Pendiente (`QPainter` previsto) |
+| Red de coautoría | `QGraphicsView` ([[ADR-0015-Analisis-de-red-nativo]]) | Pendiente |
+| Pruebas de interfaz | `tests/unit/test_gui_completa.py` | `cpp/tests/test_gui.cpp` (a actualizar) |
 
-La interfaz se organiza en cuatro zonas ergonómicas principales:
+## Lo que C++ deberá igualar
 
-```
-+-----------------------------------------------------------------------------------+
-|  [Logo UPC]  PEA-i: Programa Estadístico de Análisis de Investigación   [Conectado]  | (Barra Superior)
-+-----------------------------------------------------------------------------------+
-|  [ Tarjeta: 12 Grupos ]  [ Tarjeta: 85 Inv ]  [ Tarjeta: 420 Prod ]  [ KPI: 89.4 ] | (Tarjetas KPI)
-+-----------------------------------------------------------------------------------+
-|  (Panel Izquierdo)     |  (Panel Central)                 |  (Panel Derecho)      |
-|  Árbol de Navegación   |  Tabla Detallada de Entidades    |  Ficha de Detalle y   |
-|  - Grupos              |  [Buscador / Filtros por Año]    |  Estadísticas OLAP    |
-|    └─ Investigadores   |  | Código | Título | Tipo | Año | |  del Hipercubo        |
-|  - Red de Coautoría    |  | ...    | ...    | ...  | ... | |  [Gráfica Nativa]   |
-+-----------------------------------------------------------------------------------+
-|  Estado: Sincronizado | Revisión: 142 | Deshacer: Ctrl+Z | Tareas en cola: 0      | (Barra de Estado)
-+-----------------------------------------------------------------------------------+
-```
+1. **Navegación y textos**: mismas siete pestañas, en el mismo orden y con el mismo texto; mismos botones y mensajes de la sección 7.2 de [[GUI-Diseno-Python]].
+2. **Tokens**: mismos colores (hex), escala tipográfica, radios y espaciados de la sección 4 de [[GUI-Diseno-Python]].
+3. **Colores de datos**: la misma tipología, validación y categoría con el mismo color en todas las pantallas.
+4. **Estructura de ventana**: barra superior con degradado y filete institucional UPC, zona de contenido y pie institucional.
+5. **Tablas**: mismas columnas, mismo orden y mismos encabezados que en Python.
+6. **Formato de números**: miles con punto, decimales con coma, porcentajes con espacio fino.
+7. **Cálculos nuevos**: la serie por año y tipología, el grafo de coautoría y sus métricas deben dar **el mismo resultado** que Python, verificado con el oráculo canónico descrito en [[Interoperabilidad]].
+8. **Atajos**: los de la sección 12 de [[GUI-Diseno-Python]].
 
-### 2.1. Barra Superior Institucional
-- Logotipo de la Universidad Popular del Cesar cargado desde `docs/entrada/identidad/logo_upc.png`.
-- Título institucional: `PEA-i · Universidad Popular del Cesar`.
-- Indicador de estado de conexión: círculo verde (`Sincronizado`) o ámbar (`Sin conexión`).
-- Botón de cambio de modo (Producción / Datos de Prueba con aviso visual destacado en amarillo).
+## Lo que C++ no tiene que igualar
 
-### 2.2. Tarjetas KPI Superiores
-Cuatro tarjetas rectangulares con sombra sutil y tipografía legible que muestran métricas directas calculadas desde el [[Hipercubo]]:
-1. **Total Grupos de Investigación**: Conteo activo.
-2. **Total Investigadores**: Clasificados (Senior, Asociado, Junior).
-3. **Total Productos**: Distribución por categoría.
-4. **Índice Global de Productividad**: Promedio ponderado por investigador.
+- La implementación (cada lenguaje usa su API de Qt).
+- Los detalles de animación y sombra, mientras el resultado se vea cuidado y consistente.
+- El efecto de barra de título oscura de Windows.
 
-### 2.3. Zona Central con Paneles Divisibles (*QSplitter*)
-- **Panel Izquierdo (Navegación)**: `QTreeView` que lista las instituciones, grupos e investigadores afiliados. Permite filtrar y seleccionar un nodo para acotar la visualización global. Pestaña alternativa con el acceso al visualizador de red.
-- **Panel Central (Tabla de Contenido)**: `QTableView` con paginación local y ordenamiento multicolumna de productos, proyectos o miembros según la selección del árbol.
-- **Panel Derecho (Detalle y OLAP)**: Pestañas con:
-  - Ficha de datos completos de la entidad seleccionada.
-  - Subcubo OLAP y gráficos estadísticos generados mediante renderizado nativo (`QPainter` / `matplotlib` embebido en PySide6).
+## Deuda de paridad funcional que deja el rediseño de Python
 
-### 2.4. Barra de Estado Inferior
-- Muestra el ID de revisión de la base de datos (`meta.revision`).
-- Cantidad de operaciones en la [[Pila-deshacer]].
-- Elementos pendientes en la [[Cola-importacion]].
+Servicios nuevos creados para la interfaz de Python que C++ deberá replicar:
 
-## 3. Visualizador de Red de Coautoría Nativo
+| Servicio | Para qué sirve | Verificación |
+|---|---|---|
+| `serie_anual_por_categoria` | Barras apiladas por año y tipología (calculado desde el [[Hipercubo]]) | Comparar contra el oráculo |
+| `red_coautoria` (con grado, intermediación y densidad) | Análisis de redes (calculado desde la [[Multilista]]) | Mismo grafo y mismas métricas con datos canónicos |
+| `actualizar_producto` | Editar cualquier dato de un producto (requisito 9 y 11 del taller) | Prueba de cascada y deshacer |
 
-Conforme a [[ADR-0015-Analisis-de-red-nativo]], el análisis de relaciones y coautorías entre investigadores y grupos se renderiza **de forma nativa sin navegadores web incrustados**:
-- Implementado mediante `QGraphicsView` y `QGraphicsScene`.
-- Nodos circulares representando investigadores (color según categoría Minciencias).
-- Aristas entre nodos representando productos compartidos (grosor proporcional al número de publicaciones conjuntas).
-- Algoritmo de posicionamiento basado en fuerzas (fuerza elástica de Hooke y repulsión de Coulomb) ejecutado en un hilo secundario sin congelar la interfaz.
-- Interacción completa: zoom con la rueda del ratón, paneo por arrastre y selección de nodo para abrir su ficha técnica.
+## Decisiones relacionadas
+- [[ADR-0011-Paridad-arquitectural-Python-Cpp]]
+- [[ADR-0012-Diseno-GUI-y-navegacion]]
+- [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]
+
+## Riesgos y casos borde
+- Si C++ se rediseña sin leer esta nota, puede reproducir el diseño anterior; por eso `AGENTS.md` apunta a [[GUI-Diseno-Python]].
+- Las diferencias de renderizado de fuentes entre lenguajes son aceptables; las de colores, textos y orden de columnas no.

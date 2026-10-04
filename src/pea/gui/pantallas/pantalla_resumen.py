@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QSplitter,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -26,7 +25,7 @@ from pea.gui.componentes.graficos import GraficoBarras, GraficoSeries, GraficoTo
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tarjeta_kpi import TarjetaKPI
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
-from pea.servicios.vistas import FiltroAnios, TablaDatos
+from pea.servicios.vistas import FiltroAnios
 
 
 class PantallaResumen(QWidget):

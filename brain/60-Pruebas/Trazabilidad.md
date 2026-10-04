@@ -17,6 +17,7 @@ relacionado:
   - "[[Interoperabilidad]]"
   - "[[Ingesta]]"
   - "[[GUI-paridad]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[Seguridad-y-credenciales]]"
   - "[[Despliegue]]"
 origen: "AUDITORIA-DISENO-PEAI.md - Fase 15"
@@ -45,8 +46,8 @@ Esta matriz establece el vínculo verificable entre los requisitos formales de l
 | **R7** | Carga masiva por archivos CSV | [[Ingesta]] | [[ADR-0010-Limites-y-responsabilidad-de-ingesta]] | Parseo y validación de fixtures tabulares canónicos | `tests/test_ingesta_csv.py` |
 | **R8** | Bloqueo optimista por revisión de base de datos | [[Contrato-de-datos]], [[Arquitectura]] | [[ADR-0009-RPC-y-control-de-revision-optimista]] | Simulación de conflicto de concurrencia concurrent write (409) | `tests/test_concurrencia_revision.py` |
 | **R9** | Compensación y reversión local tras fallo remoto | [[Arquitectura]], [[Pila-deshacer]] | [[ADR-0007-Compensacion-de-persistencia-reversion]] | Inyección de fallo de red tras mutación local | `tests/test_servicio_compensacion.py` |
-| **R10** | Interfaz gráfica institucional con paridad total | [[GUI-paridad]] | [[ADR-0012-Diseno-GUI-y-navegacion]], [[ADR-0013-Vistas-secundarias]] | Pruebas de interfaz offscreen con `pytest-qt` | `tests/test_gui_paridad.py` |
-| **R11** | Visualizador nativo de grafo de coautoría | [[GUI-paridad]], [[Multilista]] | [[ADR-0015-Analisis-de-red-nativo]] | Verificación de generación de nodos y aristas en QGraphicsScene | `tests/test_grafo_coautoria.py` |
+| **R10** | Interfaz gráfica de Python según el diseño de referencia (paridad con C++ pendiente) | [[GUI-Diseno-Python]], [[GUI-paridad]] | [[ADR-0012-Diseno-GUI-y-navegacion]], [[ADR-0013-Vistas-secundarias]], [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]], [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]] | Pruebas de interfaz offscreen con `pytest-qt` | `tests/test_gui_paridad.py` |
+| **R11** | Visualizador nativo de grafo de coautoría | [[GUI-Diseno-Python]], [[Multilista]] | [[ADR-0015-Analisis-de-red-nativo]] | Verificación de generación de nodos y aristas en QGraphicsScene | `tests/test_grafo_coautoria.py` |
 | **R12** | Empaquetado Windows y ejecución portátil | [[Despliegue]] | [[ADR-0011-Paridad-arquitectural-Python-Cpp]] | Pruebas de artefactos generados en entorno limpio | `scripts/empaquetar-python.ps1`, `scripts/empaquetar-cpp.ps1` |
 
 ## 3. Criterios Normativos de Calidad y Verificación (C1 – C6)

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QColor, QFont, QIcon, QKeySequence, QPixmap
+from PySide6.QtCore import QSize, QTimer
+from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,

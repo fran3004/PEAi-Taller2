@@ -6,6 +6,7 @@ actualizado: 2026-10-03
 relacionado:
   - "[[_Indice]]"
   - "[[Arquitectura]]"
+  - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
   - "[[Seguridad-y-credenciales]]"
   - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"

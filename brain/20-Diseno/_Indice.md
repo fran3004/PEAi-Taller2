@@ -16,6 +16,8 @@ relacionado:
   - "[[Contrato-de-datos]]"
   - "[[Interoperabilidad]]"
   - "[[Ingesta]]"
+  - "[[GUI-Diseno-Python]]"
+  - "[[Plan-de-prompts-GUI-Python]]"
   - "[[GUI-paridad]]"
   - "[[Seguridad-y-credenciales]]"
   - "[[Despliegue]]"
@@ -42,7 +44,9 @@ Este módulo formaliza las especificaciones arquitecturales, técnicas, de datos
 | [[Contrato-de-datos]] | Esquema relacional PostgreSQL, tipos, constraints, funciones RPC transaccionales y control `meta.revision`. | `nota-de-diseno` | Aprobado |
 | [[Interoperabilidad]] | Serialización JSON, oráculos comparativos y equivalencia funcional estricta entre Python 3.12 y C++17. | `nota-de-diseno` | Aprobado |
 | [[Ingesta]] | Pipeline de scraping web responsable (SCIENTI) y procesador de archivos CSV canónicos. | `nota-de-diseno` | Aprobado |
-| [[GUI-paridad]] | Especificación visual basada en boceto objetivo: barra superior azul, tarjetas KPI, split-views y grafo de red. | `nota-de-diseno` | Aprobado |
+| [[GUI-Diseno-Python]] | **Fuente de verdad visual** de la interfaz de Python: tokens, ventana, siete pantallas, componentes, gráficos, estados y criterios de aceptación. | `nota-de-diseno` | Revisado |
+| [[Plan-de-prompts-GUI-Python]] | Secuencia de prompts (00 a 15) para rehacer la interfaz de Python con el agente. | `nota-de-diseno` | Revisado |
+| [[GUI-paridad]] | Contrato visual y funcional que C++ deberá igualar cuando se rediseñe (pendiente). | `nota-de-diseno` | Revisado |
 | [[Seguridad-y-credenciales]] | Conexión HTTPS TLS 1.3, clave publishable, políticas de Row Level Security (RLS) y aislamiento de pruebas. | `nota-de-diseno` | Aprobado |
 | [[Despliegue]] | Empaquetado Windows desatendido (PyInstaller para Python, CMake + windeployqt para C++) y configuración. | `nota-de-diseno` | Aprobado |
 
@@ -60,7 +64,8 @@ graph TD
     Estructuras --> Cola["Cola-importacion"]
     Estructuras --> Cubo["Hipercubo"]
     Dominio --> Contrato["Contrato-de-datos (Supabase)"]
-    Arq --> GUI["GUI-paridad"]
+    Arq --> GUIPy["GUI-Diseno-Python"]
+    GUIPy --> GUI["GUI-paridad"]
     Arq --> Ingesta["Ingesta"]
     Arq --> Interop["Interoperabilidad"]
     Arq --> Seg["Seguridad-y-credenciales"]
