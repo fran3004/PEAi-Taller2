@@ -35,12 +35,12 @@ Esta nota es la **única fuente de verdad del diseño visual y de interacción**
 
 Estas cuatro imágenes también deben adjuntarse al agente cuando construya pantallas (el texto solo no alcanza para reproducir proporciones y acabados).
 
-| Imagen | Qué se toma de ella |
-|---|---|
-| ![[ref-inicio.png]] | Estructura de **Inicio**: barra superior con degradado y pestañas, tarjeta del grupo con avatar circular, fichas KPI en cuadrícula, dos gráficos, mini red y pie. |
-| ![[ref-inicio-acabado.jpg]] | **Acabado visual**: sombras suaves, íconos de color, degradado del encabezado, gráficos con más presencia. Es la vara de calidad mínima. |
-| ![[ref-investigadores.png]] | Patrón **directorio + ficha lateral**: tabla con buscador y filtros, botón primario «+ Nuevo…», ficha con avatar y cuatro fichas KPI. |
-| ![[ref-red-coautorias.png]] | **Análisis de redes**: grafo grande a la izquierda y panel de métricas de centralidad a la derecha. |
+| Imagen                      | Qué se toma de ella                                                                                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![[ref-inicio.png]]         | Estructura de **Inicio**: barra superior con degradado y pestañas, tarjeta del grupo con avatar circular, fichas KPI en cuadrícula, dos gráficos, mini red y pie. |
+| ![[ref-inicio-acabado.jpg]] | **Acabado visual**: sombras suaves, íconos de color, degradado del encabezado, gráficos con más presencia. Es la vara de calidad mínima.                          |
+| ![[ref-investigadores.png]] | Patrón **directorio + ficha lateral**: tabla con buscador y filtros, botón primario «+ Nuevo…», ficha con avatar y cuatro fichas KPI.                             |
+| ![[ref-red-coautorias.png]] | **Análisis de redes**: grafo grande a la izquierda y panel de métricas de centralidad a la derecha.                                                               |
 
 **Qué NO se toma**: los logos y el texto legal de terceros del pie (ver [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]), los nombres ficticios de los nodos, las cifras de ejemplo (21, 6, 150, 14…) y los datos que PEA-i no tiene (H-Index, ORCID, semilleros, centros, convocatorias).
 

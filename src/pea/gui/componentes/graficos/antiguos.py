@@ -1,9 +1,6 @@
-"""Componentes nativos de visualización gráfica mediante QPainter.
+"""Componentes gráficos antiguos conservados para compatibilidad regresiva.
 
-Permite renderizar gráficos de barras, gráficos de sectores y series temporales
-con la paleta de la Universidad Popular del Cesar sin depender de motores web,
-funcionando de manera idéntica en pantalla y en pruebas en modo offscreen,
-y con exportación directa a formato PNG.
+Se mantendrán hasta el reemplazo de pantallas en el prompt 13.
 """
 
 from __future__ import annotations
@@ -21,8 +18,8 @@ AZUL_UPC = PRIMARIO
 AZUL_ACENTO = ACENTO
 
 
-class GraficoBase(QWidget):
-    """Clase base para componentes de graficación con soporte para exportación PNG."""
+class GraficoBaseAntiguo(QWidget):
+    """Clase base para componentes de graficación antiguos con exportación PNG."""
 
     def __init__(self, titulo: str = "", parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -30,7 +27,7 @@ class GraficoBase(QWidget):
         self.setMinimumSize(QSize(280, 200))
 
     def exportar_png(self, ruta: Path | str, ancho: int = 800, alto: int = 500) -> bool:
-        """Renderiza el gráfico a un archivo PNG de alta resolución."""
+        """Renderiza el gráfico a un archivo PNG."""
         imagen = QImage(ancho, alto, QImage.Format.Format_ARGB32)
         imagen.fill(QColor("#FFFFFF"))
         painter = QPainter(imagen)
@@ -53,8 +50,8 @@ class GraficoBase(QWidget):
         raise NotImplementedError
 
 
-class GraficoBarras(GraficoBase):
-    """Gráfico de barras horizontales con etiquetas, conteos y porcentajes."""
+class GraficoBarras(GraficoBaseAntiguo):
+    """Gráfico de barras horizontales antiguo con etiquetas, conteos y porcentajes."""
 
     def __init__(
         self,
@@ -70,14 +67,10 @@ class GraficoBarras(GraficoBase):
         self.update()
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
-        # Fondo limpio
         painter.fillRect(rect, QColor("#FFFFFF"))
-
-        # Borde sutil
         painter.setPen(QPen(QColor(BORDE), 1))
         painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 6, 6)
 
-        # Encabezado
         margen = 16.0
         fuente_titulo = QFont()
         fuente_titulo.setPointSize(11)
@@ -117,19 +110,16 @@ class GraficoBarras(GraficoBase):
             y_base = area_y + i * alto_fila + (alto_fila - alto_barra) / 2.0
             color = QColor(SERIE[i % len(SERIE)])
 
-            # Etiqueta de la categoría
             painter.setPen(QPen(QColor(TEXTO)))
             rect_etiq = QRectF(rect.left() + margen, y_base, ancho_etiqueta, alto_barra)
             painter.drawText(rect_etiq, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, str(cat))
 
-            # Barra proporcional
             longitud = (val / max_val) * ancho_barras if max_val > 0 else 0
             rect_barra = QRectF(rect.left() + margen + ancho_etiqueta + 8.0, y_base, max(2.0, longitud), alto_barra)
             painter.setBrush(QBrush(color))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(rect_barra, 3, 3)
 
-            # Texto de cantidad y porcentaje
             pct = (val / total * 100.0) if total > 0 else 0.0
             texto_valor = f"{val} ({pct:.1f}%)"
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
@@ -137,8 +127,8 @@ class GraficoBarras(GraficoBase):
             painter.drawText(rect_val, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto_valor)
 
 
-class GraficoTorta(GraficoBase):
-    """Gráfico circular tipo anillo con leyenda lateral y porcentajes."""
+class GraficoTorta(GraficoBaseAntiguo):
+    """Gráfico circular antiguo tipo anillo con leyenda lateral y porcentajes."""
 
     def __init__(
         self,
@@ -176,7 +166,6 @@ class GraficoTorta(GraficoBase):
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Sin datos disponibles")
             return
 
-        # Dimensiones para el círculo y la leyenda
         area_util = rect.adjusted(margen, 40, -margen, -margen)
         ancho_leyenda = min(150.0, area_util.width() * 0.45)
         diametro = min(area_util.height() - 10, area_util.width() - ancho_leyenda - 20)
@@ -202,7 +191,6 @@ class GraficoTorta(GraficoBase):
             painter.drawPie(rect_torta, angulo_inicio, -span)
             angulo_inicio -= span
 
-        # Agujero de dona central para diseño moderno
         radio_interior = diametro * 0.55
         rect_interior = QRectF(
             rect_torta.center().x() - radio_interior / 2.0,
@@ -214,7 +202,6 @@ class GraficoTorta(GraficoBase):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(rect_interior)
 
-        # Total dentro de la dona
         fuente_centro = QFont()
         fuente_centro.setPointSize(12)
         fuente_centro.setBold(True)
@@ -222,7 +209,6 @@ class GraficoTorta(GraficoBase):
         painter.setPen(QPen(QColor(AZUL_UPC)))
         painter.drawText(rect_interior, Qt.AlignmentFlag.AlignCenter, str(total))
 
-        # Leyenda
         fuente_leyenda = QFont()
         fuente_leyenda.setPointSize(9)
         painter.setFont(fuente_leyenda)
@@ -234,12 +220,10 @@ class GraficoTorta(GraficoBase):
             pct = (val / total * 100.0) if total > 0 else 0.0
             color = QColor(SERIE[i % len(SERIE)])
 
-            # Indicador de color
             painter.setBrush(QBrush(color))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(QRectF(x_leyenda, y_leyenda + i * alto_item_leyenda + 4, 12, 12), 2, 2)
 
-            # Texto
             painter.setPen(QPen(QColor(TEXTO)))
             rect_txt = QRectF(x_leyenda + 18, y_leyenda + i * alto_item_leyenda, ancho_leyenda - 18, alto_item_leyenda)
             painter.drawText(
@@ -249,8 +233,8 @@ class GraficoTorta(GraficoBase):
             )
 
 
-class GraficoSeries(GraficoBase):
-    """Gráfico de evolución temporal por años con barras verticales y línea de tendencia."""
+class GraficoSeries(GraficoBaseAntiguo):
+    """Gráfico de evolución temporal antiguo con barras verticales y línea de tendencia."""
 
     def __init__(
         self,
@@ -297,13 +281,11 @@ class GraficoSeries(GraficoBase):
         ancho_columna = area_grafico.width() / max(1, n)
         ancho_barra = min(32.0, ancho_columna * 0.6)
 
-        # Líneas de referencia horizontales
         painter.setPen(QPen(QColor("#E2E8F0"), 1, Qt.PenStyle.DashLine))
         for division in (0.25, 0.5, 0.75, 1.0):
             y_div = area_grafico.bottom() - division * area_grafico.height()
             painter.drawLine(QPointF(area_grafico.left(), y_div), QPointF(area_grafico.right(), y_div))
 
-        # Eje base
         painter.setPen(QPen(QColor(BORDE), 1))
         painter.drawLine(
             QPointF(area_grafico.left(), area_grafico.bottom()),
@@ -321,12 +303,10 @@ class GraficoSeries(GraficoBase):
             altura = (val / max_val) * (area_grafico.height() - 20) if max_val > 0 else 0
             rect_barra = QRectF(x_centro - ancho_barra / 2.0, area_grafico.bottom() - altura, ancho_barra, altura)
 
-            # Barra
             painter.setBrush(QBrush(QColor(AZUL_ACENTO)))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(rect_barra, 3, 3)
 
-            # Valor arriba de la barra
             painter.setPen(QPen(QColor(AZUL_UPC)))
             painter.drawText(
                 QRectF(x_centro - 20, rect_barra.top() - 16, 40, 14),
@@ -334,7 +314,6 @@ class GraficoSeries(GraficoBase):
                 str(val),
             )
 
-            # Etiqueta de año abajo
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
             painter.drawText(
                 QRectF(x_centro - 24, area_grafico.bottom() + 6, 48, 16),
@@ -344,10 +323,8 @@ class GraficoSeries(GraficoBase):
 
             puntos_linea.append(QPointF(x_centro, rect_barra.top()))
 
-        # Línea de tendencia
         if len(puntos_linea) > 1:
             pen_linea = QPen(QColor(SERIE[2]), 2)
             painter.setPen(pen_linea)
             for j in range(len(puntos_linea) - 1):
                 painter.drawLine(puntos_linea[j], puntos_linea[j + 1])
-

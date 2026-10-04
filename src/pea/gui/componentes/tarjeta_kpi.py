@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, QSize, Qt
-from PySide6.QtGui import QBrush, QColor, QPainter, QPaintEvent, QPen
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from pea.gui.componentes.graficos.minigrafico import Minigrafico
 from pea.gui.estilo import (
-    ACENTO,
-    COLOR_DTI,
     FICHA,
     PRIMARIO,
     RADIO_FICHA_KPI,
@@ -17,64 +15,6 @@ from pea.gui.estilo import (
     TEXTO_SECUNDARIO,
 )
 from pea.gui.formato import formatear_decimal, formatear_entero
-
-
-class Minigrafico(QWidget):
-    """Minigráfico de tendencia (sparkline) de 56×18 px sin ejes para fichas KPI."""
-
-    def __init__(
-        self,
-        datos: list[float] | list[int] | None = None,
-        color_linea: str = COLOR_DTI,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.setFixedSize(QSize(56, 18))
-        self._datos: list[float] = [float(v) for v in datos] if datos else []
-        self._color_linea = color_linea
-
-    def actualizar_datos(self, datos: list[float] | list[int]) -> None:
-        """Actualiza la serie temporal del minigráfico y repinta."""
-        self._datos = [float(v) for v in datos]
-        self.update()
-
-    def paintEvent(self, event: QPaintEvent) -> None:
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        if len(self._datos) < 2:
-            painter.end()
-            return
-
-        w = float(self.width() - 4)
-        h = float(self.height() - 4)
-        min_v = min(self._datos)
-        max_v = max(self._datos)
-        rango = max_v - min_v if max_v != min_v else 1.0
-
-        puntos: list[QPointF] = []
-        paso_x = w / float(len(self._datos) - 1)
-        for i, val in enumerate(self._datos):
-            x = 2.0 + i * paso_x
-            y = 2.0 + h - ((val - min_v) / rango) * h
-            puntos.append(QPointF(x, y))
-
-        # Dibujar trazo suave
-        pen = QPen(QColor(self._color_linea), 1.75)
-        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-
-        for i in range(len(puntos) - 1):
-            painter.drawLine(puntos[i], puntos[i + 1])
-
-        # Punto destacado en el valor más reciente
-        ultimo = puntos[-1]
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(QColor(ACENTO)))
-        painter.drawEllipse(ultimo, 2.5, 2.5)
-
-        painter.end()
 
 
 class FichaKPI(QFrame):
