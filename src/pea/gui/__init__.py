@@ -7,10 +7,10 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from pea.gui.ventana_principal import VentanaPrincipal, ejecutar_autoprueba
+from pea.gui.ventana_principal import Pantalla, VentanaPrincipal, ejecutar_autoprueba
 from pea.version import APP_NAME, APP_VERSION, INSTITUCION
 
-__all__ = ["VentanaPrincipal", "ejecutar_autoprueba", "main"]
+__all__ = ["Pantalla", "VentanaPrincipal", "ejecutar_autoprueba", "main"]
 
 
 def main(argv: list[str] | None = None) -> int:

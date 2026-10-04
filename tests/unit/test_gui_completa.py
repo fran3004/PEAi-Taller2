@@ -1,4 +1,7 @@
-"""Pruebas unitarias completas de la interfaz gráfica PySide6 de PEA-i."""
+"""Pruebas unitarias completas de la interfaz gráfica PySide6 de PEA-i (Sección 5).
+
+Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md.
+"""
 
 from __future__ import annotations
 
@@ -6,14 +9,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from pea.gui.componentes.graficos import GraficoBarras
-from pea.gui.ventana_principal import VentanaPrincipal
+from pea.gui.ventana_principal import Pantalla, VentanaPrincipal
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.servicio_exportacion import ServicioExportacion
-from pea.servicios.vistas import ModoFiltroAnios, TablaDatos
+from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios, TablaDatos
 
 
 @pytest.fixture
@@ -28,154 +30,140 @@ def ventana(qapp: QApplication, qtbot: Any) -> VentanaPrincipal:
 
 
 def test_ventana_principal_estructura_cuatro_zonas(ventana: VentanaPrincipal) -> None:
-    """Verifica que la ventana principal contenga las cuatro zonas arquitectónicas."""
+    """Verifica que la ventana principal contenga las cuatro zonas de la Sección 5."""
     # 1. Barra superior
     assert ventana._barra_superior is not None
+    assert ventana._barra_superior.height() == 88
+    assert ventana._filete_upc is not None
+    assert ventana._filete_upc.height() == 3
+
+    # Botón Deshacer con popover
     assert ventana._btn_deshacer is not None
-    assert ventana._punto_conexion is not None
+    assert ventana._popover_historial is not None
 
-    # Banner de advertencia inicialmente oculto
+    # Avatar y sesión
+    assert ventana._avatar_usuario is not None
+    assert ventana.btn_cerrar_sesion is not None
+    assert ventana.btn_acerca is not None
+
+    # Franjas de revisión y sin conexión inicialmente acordes al estado
     assert not ventana._banner_revision.isVisible()
+    assert not ventana._franja_sin_conexion.isVisible()
 
-    # 2. Navegación lateral con 9 pantallas
-    assert ventana._navegacion.count() == 9
-    assert ventana._navegacion.item(0).text() == "Conectar con PEA-i"
-    assert ventana._navegacion.item(1).text() == "Resumen general"
-    assert ventana._navegacion.item(8).text() == "Acerca del proyecto"
+    # 2. Siete pestañas principales
+    assert len(ventana._botones_pestanas) == 7
+    nombres_esperados = [
+        "Inicio",
+        "Investigadores",
+        "Grupos",
+        "Productos",
+        "Análisis de redes",
+        "Importar",
+        "Configuración",
+    ]
+    for btn, nombre_esperado in zip(ventana._botones_pestanas, nombres_esperados, strict=True):
+        assert btn._texto == nombre_esperado
 
-    # 3. Zona central apilador
-    assert ventana._apilador.count() == 9
+    # 3. Zona central apiladora con 8 pantallas
+    assert ventana._apilador.count() == 8
+    assert ventana._apilador.currentIndex() == int(Pantalla.INICIO)
 
-    # 4. Barra de estado
-    assert ventana._barra_estado is not None
-    assert "Revisión:" in ventana._lbl_estado_revision.text()
+    # 4. Pie institucional
+    assert ventana._pie is not None
+    assert ventana._pie.height() in (44, 72)
+    assert ventana._pastilla_logo is not None
+    assert "Revisión:" in ventana._chip_revision.text()
+    assert "Deshacer:" in ventana._chip_deshacer.text()
+    assert "Cola:" in ventana._chip_cola.text()
 
 
 def test_navegacion_entre_todas_las_pantallas(ventana: VentanaPrincipal) -> None:
-    """Verifica la navegación secuencial por las 9 pantallas sin fallas."""
-    for idx in range(9):
-        ventana.seleccionar_pantalla(idx)
+    """Verifica la navegación secuencial por las 8 pantallas oficiales (Pantalla enum)."""
+    for pantalla_enum in Pantalla:
+        ventana.seleccionar_pantalla(pantalla_enum)
         QApplication.processEvents()
+
+        idx = int(pantalla_enum)
         assert ventana._apilador.currentIndex() == idx
-        pantalla_actual = ventana._apilador.currentWidget()
-        assert pantalla_actual is not None
-        assert pantalla_actual.isVisible()
+        widget_actual = ventana._apilador.currentWidget()
+        assert widget_actual is not None
+        assert widget_actual.isVisible()
+
+        # Verificar sincronización de pestañas
+        if idx <= 6:
+            btn_activo = ventana._pestanas.button(idx)
+            assert btn_activo is not None
+            assert btn_activo.isChecked()
+        else:
+            # "Acerca de" no deja ninguna pestaña central marcada
+            for b in ventana._botones_pestanas:
+                assert not b.isChecked()
 
 
-def test_pantalla_resumen_interaccion_filtros(ventana: VentanaPrincipal) -> None:
-    """Prueba la pantalla de Resumen general y la reactividad del filtro temporal."""
-    ventana.seleccionar_pantalla(1)  # Resumen general
+def test_atajos_de_teclado(ventana: VentanaPrincipal) -> None:
+    """Verifica que los atajos de teclado cambien de pantalla y respondan a acciones."""
+    # Navegar a pantalla 3 (Productos)
+    ventana.seleccionar_pantalla(Pantalla.PRODUCTOS)
+    QApplication.processEvents()
+    assert ventana._apilador.currentIndex() == int(Pantalla.PRODUCTOS)
+
+    # Navegar a Acerca de y volver con atajo
+    ventana.seleccionar_pantalla(Pantalla.ACERCA)
+    QApplication.processEvents()
+    assert ventana._apilador.currentIndex() == int(Pantalla.ACERCA)
+
+    ventana._al_atajo_volver()
+    QApplication.processEvents()
+    assert ventana._apilador.currentIndex() == int(Pantalla.INICIO)
+
+
+def test_filtro_anios_global_compartido(ventana: VentanaPrincipal) -> None:
+    """Verifica el filtro de años global compartido en la ventana."""
+    assert ventana._filtro_global.modo == ModoFiltroAnios.MODELO_2024
+
+    nuevo_filtro = FiltroAnios(modo=ModoFiltroAnios.ULTIMOS, ultimos_n=3)
+    ventana._pantalla_inicio.establecer_filtro(nuevo_filtro)
+    assert ventana._pantalla_inicio._filtro_actual.modo == ModoFiltroAnios.ULTIMOS
+
+
+def test_deshacer_y_popover_historial(ventana: VentanaPrincipal) -> None:
+    """Prueba la pila de deshacer reflejada en la barra y en el popover de historial."""
+    # Desactivar un grupo para generar una operación en la pila de deshacer
+    servicio = ventana._servicio
+    grupos = servicio.tabla_grupos().claves
+    assert len(grupos) > 0
+    codigo_grupo = grupos[0]
+    servicio.cambiar_estado("grupo", codigo_grupo, activo=False)
+    ventana.actualizar_estado_global()
     QApplication.processEvents()
 
-    pantalla = ventana._pantalla_resumen
-    assert pantalla.lbl_sin_datos.isHidden()
-    assert pantalla.area_desplazamiento.isVisible()
+    assert servicio.estado().operaciones_deshacer >= 1
+    assert ventana._btn_deshacer._contador >= 1
+    assert ventana._btn_deshacer.btn_accion.isEnabled()
 
-    # Modificar filtro a últimos 5 años
-    pantalla.barra_filtro.combo_modo.setCurrentIndex(1)  # ModoFiltroAnios.ULTIMOS
+    # Abrir popover de historial
+    ventana._abrir_popover_historial()
     QApplication.processEvents()
-    assert pantalla._filtro_actual.modo == ModoFiltroAnios.ULTIMOS
-
-    # Modificar a Modelo 2024
-    pantalla.barra_filtro.combo_modo.setCurrentIndex(3)  # ModoFiltroAnios.MODELO_2024
-    QApplication.processEvents()
-    assert pantalla._filtro_actual.modo == ModoFiltroAnios.MODELO_2024
-
-
-def test_pantalla_grupo_seleccion_y_contenido(ventana: VentanaPrincipal) -> None:
-    """Prueba la pantalla Por grupo: selector y detalle de integrantes."""
-    ventana.seleccionar_pantalla(2)  # Por grupo
-    QApplication.processEvents()
-
-    pantalla = ventana._pantalla_grupo
-    assert pantalla.combo_grupo.count() > 0
-
-    # Seleccionar el primer grupo disponible
-    pantalla.combo_grupo.setCurrentIndex(0)
-    QApplication.processEvents()
-
-    assert not pantalla.area_desplazamiento.isHidden()
-    assert "Líder:" in pantalla.lbl_lider_grupo.text()
-    assert pantalla.tabla_integrantes.model() is not None
-
-
-def test_pantalla_investigador_seleccion_y_productos(ventana: VentanaPrincipal) -> None:
-    """Prueba la pantalla Por investigador: selector y tabla de productos."""
-    ventana.seleccionar_pantalla(3)  # Por investigador
-    QApplication.processEvents()
-
-    pantalla = ventana._pantalla_investigador
-    assert pantalla.combo_inv.count() > 0
-
-    pantalla.combo_inv.setCurrentIndex(0)
-    QApplication.processEvents()
-
-    assert not pantalla.area_desplazamiento.isHidden()
-    assert "Categoría:" in pantalla.lbl_categoria.text()
-    assert pantalla.tabla_productos.model() is not None
-
-
-def test_pantalla_producto_seleccion_tabla(ventana: VentanaPrincipal) -> None:
-    """Prueba la pantalla Por producto y el panel de detalle lateral al seleccionar."""
-    ventana.seleccionar_pantalla(4)  # Por producto
-    QApplication.processEvents()
-
-    pantalla = ventana._pantalla_producto
-    modelo = pantalla.tabla.model()
-    assert modelo is not None
-    assert modelo.rowCount() > 0
-
-    # Seleccionar la primera fila
-    indice = modelo.index(0, 0)
-    pantalla.tabla.setCurrentIndex(indice)
-    QApplication.processEvents()
-
-    # El panel de detalle debe mostrar el código
-    codigo_seleccionado = modelo.data(indice, Qt.ItemDataRole.DisplayRole)
-    assert codigo_seleccionado in pantalla.lbl_det_codigo.text()
-
-
-def test_pantalla_gestion_cambio_estado_y_deshacer(ventana: VentanaPrincipal) -> None:
-    """Prueba la pantalla Gestión de datos: desactivar entidad y deshacer con Ctrl+Z."""
-    ventana.seleccionar_pantalla(5)  # Gestión de datos
-    QApplication.processEvents()
-
-    pantalla = ventana._pantalla_gestion
-    modelo = pantalla.tabla_grupos.model()
-    assert modelo is not None
-    assert modelo.rowCount() > 0
-
-    # Seleccionar primer grupo
-    pantalla.tabla_grupos.setCurrentIndex(modelo.index(0, 0))
-    QApplication.processEvents()
-
-    # Desactivar grupo
-    pantalla._al_toggle_estado("grupo", pantalla.tabla_grupos, pantalla.modelo_grupos)
-    QApplication.processEvents()
-
-    # La pila de deshacer debe contener una operación
-    estado = ventana._servicio.estado()
-    assert estado.operaciones_deshacer == 1
-    assert ventana._btn_deshacer.isEnabled()
+    assert ventana._popover_historial.isVisible()
+    assert ventana._popover_historial._layout_lista.count() >= 1
 
     # Ejecutar deshacer
     ventana._al_clic_deshacer()
     QApplication.processEvents()
 
-    # Verificamos que se haya restaurado
-    estado_restaurado = ventana._servicio.estado()
-    assert estado_restaurado.operaciones_deshacer == 0
-    assert not ventana._btn_deshacer.isEnabled()
+    assert servicio.estado().operaciones_deshacer == 0
+    assert ventana._btn_deshacer._contador == 0
+    assert not ventana._btn_deshacer.btn_accion.isEnabled()
 
 
 def test_pantalla_importar_cola_ingesta(ventana: VentanaPrincipal, tmp_path: Path) -> None:
     """Prueba la pantalla Importar: encolar archivo CSV y consultar la cola."""
-    ventana.seleccionar_pantalla(6)  # Importar
+    ventana.seleccionar_pantalla(Pantalla.IMPORTAR)
     QApplication.processEvents()
 
     pantalla = ventana._pantalla_importar
+    assert pantalla is not None
 
-    # Crear archivo CSV temporal con cabeceras válidas
     archivo_csv = tmp_path / "datos_test.csv"
     archivo_csv.write_text(
         "codigo_gruplac,nombre,categoria,lider,institucion_principal,departamento_ciudad,gran_area_ocde,area_ocde,fecha_creacion,activo\n"
@@ -183,7 +171,6 @@ def test_pantalla_importar_cola_ingesta(ventana: VentanaPrincipal, tmp_path: Pat
         encoding="utf-8",
     )
 
-    # Encolar CSV
     tarea_id = ventana._servicio.encolar_csv(archivo_csv)
     assert len(str(tarea_id)) > 0
 
@@ -195,10 +182,18 @@ def test_pantalla_importar_cola_ingesta(ventana: VentanaPrincipal, tmp_path: Pat
     assert modelo_cola.rowCount() > 0
 
 
+def test_pantalla_acerca_institucional(ventana: VentanaPrincipal) -> None:
+    """Verifica la pantalla Acerca de abierta desde la barra superior."""
+    ventana.seleccionar_pantalla(Pantalla.ACERCA)
+    QApplication.processEvents()
+
+    pantalla = ventana._pantalla_acerca
+    assert pantalla is not None
+    assert "Revisión actual del esquema:" in pantalla._lbl_estado_rev.text()
+
 
 def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:
     """Verifica que la exportación de tablas a CSV y gráficos a PNG funcione correctamente."""
-    # 1. Exportación CSV
     tabla = TablaDatos(
         columnas=("Código", "Nombre", "Total"),
         filas=(
@@ -212,13 +207,11 @@ def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:
 
     assert destino_csv.exists()
     contenido_bytes = destino_csv.read_bytes()
-    # Debe tener BOM UTF-8 (\xef\xbb\xbf)
     assert contenido_bytes.startswith(b"\xef\xbb\xbf")
     contenido_texto = destino_csv.read_text(encoding="utf-8-sig")
     assert "Grupo Uno" in contenido_texto
     assert "25" in contenido_texto
 
-    # 2. Exportación de gráfico nativo a PNG
     grafico = GraficoBarras(titulo="Prueba de Producción")
     grafico.establecer_datos({"2020": 15, "2021": 30, "2022": 45})
     grafico.resize(400, 300)
@@ -230,10 +223,27 @@ def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:
     assert destino_png.stat().st_size > 0
 
 
-def test_pantalla_acerca_institucional(ventana: VentanaPrincipal) -> None:
-    """Verifica la pantalla Acerca del proyecto y la ficha técnica."""
-    ventana.seleccionar_pantalla(8)  # Acerca del proyecto
+def test_responsividad_ventana(ventana: VentanaPrincipal) -> None:
+    """Verifica la adaptación de la barra superior y pie al cambiar dimensiones (Sección 11)."""
+    # 1. Tamaño ancho normal (≥ 1240)
+    ventana.resize(1360, 820)
     QApplication.processEvents()
+    assert ventana._lbl_eslogan.isVisible()
+    assert not ventana._botones_pestanas[0]._modo_compacto
+    assert ventana._pie.height() == 72
+    assert ventana._caja_texto_pie.isVisible()
 
-    pantalla = ventana._pantalla_acerca
-    assert "Revisión actual del esquema:" in pantalla._lbl_estado_rev.text()
+    # 2. Ancho intermedio (< 1240)
+    ventana.resize(1200, 820)
+    QApplication.processEvents()
+    assert not ventana._lbl_eslogan.isVisible()
+
+    # 3. Ancho estrecho (< 1120)
+    ventana.resize(1100, 700)
+    QApplication.processEvents()
+    assert not ventana._lbl_eslogan.isVisible()
+    assert ventana._botones_pestanas[0]._modo_compacto
+
+    # 4. Alto reducido (< 760): Pie compacto
+    assert ventana._pie.height() == 44
+    assert not ventana._caja_texto_pie.isVisible()
