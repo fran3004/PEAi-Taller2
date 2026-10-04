@@ -909,6 +909,30 @@ class PantallaInvestigadores(QWidget):
         else:
             self._ficha_lateral.mostrar_vacio()
 
+    def seleccionar_investigador(self, clave_o_nombre: str) -> None:
+        """Selecciona un investigador por código CvLAC o nombre completo."""
+        src = self._modelo
+        for row in range(src.rowCount()):
+            if src.obtener_clave_fila(row) == clave_o_nombre:
+                self.tabla.seleccionar_fila(row)
+                return
+        nom_busq = clave_o_nombre.strip().lower()
+        for row in range(src.rowCount()):
+            reg = src.registro_en_fila(row)
+            if reg and nom_busq in reg["nombre_completo"].lower():
+                self.tabla.seleccionar_fila(row)
+                return
+        # Si no está en la vista actual, aplicar búsqueda de texto
+        self.campo_busqueda.establecer_texto(clave_o_nombre)
+
+    def filtrar_por_grupo(self, cod_o_nombre_grupo: str) -> None:
+        """Filtra los investigadores pertenecientes al grupo indicado."""
+        idx = self.combo_grupo.findText(cod_o_nombre_grupo)
+        if idx >= 0:
+            self.combo_grupo.setCurrentIndex(idx)
+        else:
+            self.campo_busqueda.establecer_texto(cod_o_nombre_grupo)
+
     # -----------------------------------------------------------------------
     # Filtros Reactivos del Directorio
     # -----------------------------------------------------------------------

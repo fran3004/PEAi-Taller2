@@ -994,15 +994,22 @@ class ServicioAplicacion:
         prod: Producto = nodo.producto
         return {
             "codigo": prod.codigo_identificador,
+            "codigo_identificador": prod.codigo_identificador,
             "titulo": prod.titulo,
             "tipo_mayor": prod.tipo_mayor,
             "subtipo": prod.subtipo or "—",
             "ano": prod.ano,
+            "anio": prod.ano,
             "validacion": prod.estado_validacion,
+            "estado_validacion": prod.estado_validacion,
             "activo": prod.activo,
             "es_ejemplo": prod.es_ejemplo,
             "grupo": getattr(nodo.grupo, "nombre", None) or "Sin grupo",
+            "codigo_grupo": getattr(nodo.grupo, "codigo_gruplac", None),
             "autores": tuple(f"{a.nombre_completo} ({a.codigo_rh})" for a in nodo.autores),
+            "autores_lista": tuple(
+                {"nombre": a.nombre_completo, "codigo_rh": a.codigo_rh} for a in nodo.autores
+            ),
             "en_ventana_modelo_2024": self._producto_en_filtro(prod, FiltroAnios(modo=ModoFiltroAnios.MODELO_2024)),
         }
 

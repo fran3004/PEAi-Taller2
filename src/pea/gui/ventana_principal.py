@@ -95,6 +95,7 @@ from pea.gui.pantallas.pantalla_importar import PantallaImportar
 from pea.gui.pantallas.pantalla_investigador import PantallaInvestigador
 from pea.gui.pantallas.pantalla_producto import PantallaProducto
 from pea.gui.pantallas.pantalla_resumen import PantallaResumen
+from pea.gui.pantallas.productos import PantallaProductos
 from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoConexion, ModoFiltroAnios
@@ -694,13 +695,20 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_grupos_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
         self._pantalla_grupos_modulo.datos_modificados.connect(self.actualizar_estado_global)
 
-        self._pantalla_productos_modulo = MarcadorPantalla(
-            titulo="Catálogo de Productos",
-            descripcion="Catálogo completo de productos clasificados en las 4 tipologías del Modelo 2024.",
-            icono="productos.svg",
+        self._pantalla_productos_modulo = PantallaProductos(
+            servicio=self._servicio,
+            ejecutor=self._ejecutor,
             filtro_global=self._filtro_global,
             parent=self._apilador,
         )
+        self._pantalla_productos_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_productos_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
+        self._pantalla_productos_modulo.datos_modificados.connect(self.actualizar_estado_global)
+        self._pantalla_productos_modulo.abrir_investigador_solicitado.connect(self._al_solicitar_abrir_investigador)
+
+        # Conectar navegación cruzada de pantallas previas hacia Productos
+        self._pantalla_investigadores_modulo.ver_productos_solicitado.connect(self._al_solicitar_ver_productos)
+        self._pantalla_grupos_modulo.ver_productos_solicitado.connect(self._al_solicitar_ver_productos)
 
         self._pantalla_redes_modulo = MarcadorPantalla(
             titulo="Análisis de Redes de Colaboración",
@@ -947,6 +955,21 @@ class VentanaPrincipal(QMainWindow):
     def _al_clic_pestana(self, id_btn: int) -> None:
         self.seleccionar_pantalla(Pantalla(id_btn))
 
+    def _al_solicitar_abrir_investigador(self, clave_o_nombre: str) -> None:
+        self.seleccionar_pantalla(Pantalla.INVESTIGADORES)
+        if hasattr(self._pantalla_investigadores_modulo, "seleccionar_investigador"):
+            self._pantalla_investigadores_modulo.seleccionar_investigador(clave_o_nombre)
+
+    def _al_solicitar_ver_productos(self, filtro_texto: str) -> None:
+        self.seleccionar_pantalla(Pantalla.PRODUCTOS)
+        if hasattr(self._pantalla_productos_modulo, "filtrar_por_texto"):
+            self._pantalla_productos_modulo.filtrar_por_texto(filtro_texto)
+
+    def _al_solicitar_ver_investigadores_grupo(self, cod_o_nombre_grupo: str) -> None:
+        self.seleccionar_pantalla(Pantalla.INVESTIGADORES)
+        if hasattr(self._pantalla_investigadores_modulo, "filtrar_por_grupo"):
+            self._pantalla_investigadores_modulo.filtrar_por_grupo(cod_o_nombre_grupo)
+
     def _abrir_popover_historial(self) -> None:
         self._popover_historial.mostrar_bajo(self._btn_deshacer)
 
@@ -1168,6 +1191,17 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         ruta_grp = salida_dir / f"pantalla_grupos_{etiqueta}.png"
         pix.save(str(ruta_grp), "PNG")
         print(f"[AUTOPRUEBA] Captura de grupos guardada en {ruta_grp}")
+
+    # Recorrido de la pantalla de Productos (Sección 6.4)
+    ventana.seleccionar_pantalla(Pantalla.PRODUCTOS)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_prd = salida_dir / f"pantalla_productos_{etiqueta}.png"
+        pix.save(str(ruta_prd), "PNG")
+        print(f"[AUTOPRUEBA] Captura de productos guardada en {ruta_prd}")
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)
