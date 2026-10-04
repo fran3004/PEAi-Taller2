@@ -14,7 +14,11 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPaintEvent, QPen
 from PySide6.QtWidgets import QWidget
 
-from pea.gui.estilo import AZUL_ACENTO, AZUL_UPC, BORDE, SERIE, TEXTO, TEXTO_SECUNDARIO
+from pea.gui.estilo import ACENTO, LINEA, PRIMARIO, SERIE, TEXTO, TEXTO_SECUNDARIO
+
+BORDE = LINEA
+AZUL_UPC = PRIMARIO
+AZUL_ACENTO = ACENTO
 
 
 class GraficoBase(QWidget):
