@@ -89,12 +89,6 @@ from pea.gui.pantallas.grupos import PantallaGrupos
 from pea.gui.pantallas.importar import PantallaImportar
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
-from pea.gui.pantallas.pantalla_cruzada import PantallaCruzada
-from pea.gui.pantallas.pantalla_gestion import PantallaGestion
-from pea.gui.pantallas.pantalla_grupo import PantallaGrupo
-from pea.gui.pantallas.pantalla_investigador import PantallaInvestigador
-from pea.gui.pantallas.pantalla_producto import PantallaProducto
-from pea.gui.pantallas.pantalla_resumen import PantallaResumen
 from pea.gui.pantallas.productos import PantallaProductos
 from pea.gui.pantallas.redes import PantallaRedes
 from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap
@@ -198,7 +192,7 @@ class BotonPestanaSuperior(QPushButton):
 
         # 2. Anillo de foco accesible
         if self.hasFocus():
-            pen_foco = QPen(QColor("#7CC7F0"), 2)
+            pen_foco = QPen(QColor(ACENTO), 2)
             painter.setPen(pen_foco)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRoundedRect(rect.adjusted(2, 2, -2, -2), 12, 12)
@@ -737,18 +731,9 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_configuracion_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
         self._pantalla_conectar = self._pantalla_configuracion_modulo  # alias retrocompatible
 
-        self._pantalla_cruzada = PantallaCruzada(self._servicio, self._ejecutor, parent=self._apilador)
-
         self._pantalla_acerca = PantallaAcerca(self._servicio, parent=self._apilador)
         self._pantalla_acerca.volver_solicitado.connect(lambda: self.seleccionar_pantalla(Pantalla.INICIO))
         self._pantalla_acerca.solicitar_navegacion.connect(self.seleccionar_pantalla)
-
-        # Pantallas anteriores retenidas para retrocompatibilidad interna
-        self._pantalla_resumen = PantallaResumen(self._servicio, parent=self)
-        self._pantalla_grupo = PantallaGrupo(self._servicio, parent=self)
-        self._pantalla_investigador = PantallaInvestigador(self._servicio, parent=self)
-        self._pantalla_producto = PantallaProducto(self._servicio, parent=self)
-        self._pantalla_gestion = PantallaGestion(self._servicio, parent=self)
 
         self._pantallas_apiladas: list[QWidget] = [
             self._pantalla_inicio,  # 0: INICIO
@@ -763,9 +748,6 @@ class VentanaPrincipal(QMainWindow):
 
         for p in self._pantallas_apiladas:
             self._apilador.addWidget(p)
-
-        # Conectar señales adicionales
-        self._pantalla_gestion.datos_modificados.connect(self.actualizar_estado_global)
 
     # -----------------------------------------------------------------------
     # 4. Pie Institucional (72 px / 44 px)
@@ -1071,6 +1053,14 @@ class VentanaPrincipal(QMainWindow):
 
         self._ejecutor.ejecutar(tarea, al_terminar=exito)
 
+    def mostrar_aviso_revision(self, rev_local: int, rev_remota: int) -> None:
+        """Muestra la franja reactiva de aviso cuando la revisión remota difiere de la local."""
+        self._lbl_texto_banner.setText(
+            f"La base de datos cambió en el servidor (local: {rev_local}, remota: {rev_remota}). "
+            f"Existen modificaciones externas."
+        )
+        self._banner_revision.setVisible(True)
+
     # -----------------------------------------------------------------------
     # Estado Global Vivo
     # -----------------------------------------------------------------------
@@ -1095,8 +1085,10 @@ class VentanaPrincipal(QMainWindow):
         historial = getattr(estado, "historial_deshacer", [])
         self._popover_historial.actualizar_operaciones(historial)
 
-        # 3. Franja sin conexión
+        # 3. Franja sin conexión y banner de revisión
         self._franja_sin_conexion.setVisible(bool(estado.sin_conexion))
+        if getattr(estado, "cambio_remoto", False):
+            self._banner_revision.setVisible(True)
 
         # 4. Pie Institucional
         if estado.modo == ModoConexion.SUPABASE:
@@ -1150,7 +1142,10 @@ class VentanaPrincipal(QMainWindow):
 
 def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     """Ejecuta el recorrido de verificación y genera capturas en los 3 tamaños oficiales."""
-    print("[AUTOPRUEBA] Iniciando autoprueba de ventana principal PEA-i...")
+    import os
+
+    os.environ["PEA_SIN_ANIMACIONES"] = "1"
+    print("[AUTOPRUEBA] Iniciando autoprueba de ventana principal PEA-i (PEA_SIN_ANIMACIONES=1)...")
     salida_dir = Path("datos/capturas")
     salida_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1162,110 +1157,39 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     ventana.show()
     app.processEvents()
 
-    # Recorrido de las resoluciones oficiales de la sección 11
+    # Recorrido de las 3 resoluciones oficiales (1100x700, 1366x768, 1920x1080)
     tamanos = [
+        (1100, 700, "1100x700"),
         (1366, 768, "1366x768"),
         (1920, 1080, "1920x1080"),
-        (1100, 700, "1100x700"),
-        (1360, 820, "1360x820"),
     ]
 
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta = salida_dir / f"pantalla_inicio_{etiqueta}.png"
-        pix.save(str(ruta), "PNG")
-        print(f"[AUTOPRUEBA] Captura guardada en {ruta}")
+    pantallas_recorrido: list[tuple[Pantalla, str]] = [
+        (Pantalla.INICIO, "00_inicio"),
+        (Pantalla.INVESTIGADORES, "01_investigadores"),
+        (Pantalla.GRUPOS, "02_grupos"),
+        (Pantalla.PRODUCTOS, "03_productos"),
+        (Pantalla.REDES, "04_redes"),
+        (Pantalla.IMPORTAR, "05_importar"),
+        (Pantalla.CONFIGURACION, "06_configuracion"),
+        (Pantalla.ACERCA, "07_acerca"),
+    ]
 
-    # Captura en modo Grupo a 1920x1080
-    if hasattr(ventana, "_pantalla_inicio") and hasattr(ventana._pantalla_inicio, "_selector_ambito"):
-        ventana.resize(1920, 1080)
-        ventana._pantalla_inicio._selector_ambito.seleccionar("grupo")
+    for p_enum, nombre_pantalla in pantallas_recorrido:
+        ventana.seleccionar_pantalla(p_enum)
         app.processEvents()
-        pix = ventana.grab()
-        ruta_grp = salida_dir / "pantalla_inicio_grupo_1920x1080.png"
-        pix.save(str(ruta_grp), "PNG")
-        print(f"[AUTOPRUEBA] Captura de grupo guardada en {ruta_grp}")
-        ventana._pantalla_inicio._selector_ambito.seleccionar("institucion")
+        p_widget = ventana._apilador.currentWidget()
+        if hasattr(p_widget, "refrescar"):
+            p_widget.refrescar()
         app.processEvents()
 
-    # Recorrido de la pantalla de Investigadores (Sección 6.2)
-    ventana.seleccionar_pantalla(Pantalla.INVESTIGADORES)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_inv = salida_dir / f"pantalla_investigadores_{etiqueta}.png"
-        pix.save(str(ruta_inv), "PNG")
-        print(f"[AUTOPRUEBA] Captura de investigadores guardada en {ruta_inv}")
-
-    # Recorrido de la pantalla de Grupos (Sección 6.3)
-    ventana.seleccionar_pantalla(Pantalla.GRUPOS)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_grp = salida_dir / f"pantalla_grupos_{etiqueta}.png"
-        pix.save(str(ruta_grp), "PNG")
-        print(f"[AUTOPRUEBA] Captura de grupos guardada en {ruta_grp}")
-
-    # Recorrido de la pantalla de Productos (Sección 6.4)
-    ventana.seleccionar_pantalla(Pantalla.PRODUCTOS)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_prd = salida_dir / f"pantalla_productos_{etiqueta}.png"
-        pix.save(str(ruta_prd), "PNG")
-        print(f"[AUTOPRUEBA] Captura de productos guardada en {ruta_prd}")
-
-    # Recorrido de la pantalla de Redes de Colaboración (Sección 6.5)
-    ventana.seleccionar_pantalla(Pantalla.REDES)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_red = salida_dir / f"pantalla_redes_{etiqueta}.png"
-        pix.save(str(ruta_red), "PNG")
-        print(f"[AUTOPRUEBA] Captura de redes guardada en {ruta_red}")
-
-    # Recorrido de la pantalla de Importación (Sección 6.6)
-    ventana.seleccionar_pantalla(Pantalla.IMPORTAR)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_imp = salida_dir / f"pantalla_importar_{etiqueta}.png"
-        pix.save(str(ruta_imp), "PNG")
-        print(f"[AUTOPRUEBA] Captura de importar guardada en {ruta_imp}")
-
-    # Recorrido de la pantalla de Configuración (Sección 6.7)
-    ventana.seleccionar_pantalla(Pantalla.CONFIGURACION)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_cfg = salida_dir / f"pantalla_configuracion_{etiqueta}.png"
-        pix.save(str(ruta_cfg), "PNG")
-        print(f"[AUTOPRUEBA] Captura de configuracion guardada en {ruta_cfg}")
-
-    # Recorrido de la pantalla Acerca de (Sección 6.8)
-    ventana.seleccionar_pantalla(Pantalla.ACERCA)
-    app.processEvents()
-    for ancho, alto, etiqueta in tamanos:
-        ventana.resize(ancho, alto)
-        app.processEvents()
-        pix = ventana.grab()
-        ruta_ace = salida_dir / f"pantalla_acerca_{etiqueta}.png"
-        pix.save(str(ruta_ace), "PNG")
-        print(f"[AUTOPRUEBA] Captura de acerca guardada en {ruta_ace}")
+        for ancho, alto, etiqueta in tamanos:
+            ventana.resize(ancho, alto)
+            app.processEvents()
+            pix = ventana.grab()
+            ruta = salida_dir / f"pantalla_{nombre_pantalla}_{etiqueta}.png"
+            pix.save(str(ruta), "PNG")
+            print(f"[AUTOPRUEBA] Captura guardada en {ruta}")
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)

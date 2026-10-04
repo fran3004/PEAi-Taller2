@@ -8,7 +8,6 @@ from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.estado_vacio import Esqueleto, EstadoVacio
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.filtro_anios import (
-    BarraFiltroAnios,
     ChipVentana,
     PopoverFiltroAnios,
 )
@@ -31,7 +30,6 @@ from pea.gui.componentes.toast import GestorAvisos, Toast
 __all__ = [
     "Avatar",
     "AvatarNombreDelegate",
-    "BarraFiltroAnios",
     "CampoBusqueda",
     "ChipVentana",
     "EnlaceDelegate",

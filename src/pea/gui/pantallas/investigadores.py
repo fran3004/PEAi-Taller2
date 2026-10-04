@@ -918,7 +918,7 @@ class PantallaInvestigadores(QWidget):
                 return
         nom_busq = clave_o_nombre.strip().lower()
         for row in range(src.rowCount()):
-            reg = src.registro_en_fila(row)
+            reg = src.registro(row)
             if reg and nom_busq in reg["nombre_completo"].lower():
                 self.tabla.seleccionar_fila(row)
                 return
