@@ -6,6 +6,7 @@ from pea.gui.pantallas.grupos import FichaGrupo, PantallaGrupos
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
 from pea.gui.pantallas.productos import FichaProducto, PantallaProductos
+from pea.gui.pantallas.redes import PantallaRedes
 
 __all__ = [
     "FichaGrupo",
@@ -14,5 +15,6 @@ __all__ = [
     "PantallaInicio",
     "PantallaInvestigadores",
     "PantallaProductos",
+    "PantallaRedes",
 ]
 

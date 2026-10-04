@@ -154,6 +154,7 @@ class PantallaInicio(QWidget):
 
     solicitar_navegacion = Signal(object)  # Emite el índice o enum de la pantalla destino
     filtro_cambiado = Signal(object)      # Emite FiltroAnios cuando cambia el filtro
+    ver_red_nodo_solicitado = Signal(str)  # Emite código de investigador al pulsar nodo en mini red
 
     def __init__(
         self,
@@ -440,11 +441,15 @@ class PantallaInicio(QWidget):
             parent=self._tarjeta_red,
         )
         self._mini_red.abrir_analisis_completo.connect(self._al_abrir_red_completa)
+        self._mini_red.nodo_pulsado.connect(self._al_pulsar_nodo_mini_red)
         self._tarjeta_red.agregar_widget(self._mini_red)
 
     def _al_abrir_red_completa(self) -> None:
         # Pestaña 4: Pantalla.REDES
         self.solicitar_navegacion.emit(4)
+
+    def _al_pulsar_nodo_mini_red(self, codigo_investigador: str) -> None:
+        self.ver_red_nodo_solicitado.emit(codigo_investigador)
 
     # -----------------------------------------------------------------------
     # Segunda Fila: Rankings (Top 5)

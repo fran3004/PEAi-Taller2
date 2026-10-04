@@ -96,6 +96,7 @@ from pea.gui.pantallas.pantalla_investigador import PantallaInvestigador
 from pea.gui.pantallas.pantalla_producto import PantallaProducto
 from pea.gui.pantallas.pantalla_resumen import PantallaResumen
 from pea.gui.pantallas.productos import PantallaProductos
+from pea.gui.pantallas.redes import PantallaRedes
 from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoConexion, ModoFiltroAnios
@@ -710,13 +711,18 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_investigadores_modulo.ver_productos_solicitado.connect(self._al_solicitar_ver_productos)
         self._pantalla_grupos_modulo.ver_productos_solicitado.connect(self._al_solicitar_ver_productos)
 
-        self._pantalla_redes_modulo = MarcadorPantalla(
-            titulo="Análisis de Redes de Colaboración",
-            descripcion="Grafo de coautorías académicas y métricas de centralidad topológica.",
-            icono="redes.svg",
+        # Conectar navegación de inicio a redes
+        self._pantalla_inicio.ver_red_nodo_solicitado.connect(self._al_solicitar_ver_nodo_red)
+
+        self._pantalla_redes_modulo = PantallaRedes(
+            servicio=self._servicio,
+            ejecutor=self._ejecutor,
             filtro_global=self._filtro_global,
             parent=self._apilador,
         )
+        self._pantalla_redes_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
+        self._pantalla_redes_modulo.filtro_cambiado.connect(self._al_cambiar_filtro_global)
+        self._pantalla_redes_modulo.abrir_investigador_solicitado.connect(self._al_solicitar_abrir_investigador)
 
         # Módulos ya funcionales integrados
         self._pantalla_importar = PantallaImportar(self._servicio, self._ejecutor, parent=self._apilador)
@@ -970,6 +976,11 @@ class VentanaPrincipal(QMainWindow):
         if hasattr(self._pantalla_investigadores_modulo, "filtrar_por_grupo"):
             self._pantalla_investigadores_modulo.filtrar_por_grupo(cod_o_nombre_grupo)
 
+    def _al_solicitar_ver_nodo_red(self, codigo_investigador: str) -> None:
+        self.seleccionar_pantalla(Pantalla.REDES)
+        if hasattr(self._pantalla_redes_modulo, "seleccionar_nodo"):
+            self._pantalla_redes_modulo.seleccionar_nodo(codigo_investigador)
+
     def _abrir_popover_historial(self) -> None:
         self._popover_historial.mostrar_bajo(self._btn_deshacer)
 
@@ -1202,6 +1213,17 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         ruta_prd = salida_dir / f"pantalla_productos_{etiqueta}.png"
         pix.save(str(ruta_prd), "PNG")
         print(f"[AUTOPRUEBA] Captura de productos guardada en {ruta_prd}")
+
+    # Recorrido de la pantalla de Redes de Colaboración (Sección 6.5)
+    ventana.seleccionar_pantalla(Pantalla.REDES)
+    app.processEvents()
+    for ancho, alto, etiqueta in tamanos:
+        ventana.resize(ancho, alto)
+        app.processEvents()
+        pix = ventana.grab()
+        ruta_red = salida_dir / f"pantalla_redes_{etiqueta}.png"
+        pix.save(str(ruta_red), "PNG")
+        print(f"[AUTOPRUEBA] Captura de redes guardada en {ruta_red}")
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)
