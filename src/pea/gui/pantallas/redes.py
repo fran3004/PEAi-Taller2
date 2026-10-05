@@ -874,7 +874,7 @@ class PantallaRedes(QWidget):
             alto_px = int(rect_escena.height() * 2.0)
 
             imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32_Premultiplied)
-            imagen.fill(QColor("{estilo.SUPERFICIE}"))
+            imagen.fill(QColor(estilo.SUPERFICIE))
 
             painter = QPainter(imagen)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)

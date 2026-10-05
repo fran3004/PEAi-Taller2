@@ -72,7 +72,6 @@ from pea.gui.estilo import (
     ERROR,
     ERROR_FONDO,
     EXITO,
-    FONDO_APP,
     HOJA_ESTILOS_GLOBAL,
     LINEA,
     PIE,
@@ -255,10 +254,11 @@ class BotonDeshacerSuperior(QWidget):
         self.btn_accion.setIcon(cargar_icono("deshacer.svg", 18))
         self.btn_accion.setIconSize(QSize(18, 18))
         self.btn_accion.setStyleSheet(
-            "QPushButton { background-color: {estilo.SUPERPOSICION_CLARA_12}; "
-            "border: 1px solid {estilo.SUPERPOSICION_CLARA_25}; border-radius: {estilo.RADIO_TARJETA}px; }"
-            "QPushButton:hover { background-color: {estilo.SUPERPOSICION_CLARA_22}; }"
-            "QPushButton:disabled { background-color: {estilo.SUPERPOSICION_CLARA_5}; border-color: {estilo.SUPERPOSICION_CLARA_10}; }"
+            f"QPushButton {{ background-color: {estilo.SUPERPOSICION_CLARA_12}; "
+            f"border: 1px solid {estilo.SUPERPOSICION_CLARA_25}; border-radius: {estilo.RADIO_TARJETA}px; }} "
+            f"QPushButton:hover {{ background-color: {estilo.SUPERPOSICION_CLARA_22}; }} "
+            f"QPushButton:focus {{ border: 2px solid {ACENTO}; outline: none; }} "
+            f"QPushButton:disabled {{ background-color: {estilo.SUPERPOSICION_CLARA_5}; border-color: {estilo.SUPERPOSICION_CLARA_10}; }}"
         )
         self.btn_accion.clicked.connect(self.deshacer_pulsado.emit)
         layout.addWidget(self.btn_accion)
@@ -270,8 +270,9 @@ class BotonDeshacerSuperior(QWidget):
         self.btn_chevron.setAccessibleName("Abrir historial de operaciones")
         self.btn_chevron.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
-            f"font-size: {estilo.TAMANO_CUERPO}pt; border: none; border-radius: {estilo.RADIO_BOTON}px; }}"
-            f"QPushButton:hover {{ background-color: {estilo.SUPERPOSICION_CLARA_12}; color: {estilo.SUPERFICIE}; }}"
+            f"font-size: {estilo.TAMANO_CUERPO}pt; border: none; border-radius: {estilo.RADIO_BOTON}px; }} "
+            f"QPushButton:hover {{ background-color: {estilo.SUPERPOSICION_CLARA_12}; color: {estilo.SUPERFICIE}; }} "
+            f"QPushButton:focus {{ border: 1px solid {ACENTO}; outline: none; }}"
         )
         self.btn_chevron.clicked.connect(self.popover_solicitado.emit)
         layout.addWidget(self.btn_chevron)
@@ -421,7 +422,7 @@ class VentanaPrincipal(QMainWindow):
         self.setStyleSheet(HOJA_ESTILOS_GLOBAL)
 
         widget_central = QWidget(self)
-        widget_central.setStyleSheet(f"background-color: {FONDO_APP};")
+        widget_central.setObjectName("fondo")
         layout_raiz = QVBoxLayout(widget_central)
         layout_raiz.setContentsMargins(0, 0, 0, 0)
         layout_raiz.setSpacing(0)
@@ -570,25 +571,79 @@ class VentanaPrincipal(QMainWindow):
         # Columna: Cerrar sesión + Acerca de
         col_sesion = QVBoxLayout()
         col_sesion.setContentsMargins(0, 0, 0, 0)
-        col_sesion.setSpacing(2)
+        col_sesion.setSpacing(3)
+        col_sesion.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.btn_cerrar_sesion = QPushButton("Cerrar sesión", zona_der)
+        self.btn_cerrar_sesion.setObjectName("btnCerrarSesion")
+        self.btn_cerrar_sesion.setAccessibleName("Cerrar sesión")
         self.btn_cerrar_sesion.setIcon(cargar_icono("cerrar_sesion.svg", 14))
+        self.btn_cerrar_sesion.setIconSize(QSize(14, 14))
         self.btn_cerrar_sesion.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_cerrar_sesion.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.btn_cerrar_sesion.setStyleSheet(
-            "QPushButton { background-color: transparent; color: {estilo.SUPERFICIE}; font-size: {estilo.TAMANO_AUXILIAR}pt; "
-            "border: 1px solid {estilo.SUPERPOSICION_CLARA_40}; border-radius: {estilo.RADIO_BOTON}px; padding: 4px 10px; }"
-            "QPushButton:hover { background-color: {estilo.SUPERPOSICION_CLARA_12}; }"
+            f"QPushButton#btnCerrarSesion {{ "
+            f"  background-color: transparent; "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"  font-size: {estilo.TAMANO_AUXILIAR}pt; "
+            f"  font-weight: 600; "
+            f"  border: 1px solid {estilo.SUPERPOSICION_CLARA_40}; "
+            f"  border-radius: {RADIO_BOTON}px; "
+            f"  padding: 4px 10px; "
+            f"}} "
+            f"QPushButton#btnCerrarSesion:hover {{ "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_14}; "
+            f"  border: 1px solid {TEXTO_SOBRE_OSCURO}; "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"}} "
+            f"QPushButton#btnCerrarSesion:focus {{ "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_10}; "
+            f"  border: 2px solid {ACENTO}; "
+            f"  padding: 3px 9px; "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"  outline: none; "
+            f"}} "
+            f"QPushButton#btnCerrarSesion:pressed {{ "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_22}; "
+            f"  border: 1px solid {TEXTO_SOBRE_OSCURO}; "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"}}"
         )
         self.btn_cerrar_sesion.clicked.connect(self._al_clic_cerrar_sesion)
         col_sesion.addWidget(self.btn_cerrar_sesion)
 
         self.btn_acerca = QPushButton("ⓘ Acerca de", zona_der)
+        self.btn_acerca.setObjectName("btnAcercaDe")
+        self.btn_acerca.setAccessibleName("Acerca de PEA-i")
         self.btn_acerca.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_acerca.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.btn_acerca.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
-            f"font-size: {estilo.TAMANO_AUXILIAR}pt; border: none; padding: 0; text-align: center; }}"
-            f"QPushButton:hover {{ color: {estilo.SUPERFICIE}; text-decoration: underline; }}"
+            f"QPushButton#btnAcercaDe {{ "
+            f"  background-color: transparent; "
+            f"  color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
+            f"  font-size: {estilo.TAMANO_AUXILIAR}pt; "
+            f"  font-weight: 500; "
+            f"  border: 1px solid transparent; "
+            f"  border-radius: {RADIO_BOTON}px; "
+            f"  padding: 2px 6px; "
+            f"  text-align: center; "
+            f"}} "
+            f"QPushButton#btnAcercaDe:hover {{ "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_8}; "
+            f"  border: 1px solid {estilo.SUPERPOSICION_CLARA_20}; "
+            f"  text-decoration: underline; "
+            f"}} "
+            f"QPushButton#btnAcercaDe:focus {{ "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_10}; "
+            f"  border: 1px solid {ACENTO}; "
+            f"  outline: none; "
+            f"}} "
+            f"QPushButton#btnAcercaDe:pressed {{ "
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_14}; "
+            f"  color: {TEXTO_SOBRE_OSCURO}; "
+            f"}}"
         )
         self.btn_acerca.clicked.connect(lambda: self.seleccionar_pantalla(Pantalla.ACERCA))
         col_sesion.addWidget(self.btn_acerca)
@@ -772,7 +827,7 @@ class VentanaPrincipal(QMainWindow):
         self._pastilla_logo = QFrame(pie)
         self._pastilla_logo.setFixedSize(52, 52)
         self._pastilla_logo.setStyleSheet(
-            "QFrame { background-color: {estilo.SUPERFICIE}; border-radius: {estilo.RADIO_PESTANA_ACTIVA}px; }"
+            f"QFrame {{ background-color: {estilo.SUPERFICIE}; border-radius: {estilo.RADIO_PESTANA_ACTIVA}px; }}"
         )
         layout_logo = QHBoxLayout(self._pastilla_logo)
         layout_logo.setContentsMargins(4, 4, 4, 4)

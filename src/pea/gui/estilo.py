@@ -409,6 +409,10 @@ def generar_hoja_estilos() -> str:
         border: none;
     }}
 
+    QFrame#barraSuperior QWidget {{
+        background-color: transparent;
+    }}
+
     QFrame#barraSuperior QLabel {{
         color: {TEXTO_SOBRE_OSCURO};
     }}

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from pea.gui.componentes.filtro_anios import texto_resumen_filtro
@@ -351,3 +352,58 @@ def test_responsividad_adaptativa_ventana(ventana: VentanaPrincipal) -> None:
     # 4. Alto reducido (< 760): pie compacto (44 px)
     assert ventana._pie.height() == 44
     assert not ventana._caja_texto_pie.isVisible()
+
+
+def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) -> None:
+    """Verifica que 'Cerrar sesión' y 'Acerca de' cumplan WCAG y tengan estilos válidos sin cadenas rotas."""
+    from pea.gui import estilo
+
+    btn_cerrar = ventana.btn_cerrar_sesion
+    btn_acerca = ventana.btn_acerca
+
+    # 1. Widgets instanciados y con nombres accesibles
+    assert btn_cerrar.objectName() == "btnCerrarSesion"
+    assert btn_acerca.objectName() == "btnAcercaDe"
+    assert btn_cerrar.accessibleName() == "Cerrar sesión"
+    assert btn_acerca.accessibleName() == "Acerca de PEA-i"
+    assert btn_cerrar.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    assert btn_acerca.focusPolicy() == Qt.FocusPolicy.StrongFocus
+
+    # 2. Hojas de estilo sin cadenas de plantilla sin interpolar
+    qss_cerrar = btn_cerrar.styleSheet()
+    qss_acerca = btn_acerca.styleSheet()
+    assert "{estilo." not in qss_cerrar
+    assert "{TEXTO" not in qss_cerrar
+    assert "{RADIO" not in qss_cerrar
+    assert "{estilo." not in qss_acerca
+    assert "{TEXTO" not in qss_acerca
+
+    # 3. Estados normal, hover y focus presentes en el QSS
+    for estado in [":hover", ":focus", ":pressed"]:
+        assert estado in qss_cerrar
+        assert estado in qss_acerca
+
+    # 4. Verificación de ratio de contraste WCAG >= 4.5:1
+    fondo_header = estilo.ENCABEZADO_FIN
+    ratio_cerrar = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO, fondo_header)
+    assert ratio_cerrar >= 4.5
+    assert ratio_cerrar >= 7.0  # Nivel AAA
+
+    ratio_acerca = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO_SUAVE, fondo_header)
+    assert ratio_acerca >= 4.5
+    assert ratio_acerca >= 7.0  # Nivel AAA
+
+    ratio_foco = estilo.calcular_radio_contraste(estilo.ACENTO, fondo_header)
+    assert ratio_foco >= 3.0  # Indicador de foco WCAG 2.1
+
+    # 5. Visibilidad y geometría útil en 1100x700, 1366x768 y 1920x1080
+    for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
+        ventana.resize(ancho, alto)
+        QApplication.processEvents()
+        assert btn_cerrar.isVisible()
+        assert btn_acerca.isVisible()
+        assert btn_cerrar.width() >= 80
+        assert btn_cerrar.height() >= 24
+        assert btn_acerca.width() >= 60
+        assert btn_acerca.height() >= 18
+

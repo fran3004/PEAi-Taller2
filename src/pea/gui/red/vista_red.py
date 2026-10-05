@@ -136,7 +136,7 @@ class VistaRed(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet("background-color: {estilo.SUPERFICIE};")
+        self.setStyleSheet(f"background-color: {estilo.SUPERFICIE};")
 
         # Leyenda flotante
         self._leyenda = LeyendaRed(self)
