@@ -43,6 +43,33 @@ TEXTO_SOBRE_OSCURO: Final[str] = "#FFFFFF"
 TEXTO_SOBRE_OSCURO_SUAVE: Final[str] = "#C9D8EA"
 ENLACE: Final[str] = "#1F6F94"
 
+# Estados visuales auxiliares y superficies de controles.
+SUPERFICIE_ALTERNADA: Final[str] = "#F8FAFC"
+SUPERFICIE_HOVER: Final[str] = "#EEF3FA"
+SUPERFICIE_PULSADA: Final[str] = "#E2EBF5"
+SUPERFICIE_SELECCIONADA: Final[str] = "#E3EEF7"
+SUPERFICIE_DESHABILITADA: Final[str] = "#F1F3F4"
+BORDE_DESHABILITADO: Final[str] = "#9AA0A6"
+TEXTO_DESHABILITADO: Final[str] = TEXTO_SECUNDARIO
+TEXTO_DESHABILITADO_SOBRE_PRIMARIO: Final[str] = TEXTO_SOBRE_OSCURO
+PRIMARIO_DESHABILITADO: Final[str] = PRIMARIO_PULSADO
+ERROR_HOVER: Final[str] = "#821D1D"
+ERROR_DESHABILITADO: Final[str] = "#E2A7A7"
+
+# Transparencias usadas por la barra superior y las capas de interacción.
+SUPERPOSICION_NEGRA_8: Final[str] = "rgba(0, 0, 0, 0.08)"
+SUPERPOSICION_CLARA_5: Final[str] = "rgba(255, 255, 255, 0.05)"
+SUPERPOSICION_CLARA_8: Final[str] = "rgba(255, 255, 255, 0.08)"
+SUPERPOSICION_CLARA_10: Final[str] = "rgba(255, 255, 255, 0.1)"
+SUPERPOSICION_CLARA_12: Final[str] = "rgba(255, 255, 255, 0.12)"
+SUPERPOSICION_CLARA_14: Final[str] = "rgba(255, 255, 255, 0.14)"
+SUPERPOSICION_CLARA_20: Final[str] = "rgba(255, 255, 255, 0.20)"
+SUPERPOSICION_CLARA_22: Final[str] = "rgba(255, 255, 255, 0.22)"
+SUPERPOSICION_CLARA_25: Final[str] = "rgba(255, 255, 255, 0.25)"
+SUPERPOSICION_CLARA_40: Final[str] = "rgba(255, 255, 255, 0.4)"
+SUPERPOSICION_CLARA_45: Final[str] = "rgba(255, 255, 255, 0.45)"
+SUPERPOSICION_CLARA_94: Final[str] = "rgba(255, 255, 255, 0.94)"
+
 # Identidad institucional Universidad Popular del Cesar (filete de 3 px)
 UPC_VERDE_OSCURO: Final[str] = "#0F7B47"
 UPC_VERDE: Final[str] = "#43A242"
@@ -142,6 +169,12 @@ PARES_CONTRASTE_TABLA_4_1: Final[list[tuple[str, str, str]]] = [
     (TEXTO_SOBRE_OSCURO, COLOR_CAT_ASOCIADO, "Blanco sobre Asociado"),
     (TEXTO_SOBRE_OSCURO, COLOR_CAT_JUNIOR, "Blanco sobre Junior"),
     (COLOR_CAT_SIN_CATEGORIA_TEXTO, COLOR_CAT_SIN_CATEGORIA_FONDO, "Texto sobre fondo sin categoría"),
+    (TEXTO_DESHABILITADO, SUPERFICIE, "Texto deshabilitado sobre superficie"),
+    (
+        TEXTO_DESHABILITADO_SOBRE_PRIMARIO,
+        PRIMARIO_DESHABILITADO,
+        "Texto deshabilitado sobre primario",
+    ),
 ]
 
 
@@ -241,6 +274,102 @@ DURACION_GRAFICO_MS: Final[int] = 400
 DESPLAZAMIENTO_TRANSICION_PX: Final[int] = 8
 
 
+def css_etiqueta(
+    tamano: int,
+    color: str = TEXTO,
+    peso: int | str | None = None,
+) -> str:
+    """Devuelve las propiedades QSS comunes de una etiqueta."""
+    propiedades = [f"font-size: {tamano}pt", f"color: {color}"]
+    if peso is not None:
+        propiedades.append(f"font-weight: {peso}")
+    return "; ".join(propiedades) + ";"
+
+
+def css_boton(variante: str) -> str:
+    """Devuelve el QSS de un botón según su variante semántica."""
+    variantes = {
+        "primario": (
+            PRIMARIO,
+            TEXTO_SOBRE_OSCURO,
+            "none",
+            "bold",
+            PRIMARIO_HOVER,
+            PRIMARIO_PULSADO,
+        ),
+        "secundario": (
+            SUPERFICIE,
+            TEXTO,
+            f"1px solid {LINEA}",
+            "500",
+            SUPERFICIE_HOVER,
+            SUPERFICIE_PULSADA,
+        ),
+        "peligro": (
+            ERROR,
+            TEXTO_SOBRE_OSCURO,
+            "none",
+            "bold",
+            ERROR_HOVER,
+            ERROR,
+        ),
+        "icono": (
+            SUPERFICIE,
+            TEXTO_SECUNDARIO,
+            f"1px solid {LINEA}",
+            "500",
+            SUPERFICIE_HOVER,
+            SUPERFICIE_PULSADA,
+        ),
+    }
+    try:
+        fondo, texto, borde, peso, hover, pulsado = variantes[variante]
+    except KeyError as exc:
+        raise ValueError(f"Variante de botón desconocida: {variante}") from exc
+    return (
+        f"QPushButton {{ background-color: {fondo}; color: {texto}; border: {borde}; "
+        f"border-radius: {RADIO_BOTON}px; padding: {ESPACIADO_8}px {ESPACIADO_16}px; "
+        f"font-size: {TAMANO_CUERPO}pt; font-weight: {peso}; }}"
+        f" QPushButton:hover {{ background-color: {hover}; }}"
+        f" QPushButton:pressed {{ background-color: {pulsado}; }}"
+    )
+
+
+def css_pildora(
+    fondo: str,
+    texto: str,
+    tamano: int = TAMANO_AUXILIAR,
+) -> str:
+    """Devuelve el QSS de una etiqueta tipo píldora."""
+    return (
+        f"background-color: {fondo}; color: {texto}; "
+        f"border-radius: {RADIO_PILDORA}px; padding: {ESPACIADO_4}px {ESPACIADO_8}px; "
+        f"font-size: {tamano}pt;"
+    )
+
+
+def css_menu() -> str:
+    """Devuelve el QSS común para menús contextuales y de exportación."""
+    return (
+        f"QMenu {{ background-color: {SUPERFICIE}; color: {TEXTO}; "
+        f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; "
+        f"font-size: {TAMANO_CUERPO}pt; padding: {ESPACIADO_4}px; }}"
+        f" QMenu::item {{ padding: {ESPACIADO_8}px {ESPACIADO_16}px; }}"
+        f" QMenu::item:selected {{ background-color: {SUPERFICIE_SELECCIONADA}; "
+        f"color: {TEXTO}; }}"
+    )
+
+
+def css_pestana_interna() -> str:
+    """Devuelve el QSS de las pestañas de subsecciones."""
+    return (
+        f"QTabBar::tab {{ padding: {ESPACIADO_8}px {ESPACIADO_16}px; "
+        f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO}; }}"
+        f" QTabBar::tab:selected {{ color: {PRIMARIO}; font-weight: bold; "
+        f"border-bottom: 3px solid {ACENTO}; }}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Generador de la hoja de estilo global (QSS)
 # ---------------------------------------------------------------------------
@@ -299,12 +428,12 @@ def generar_hoja_estilos() -> str:
     }}
 
     QListWidget#navegacion::item:hover {{
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: {SUPERPOSICION_CLARA_8};
         color: {TEXTO_SOBRE_OSCURO};
     }}
 
     QListWidget#navegacion::item:selected {{
-        background-color: rgba(255, 255, 255, 0.14);
+        background-color: {SUPERPOSICION_CLARA_14};
         color: {TEXTO_SOBRE_OSCURO};
         font-weight: 600;
     }}
@@ -367,17 +496,17 @@ def generar_hoja_estilos() -> str:
     }}
 
     QPushButton:hover {{
-        background-color: #EEF3FA;
+        background-color: {SUPERFICIE_HOVER};
         border-color: {LINEA_FUERTE};
     }}
 
     QPushButton:pressed {{
-        background-color: #E2EBF5;
+        background-color: {SUPERFICIE_PULSADA};
     }}
 
     QPushButton:disabled {{
-        color: #9AA0A6;
-        background-color: #F1F3F4;
+        color: {TEXTO_DESHABILITADO};
+        background-color: {SUPERFICIE_DESHABILITADA};
         border-color: {LINEA};
     }}
 
@@ -397,8 +526,8 @@ def generar_hoja_estilos() -> str:
     }}
 
     QPushButton#primario:disabled {{
-        background-color: #8A9EAF;
-        color: #E0E7EE;
+        background-color: {PRIMARIO_DESHABILITADO};
+        color: {TEXTO_DESHABILITADO_SOBRE_PRIMARIO};
     }}
 
     QPushButton#peligro {{
@@ -409,30 +538,30 @@ def generar_hoja_estilos() -> str:
     }}
 
     QPushButton#peligro:hover {{
-        background-color: #821D1D;
+        background-color: {ERROR_HOVER};
     }}
 
     QPushButton#peligro:disabled {{
-        background-color: #E2A7A7;
+        background-color: {ERROR_DESHABILITADO};
     }}
 
     QFrame#barraSuperior QPushButton {{
-        background-color: rgba(255, 255, 255, 0.12);
+        background-color: {SUPERPOSICION_CLARA_12};
         color: {TEXTO_SOBRE_OSCURO};
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: 1px solid {SUPERPOSICION_CLARA_25};
         border-radius: {RADIO_BOTON}px;
     }}
 
     QFrame#barraSuperior QPushButton:hover {{
-        background-color: rgba(255, 255, 255, 0.20);
+        background-color: {SUPERPOSICION_CLARA_20};
     }}
 
     /* Tablas */
     QTableView {{
         background-color: {SUPERFICIE};
-        alternate-background-color: #F8FAFC;
+        alternate-background-color: {SUPERFICIE_ALTERNADA};
         gridline-color: {LINEA};
-        selection-background-color: #E3EEF7;
+        selection-background-color: {SUPERFICIE_SELECCIONADA};
         selection-color: {TEXTO};
         border: 1px solid {LINEA};
         border-radius: {RADIO_BOTON}px;
@@ -515,6 +644,25 @@ def generar_hoja_estilos() -> str:
         color: {PRIMARIO};
         font-weight: bold;
         border-bottom: 3px solid {ACENTO};
+    }}
+
+    QToolTip {{
+        background-color: {TEXTO};
+        color: {TEXTO_SOBRE_OSCURO};
+        border: 1px solid {LINEA_FUERTE};
+        font-size: {TAMANO_CUERPO}pt;
+    }}
+
+    QMenu {{
+        background-color: {SUPERFICIE};
+        color: {TEXTO};
+        border: 1px solid {LINEA};
+        border-radius: {RADIO_BOTON}px;
+        font-size: {TAMANO_CUERPO}pt;
+    }}
+
+    QComboBox {{
+        font-size: {TAMANO_CUERPO}pt;
     }}
     """
 

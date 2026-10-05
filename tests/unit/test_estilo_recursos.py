@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import pytest
 from PySide6.QtGui import QFont, QFontDatabase, QFontMetricsF, QIcon, QPixmap
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import QApplication
 
 from pea.gui.estilo import (
     ACENTO,
@@ -54,6 +56,11 @@ from pea.gui.estilo import (
     UPC_VERDE_CLARO,
     UPC_VERDE_OSCURO,
     calcular_radio_contraste,
+    css_boton,
+    css_etiqueta,
+    css_menu,
+    css_pestana_interna,
+    css_pildora,
     generar_hoja_estilos,
 )
 from pea.gui.formato import (
@@ -173,6 +180,68 @@ def test_generar_hoja_estilos() -> None:
     assert "QPushButton#primario" in qss
     assert "QFrame#barraSuperior" in qss
     assert HOJA_ESTILOS_GLOBAL == qss
+    assert "QToolTip" in qss
+    assert "QMenu" in qss
+    assert "QComboBox" in qss
+
+
+def test_generadores_css_aceptados_por_qt() -> None:
+    """Comprueba que los generadores producen hojas que Qt puede aplicar."""
+    aplicacion = QApplication.instance() or QApplication([])
+    hojas = (
+        css_etiqueta(11),
+        css_boton("primario"),
+        css_boton("secundario"),
+        css_boton("peligro"),
+        css_boton("icono"),
+        css_pildora(EXITO_FONDO, EXITO),
+        css_menu(),
+        css_pestana_interna(),
+    )
+    avisos: list[str] = []
+
+    def capturar_aviso(_tipo: Any, _contexto: Any, mensaje: str) -> None:
+        if "Could not parse stylesheet" in mensaje:
+            avisos.append(mensaje)
+
+    from PySide6.QtCore import qInstallMessageHandler
+
+    anterior = qInstallMessageHandler(capturar_aviso)
+    try:
+        for hoja in hojas:
+            aplicacion.setStyleSheet(hoja)
+    finally:
+        qInstallMessageHandler(anterior)
+    assert not avisos, "\n".join(avisos)
+
+
+def test_variantes_css_desconocidas_fallan_explicitamente() -> None:
+    with pytest.raises(ValueError, match="desconocida"):
+        css_boton("inexistente")
+
+
+@pytest.mark.xfail(
+    strict=False,
+    reason="migración en curso: las pantallas aún contienen estilos literales",
+)
+def test_guardian_estilos_sin_literales_en_gui() -> None:
+    """Prepara la migración completa de colores y tamaños a estilo.py."""
+    raiz = Path(__file__).parents[2] / "src" / "pea" / "gui"
+    patrones = (
+        re.compile(r"#[0-9A-Fa-f]{6}"),
+        re.compile(r"rgba?\([^)]*\)"),
+        re.compile(r"font-size:\s*\d+"),
+        re.compile(r"setPointSize\(\s*\d+"),
+    )
+    infracciones: list[str] = []
+    for archivo in raiz.rglob("*.py"):
+        if archivo.name == "estilo.py":
+            continue
+        contenido = archivo.read_text(encoding="utf-8")
+        for patron in patrones:
+            if patron.search(contenido):
+                infracciones.append(f"{archivo}: {patron.pattern}")
+    assert not infracciones, "\n".join(infracciones)
 
 
 # ===========================================================================
