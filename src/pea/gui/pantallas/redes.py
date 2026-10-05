@@ -175,7 +175,7 @@ class PantallaRedes(QWidget):
         self._filtro_actual = filtro_global or FiltroAnios(modo=ModoFiltroAnios.MODELO_2024)
 
         self._codigo_grupo_actual: str | None = None
-        self._min_coautorias_actual: int = 2
+        self._min_coautorias_actual: int = 1
         self._datos_red_actual: dict[str, Any] = {}
         self._investigador_seleccionado_cod: str | None = None
         self._panel_metricas_visible = True
@@ -290,7 +290,7 @@ class PantallaRedes(QWidget):
         for val in range(1, 6):
             txt = f"Mín. {val} coautoría" if val == 1 else f"Mín. {val} coautorías"
             self.combo_min_coautorias.addItem(txt, val)
-        self.combo_min_coautorias.setCurrentIndex(1)  # Mín. 2 coautorías
+        self.combo_min_coautorias.setCurrentIndex(0)  # Mín. 1 coautoría
         self.combo_min_coautorias.currentIndexChanged.connect(self._al_cambiar_min_coautorias)
         layout_c.addWidget(self.combo_min_coautorias)
 
@@ -306,45 +306,60 @@ class PantallaRedes(QWidget):
 
         # 4. Botón Reordenar
         self.btn_reordenar = QPushButton("Reordenar", contenedor_controles)
+        self.btn_reordenar.setFixedHeight(30)
         self.btn_reordenar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_reordenar.setToolTip("Reiniciar la disposición del grafo")
+        self.btn_reordenar.setAccessibleName("Reordenar grafo")
         self.btn_reordenar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
-            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
-            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 0 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {PRIMARIO}; }}"
+            f"QPushButton:focus {{ border-color: {ACENTO}; outline: none; }}"
         )
         self.btn_reordenar.clicked.connect(self._reordenar_grafo)
         layout_c.addWidget(self.btn_reordenar)
 
-        # 5. Controles de zoom (+, -, Ajustar)
+        # 5. Controles de zoom (+, −, Ajustar)
         fila_zoom = QHBoxLayout()
         fila_zoom.setSpacing(4)
 
-        self.btn_zoom_mas = QPushButton("+", contenedor_controles)
-        self.btn_zoom_mas.setFixedSize(28, 28)
-        self.btn_zoom_mas.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_zoom_mas.setStyleSheet(
-            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-weight: bold; }}"
-            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
+        estilo_zoom_btn = (
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: bold; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; font-size: {estilo.TAMANO_SUBTITULO}pt; "
+            f"text-align: center; padding: 0px; margin: 0px; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {PRIMARIO}; }}"
+            f"QPushButton:focus {{ border-color: {ACENTO}; outline: none; }}"
         )
+
+        self.btn_zoom_mas = QPushButton("+", contenedor_controles)
+        self.btn_zoom_mas.setFixedSize(30, 30)
+        self.btn_zoom_mas.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_zoom_mas.setToolTip("Acercar lienzo (+ / Rueda arriba)")
+        self.btn_zoom_mas.setAccessibleName("Acercar lienzo")
+        self.btn_zoom_mas.setStyleSheet(estilo_zoom_btn)
         self.btn_zoom_mas.clicked.connect(lambda: self.vista_red.acercar())
         fila_zoom.addWidget(self.btn_zoom_mas)
 
         self.btn_zoom_menos = QPushButton("−", contenedor_controles)
-        self.btn_zoom_menos.setFixedSize(28, 28)
+        self.btn_zoom_menos.setFixedSize(30, 30)
         self.btn_zoom_menos.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_zoom_menos.setStyleSheet(
-            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-weight: bold; }}"
-            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
-        )
+        self.btn_zoom_menos.setToolTip("Alejar lienzo (− / Rueda abajo)")
+        self.btn_zoom_menos.setAccessibleName("Alejar lienzo")
+        self.btn_zoom_menos.setStyleSheet(estilo_zoom_btn)
         self.btn_zoom_menos.clicked.connect(lambda: self.vista_red.alejar())
         fila_zoom.addWidget(self.btn_zoom_menos)
 
         self.btn_zoom_ajustar = QPushButton("Ajustar", contenedor_controles)
-        self.btn_zoom_ajustar.setFixedHeight(28)
+        self.btn_zoom_ajustar.setFixedHeight(30)
+        self.btn_zoom_ajustar.setMinimumWidth(64)
         self.btn_zoom_ajustar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_zoom_ajustar.setToolTip("Ajustar vista al contenido completo")
+        self.btn_zoom_ajustar.setAccessibleName("Ajustar vista")
         self.btn_zoom_ajustar.setStyleSheet(
-            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 0 6px; }}"
-            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 0 10px; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {PRIMARIO}; }}"
+            f"QPushButton:focus {{ border-color: {ACENTO}; outline: none; }}"
         )
         self.btn_zoom_ajustar.clicked.connect(lambda: self.vista_red.ajustar_vista())
         fila_zoom.addWidget(self.btn_zoom_ajustar)
@@ -392,7 +407,6 @@ class PantallaRedes(QWidget):
         tarjeta.setMinimumWidth(280)
         tarjeta.setMaximumWidth(340)
         self.panel_metricas = tarjeta
-        self.lbl_titulo_metricas = QLabel("Métricas de centralidad", self)
 
         # Área con desplazamiento para adaptarse a pantallas compactas
         self._scroll_panel = QScrollArea(tarjeta)
@@ -551,9 +565,9 @@ class PantallaRedes(QWidget):
         self.combo_grupo.setMinimumWidth(120 if compacto else 160)
         self.combo_min_coautorias.setMinimumWidth(100 if compacto else 130)
         self.campo_busqueda.setMinimumWidth(140 if compacto else 180)
-        self.btn_reordenar.setText("Ordenar" if compacto else "Reordenar")
-        self.btn_zoom_ajustar.setText("Ajustar" if not compacto else "↔")
-        self.btn_zoom_ajustar.setToolTip("Ajusta el grafo al lienzo")
+        self.btn_reordenar.setText("Reordenar")
+        self.btn_zoom_ajustar.setText("Ajustar")
+        self.btn_zoom_ajustar.setToolTip("Ajustar vista al contenido completo")
         self.btn_exportar.setText("PNG" if compacto else "Exportar red (PNG)")
         self.btn_exportar.setToolTip("Exporta la red como imagen PNG")
         self.btn_alternar_panel.setText("Panel" if compacto else ("Ocultar panel" if self._panel_metricas_visible else "Mostrar panel"))
@@ -615,7 +629,7 @@ class PantallaRedes(QWidget):
         self.combo_grupo.blockSignals(False)
 
         self._codigo_grupo_actual = self.combo_grupo.currentData()
-        self._min_coautorias_actual = int(self.combo_min_coautorias.currentData() or 2)
+        self._min_coautorias_actual = int(self.combo_min_coautorias.currentData() or 1)
 
         # Calcular red en hilo secundario o síncrono controlado
         self._cargar_red_asincrona()
@@ -686,7 +700,7 @@ class PantallaRedes(QWidget):
         self._cargar_red_asincrona()
 
     def _al_cambiar_min_coautorias(self, _: int) -> None:
-        self._min_coautorias_actual = int(self.combo_min_coautorias.currentData() or 2)
+        self._min_coautorias_actual = int(self.combo_min_coautorias.currentData() or 1)
         self._cargar_red_asincrona()
 
     def _al_cambiar_filtro(self, nuevo_filtro: FiltroAnios) -> None:

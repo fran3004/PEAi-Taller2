@@ -95,23 +95,45 @@ def test_pantalla_redes_construccion_y_componentes(
     assert pantalla.chip_ventana is not None
     assert pantalla.btn_exportar_png is not None
 
-    # Fila de controles
+    # Fila de controles y filtro inicial
     assert pantalla.combo_grupo is not None
     assert pantalla.combo_min_coautorias is not None
+    assert pantalla.combo_min_coautorias.currentIndex() == 0
+    assert pantalla.combo_min_coautorias.currentData() == 1
+    assert pantalla.combo_min_coautorias.currentText() == "Mín. 1 coautoría"
+    assert pantalla._min_coautorias_actual == 1
+
     assert pantalla.campo_busqueda is not None
     assert pantalla.btn_reordenar is not None
-    assert pantalla.btn_zoom_mas is not None
-    assert pantalla.btn_zoom_menos is not None
-    assert pantalla.btn_zoom_ajustar is not None
+    assert pantalla.btn_reordenar.text() == "Reordenar"
 
-    # Canvas del grafo y leyenda
+    # Controles de zoom con símbolos, dimensiones y tooltips consistentes
+    assert pantalla.btn_zoom_mas is not None
+    assert pantalla.btn_zoom_mas.text() == "+"
+    assert pantalla.btn_zoom_mas.height() == 30
+    assert pantalla.btn_zoom_mas.toolTip() != ""
+
+    assert pantalla.btn_zoom_menos is not None
+    assert pantalla.btn_zoom_menos.text() == "−"
+    assert pantalla.btn_zoom_menos.height() == 30
+    assert pantalla.btn_zoom_menos.toolTip() != ""
+
+    assert pantalla.btn_zoom_ajustar is not None
+    assert pantalla.btn_zoom_ajustar.text() == "Ajustar"
+    assert pantalla.btn_zoom_ajustar.height() == 30
+    assert pantalla.btn_zoom_ajustar.toolTip() != ""
+
+    # Canvas del grafo con datos de demostración cargados inmediatamente
     assert isinstance(pantalla.vista_red, VistaRed)
     assert pantalla.vista_red.leyenda is not None
+    assert len(pantalla.vista_red.items_nodos) > 0, "Debe tener nodos cargados en inicio"
+    assert len(pantalla.vista_red.items_aristas) > 0, "Debe tener aristas cargadas en inicio"
 
-    # Panel lateral de métricas flexible
+    # Panel lateral de métricas flexible (sin QLabel huérfano fuera de layout)
     assert pantalla.panel_metricas is not None
     assert 280 <= pantalla.panel_metricas.width() <= 340
-    assert pantalla.lbl_titulo_metricas.text() == "Métricas de centralidad"
+    assert not hasattr(pantalla, "lbl_titulo_metricas"), "lbl_titulo_metricas huérfano debe ser eliminado"
+    assert pantalla.panel_metricas._lbl_titulo.text() == "Métricas de centralidad"
 
 
 def test_pantalla_redes_reencuadra_grafo_y_pliega_panel(
@@ -133,6 +155,8 @@ def test_pantalla_redes_reencuadra_grafo_y_pliega_panel(
 
     assert not pantalla.vista_red.horizontalScrollBar().isVisible()
     assert not pantalla._scroll_panel.horizontalScrollBar().isVisible()
+    assert pantalla.btn_zoom_ajustar.text() == "Ajustar"
+    assert pantalla.btn_reordenar.text() == "Reordenar"
     pantalla.btn_alternar_panel.click()
     qapp.processEvents()
     assert pantalla.panel_metricas.isHidden()
@@ -294,3 +318,36 @@ def test_pantalla_redes_banner_limite_400(
     assert "400" in pantalla.lbl_texto_banner.text()
     # Los nodos mostrados en el canvas están recortados a 400
     assert len(pantalla.vista_red.items_nodos) == 400
+
+
+def test_pantalla_redes_filtro_inicial_y_demostracion(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion
+) -> None:
+    """Verifica que el filtro de coautorías inicie en Mín. 1, el grafo cargue datos y los controles tengan accesibilidad."""
+    pantalla = PantallaRedes(servicio=servicio_con_datos)
+    qapp.processEvents()
+
+    # 1. Filtro inicial en Mín. 1 coautoría
+    assert pantalla._min_coautorias_actual == 1
+    assert pantalla.combo_min_coautorias.currentIndex() == 0
+    assert pantalla.combo_min_coautorias.currentData() == 1
+    assert pantalla.combo_min_coautorias.currentText() == "Mín. 1 coautoría"
+
+    # 2. Grafo con datos de demostración inmediatamente visibles
+    assert len(pantalla.vista_red.items_nodos) > 0
+    assert len(pantalla.vista_red.items_aristas) > 0
+    assert "Investigadores:" in pantalla.lbl_resumen_red.text()
+
+    # 3. Sin QLabel huérfano
+    assert not hasattr(pantalla, "lbl_titulo_metricas")
+    assert pantalla.panel_metricas._lbl_titulo.text() == "Métricas de centralidad"
+
+    # 4. Controles +, − y Ajustar
+    assert pantalla.btn_zoom_mas.text() == "+"
+    assert pantalla.btn_zoom_menos.text() == "−"
+    assert pantalla.btn_zoom_ajustar.text() == "Ajustar"
+    assert pantalla.btn_zoom_mas.height() == pantalla.btn_zoom_menos.height() == pantalla.btn_zoom_ajustar.height() == 30
+    assert pantalla.btn_zoom_mas.accessibleName() == "Acercar lienzo"
+    assert pantalla.btn_zoom_menos.accessibleName() == "Alejar lienzo"
+    assert pantalla.btn_zoom_ajustar.accessibleName() == "Ajustar vista"
+

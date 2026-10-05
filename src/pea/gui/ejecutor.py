@@ -48,6 +48,7 @@ class EjecutorAsincrono(QObject):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.pool = QThreadPool.globalInstance()
+        self._tareas_activas: set[TareaSegundoPlano] = set()
 
     _instancia_unica: EjecutorAsincrono | None = None
 
@@ -75,6 +76,15 @@ class EjecutorAsincrono(QObject):
             tarea.senales.terminado.connect(cb_terminar)
         if al_fallar is not None:
             tarea.senales.error.connect(al_fallar)
+
+        self._tareas_activas.add(tarea)
+
+        def _limpiar(*_: Any) -> None:
+            self._tareas_activas.discard(tarea)
+
+        tarea.senales.terminado.connect(_limpiar)
+        tarea.senales.error.connect(_limpiar)
+
         self.pool.start(tarea)
         return tarea
 

@@ -23,6 +23,7 @@ from PySide6.QtCore import (
     QRectF,
     QSize,
     Qt,
+    QThreadPool,
     QTimer,
     Signal,
 )
@@ -1244,6 +1245,8 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         p_widget = ventana._apilador.currentWidget()
         if hasattr(p_widget, "refrescar"):
             p_widget.refrescar()
+        QThreadPool.globalInstance().waitForDone(3000)
+        app.processEvents()
         app.processEvents()
 
         for ancho, alto, etiqueta in tamanos:
