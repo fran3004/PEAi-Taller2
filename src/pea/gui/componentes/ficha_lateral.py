@@ -220,7 +220,7 @@ class FichaLateral(QFrame):
 
     def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
-        if self.window() is not self:
+        if self.parent() is None and self.window() is not self:
             self.ajustar_ancho_ficha(self.window().width())
 
     def ajustar_ancho_ficha(self, ancho_ventana: int) -> None:

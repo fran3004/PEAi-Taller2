@@ -645,9 +645,19 @@ class PantallaProductos(QWidget):
         self._splitter.setStretchFactor(1, 0)
         self._splitter.setCollapsible(0, False)
         self._splitter.setCollapsible(1, False)
-        self._splitter.setSizes([900, 320])
+        self._ajustar_distribucion_responsive()
 
         layout_raiz.addWidget(self._splitter, 1)
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._ajustar_distribucion_responsive()
+
+    def _ajustar_distribucion_responsive(self) -> None:
+        if not hasattr(self, "_ficha_lateral"):
+            return
+        self._ficha_lateral.ajustar_ancho_ficha(self.width())
+        self._splitter.setSizes([max(200, self._splitter.width() - self._ficha_lateral.width()), self._ficha_lateral.width()])
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
@@ -666,6 +676,8 @@ class PantallaProductos(QWidget):
         col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Producción científica clasificada en las 4 tipologías del Modelo Minciencias", barra)
+        lbl_sub.setMinimumWidth(0)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
         layout.addLayout(col_tit)
@@ -716,7 +728,8 @@ class PantallaProductos(QWidget):
 
         # Combo Tipología
         self.combo_tipologia = QComboBox(contenedor_filtros)
-        self.combo_tipologia.setMinimumWidth(160)
+        self.combo_tipologia.setMinimumWidth(0)
+        self.combo_tipologia.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_tipologia.addItem("Todas las tipologías")
         self.combo_tipologia.addItem("GNC – Generación de nuevo conocimiento")
         self.combo_tipologia.addItem("DTI – Desarrollo tecnológico e innovación")
@@ -727,7 +740,8 @@ class PantallaProductos(QWidget):
 
         # Combo Validación
         self.combo_validacion = QComboBox(contenedor_filtros)
-        self.combo_validacion.setMinimumWidth(110)
+        self.combo_validacion.setMinimumWidth(0)
+        self.combo_validacion.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_validacion.addItem("Todas")
         self.combo_validacion.addItem("Avalado")
         self.combo_validacion.addItem("Con soporte")
@@ -737,7 +751,8 @@ class PantallaProductos(QWidget):
 
         # Combo Estado (Activos / Todos)
         self.combo_estado = QComboBox(contenedor_filtros)
-        self.combo_estado.setMinimumWidth(100)
+        self.combo_estado.setMinimumWidth(0)
+        self.combo_estado.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_estado.addItem("Activos")
         self.combo_estado.addItem("Todos")
         self.combo_estado.currentTextChanged.connect(self._al_cambiar_combo_estado)
@@ -794,14 +809,14 @@ class PantallaProductos(QWidget):
         # Anchos preferidos de columnas
         self.tabla.configurar_columnas([
             ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("estirar", 220, 1),
-            ColumnSpecification("contenido", 85, 3),
+            ColumnSpecification("estirar", 200, 1),
             ColumnSpecification("contenido", 100, 2),
-            ColumnSpecification("fijo", 65, 2),
-            ColumnSpecification("contenido", 95, 3),
+            ColumnSpecification("contenido", 100, 3),
+            ColumnSpecification("fijo", 65, 3),
+            ColumnSpecification("contenido", 95, 2),
             ColumnSpecification("contenido", 120, 2),
-            ColumnSpecification("contenido", 120, 3),
-            ColumnSpecification("contenido", 85, 3),
+            ColumnSpecification("contenido", 100, 3),
+            ColumnSpecification("contenido", 90, 2),
         ])
 
         tarjeta.agregar_widget(self.tabla)

@@ -63,6 +63,22 @@ def test_pantalla_investigadores_construccion_y_componentes(
     assert ficha.btn_ver_productos is not None
 
 
+@pytest.mark.parametrize(("ancho", "alto", "ancho_ficha"), [(1100, 700, 320), (1366, 768, 380), (1920, 1080, 440)])
+def test_pantalla_investigadores_responsive(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion, ancho: int, alto: int, ancho_ficha: int
+) -> None:
+    pantalla = PantallaInvestigadores(servicio=servicio_con_datos)
+    pantalla.resize(ancho, alto)
+    pantalla.show()
+    qapp.processEvents()
+
+    assert not pantalla.tabla.vista.horizontalScrollBar().isVisible()
+    assert pantalla._ficha_lateral.width() == ancho_ficha
+    assert pantalla._ficha_lateral.geometry().right() <= pantalla._splitter.width()
+    assert pantalla.btn_nuevo.isVisible()
+    assert pantalla.grafico_serie.minimumHeight() == (120 if alto < 760 else 140)
+
+
 def test_pantalla_investigadores_tabla_y_datos(
     qapp: QApplication, servicio_con_datos: ServicioAplicacion
 ) -> None:

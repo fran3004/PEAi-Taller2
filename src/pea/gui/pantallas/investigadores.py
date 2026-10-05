@@ -647,8 +647,22 @@ class PantallaInvestigadores(QWidget):
         self._splitter.setStretchFactor(1, 0)
         self._splitter.setCollapsible(0, False)
         self._splitter.setCollapsible(1, False)
+        self._ajustar_distribucion_responsive()
 
         layout_raiz.addWidget(self._splitter, 1)
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._ajustar_distribucion_responsive()
+
+    def _ajustar_distribucion_responsive(self) -> None:
+        if not hasattr(self, "_ficha_lateral"):
+            return
+        self._ficha_lateral.ajustar_ancho_ficha(self.width())
+        alto_grafico = 120 if self.height() < 760 else 140
+        self.grafico_serie.setMinimumHeight(alto_grafico)
+        self.grafico_serie.setMaximumHeight(16777215)
+        self._splitter.setSizes([max(200, self._splitter.width() - self._ficha_lateral.width()), self._ficha_lateral.width()])
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
@@ -662,6 +676,8 @@ class PantallaInvestigadores(QWidget):
         layout.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Directorio institucional clasificado según CvLAC y producción Minciencias", barra)
+        lbl_sub.setMinimumWidth(0)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         layout.addWidget(lbl_sub)
 
@@ -709,20 +725,23 @@ class PantallaInvestigadores(QWidget):
 
         # Campo de búsqueda
         self.campo_busqueda = CampoBusqueda(placeholder="Buscar investigador", parent=contenedor_filtros)
-        self.campo_busqueda.setMinimumWidth(220)
+        self.campo_busqueda.setMinimumWidth(0)
+        self.campo_busqueda.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.campo_busqueda.texto_cambiado.connect(self._al_buscar_texto)
         layout_f.addWidget(self.campo_busqueda, 1)
 
         # Combo Grupo
         self.combo_grupo = QComboBox(contenedor_filtros)
-        self.combo_grupo.setMinimumWidth(150)
+        self.combo_grupo.setMinimumWidth(0)
+        self.combo_grupo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_grupo.addItem("Todos los grupos")
         self.combo_grupo.currentTextChanged.connect(self._al_cambiar_combo_grupo)
         layout_f.addWidget(self.combo_grupo)
 
         # Combo Categoría
         self.combo_categoria = QComboBox(contenedor_filtros)
-        self.combo_categoria.setMinimumWidth(140)
+        self.combo_categoria.setMinimumWidth(0)
+        self.combo_categoria.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_categoria.addItems([
             "Todas las categorías",
             "Emérito",
@@ -736,7 +755,8 @@ class PantallaInvestigadores(QWidget):
 
         # Combo Estado
         self.combo_estado = QComboBox(contenedor_filtros)
-        self.combo_estado.setMinimumWidth(110)
+        self.combo_estado.setMinimumWidth(0)
+        self.combo_estado.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_estado.addItems(["Activos", "Todos"])
         self.combo_estado.currentTextChanged.connect(self._al_cambiar_combo_estado)
         layout_f.addWidget(self.combo_estado)
@@ -780,12 +800,12 @@ class PantallaInvestigadores(QWidget):
 
         # Anchos preferidos de columnas
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 220, 1),
-            ColumnSpecification("contenido", 120, 2),
+            ColumnSpecification("estirar", 200, 1),
+            ColumnSpecification("contenido", 100, 2),
+            ColumnSpecification("contenido", 100, 2),
             ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("contenido", 120, 2),
-            ColumnSpecification("fijo", 80, 2),
-            ColumnSpecification("contenido", 120, 3),
+            ColumnSpecification("fijo", 80, 3),
+            ColumnSpecification("contenido", 100, 3),
         ])
 
         tarjeta.agregar_widget(self.tabla)
@@ -811,7 +831,8 @@ class PantallaInvestigadores(QWidget):
             subtitulo="Histórico de productos autorados",
             parent=ficha,
         )
-        self.grafico_serie.setFixedHeight(140)
+        self.grafico_serie.setMinimumHeight(120)
+        self.grafico_serie.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         ficha.agregar_contenido(self.grafico_serie)
 
         # Barras de tipología de productos

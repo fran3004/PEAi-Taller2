@@ -526,7 +526,8 @@ class FichaGrupo(FichaLateral):
             subtitulo="Evolución anual de productos del grupo",
             parent=self,
         )
-        self.grafico_barras.setFixedHeight(180)
+        self.grafico_barras.setMinimumHeight(150)
+        self.grafico_barras.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.agregar_contenido(self.grafico_barras)
 
     def _alternar_detalles(self) -> None:
@@ -670,9 +671,23 @@ class PantallaGrupos(QWidget):
         self._splitter.setStretchFactor(1, 0)
         self._splitter.setCollapsible(0, False)
         self._splitter.setCollapsible(1, False)
-        self._splitter.setSizes([900, 320])
+        self._ajustar_distribucion_responsive()
 
         layout_raiz.addWidget(self._splitter, 1)
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._ajustar_distribucion_responsive()
+
+    def _ajustar_distribucion_responsive(self) -> None:
+        if not hasattr(self, "_ficha_lateral"):
+            return
+        self._ficha_lateral.ajustar_ancho_ficha(self.width())
+        if hasattr(self, "_ficha_lateral") and hasattr(self._ficha_lateral, "grafico_barras"):
+            alto_grafico = 150 if self.height() < 760 else 180
+            self._ficha_lateral.grafico_barras.setMinimumHeight(alto_grafico)
+            self._ficha_lateral.grafico_barras.setMaximumHeight(16777215)
+        self._splitter.setSizes([max(200, self._splitter.width() - self._ficha_lateral.width()), self._ficha_lateral.width()])
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
@@ -691,6 +706,8 @@ class PantallaGrupos(QWidget):
         col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Directorio de grupos clasificados según Scienti / GrupLAC", barra)
+        lbl_sub.setMinimumWidth(0)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
         layout.addLayout(col_tit)
@@ -741,7 +758,8 @@ class PantallaGrupos(QWidget):
 
         # Combo Categoría
         self.combo_categoria = QComboBox(contenedor_filtros)
-        self.combo_categoria.setMinimumWidth(150)
+        self.combo_categoria.setMinimumWidth(0)
+        self.combo_categoria.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_categoria.addItem("Todas las categorías")
         for cat in ("A1", "A", "B", "C", "Reconocido", "Sin clasificar"):
             self.combo_categoria.addItem(cat)
@@ -750,7 +768,8 @@ class PantallaGrupos(QWidget):
 
         # Combo Estado (Activos / Todos)
         self.combo_estado = QComboBox(contenedor_filtros)
-        self.combo_estado.setMinimumWidth(110)
+        self.combo_estado.setMinimumWidth(0)
+        self.combo_estado.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.combo_estado.addItem("Activos")
         self.combo_estado.addItem("Todos")
         self.combo_estado.currentTextChanged.connect(self._al_cambiar_combo_estado)
@@ -803,13 +822,13 @@ class PantallaGrupos(QWidget):
 
         # Anchos preferidos de columnas
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 220, 1),
+            ColumnSpecification("estirar", 200, 1),
+            ColumnSpecification("contenido", 90, 3),
             ColumnSpecification("contenido", 100, 2),
             ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("contenido", 120, 2),
-            ColumnSpecification("fijo", 80, 2),
             ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("contenido", 90, 3),
+            ColumnSpecification("fijo", 80, 3),
+            ColumnSpecification("contenido", 90, 2),
         ])
 
         tarjeta.agregar_widget(self.tabla)
