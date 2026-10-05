@@ -108,10 +108,36 @@ def test_pantalla_redes_construccion_y_componentes(
     assert isinstance(pantalla.vista_red, VistaRed)
     assert pantalla.vista_red.leyenda is not None
 
-    # Panel lateral de métricas (340 px de ancho fijo)
+    # Panel lateral de métricas flexible
     assert pantalla.panel_metricas is not None
-    assert pantalla.panel_metricas.width() == 340
+    assert 280 <= pantalla.panel_metricas.width() <= 340
     assert pantalla.lbl_titulo_metricas.text() == "Métricas de centralidad"
+
+
+def test_pantalla_redes_reencuadra_grafo_y_pliega_panel(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion
+) -> None:
+    """Comprueba el reencuadre completo y el lienzo ampliado a 1100x700."""
+    pantalla = PantallaRedes(servicio=servicio_con_datos)
+    pantalla.resize(QSize(1100, 700))
+    pantalla.show()
+    qapp.processEvents()
+    qapp.processEvents()
+
+    viewport = pantalla.vista_red.viewport().rect()
+    for nodo in pantalla.vista_red.items_nodos.values():
+        recto = nodo.sceneBoundingRect()
+        for esquina in (recto.topLeft(), recto.topRight(), recto.bottomLeft(), recto.bottomRight()):
+            punto = pantalla.vista_red.mapFromScene(esquina)
+            assert viewport.contains(punto), f"Nodo fuera del viewport: {punto}"
+
+    assert not pantalla.vista_red.horizontalScrollBar().isVisible()
+    assert not pantalla._scroll_panel.horizontalScrollBar().isVisible()
+    pantalla.btn_alternar_panel.click()
+    qapp.processEvents()
+    assert pantalla.panel_metricas.isHidden()
+    assert pantalla.vista_red.width() > 700
+    assert pantalla.btn_alternar_panel.toolTip() == "Muestra el panel de métricas"
 
 
 # ---------------------------------------------------------------------------

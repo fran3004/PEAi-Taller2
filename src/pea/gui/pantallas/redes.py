@@ -26,9 +26,11 @@ from typing import Any
 from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import (
     QColor,
+    QFontMetrics,
     QImage,
     QKeySequence,
     QPainter,
+    QResizeEvent,
     QShortcut,
 )
 from PySide6.QtWidgets import (
@@ -90,6 +92,7 @@ class FilaTopConectado(QFrame):
     ) -> None:
         super().__init__(parent)
         self.codigo = codigo
+        self._nombre_completo = abreviar_nombre_investigador(nombre)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet(
             f"QFrame {{"
@@ -120,8 +123,10 @@ class FilaTopConectado(QFrame):
         col_txt.setContentsMargins(0, 0, 0, 0)
         col_txt.setSpacing(1)
 
-        lbl_nom = QLabel(abreviar_nombre_investigador(nombre), self)
-        lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO};")
+        lbl_nom = QLabel(self._nombre_completo, self)
+        lbl_nom.setMinimumWidth(0)
+        lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
+        self._lbl_nom = lbl_nom
         lbl_sub = QLabel(categoria, self)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
 
@@ -132,6 +137,16 @@ class FilaTopConectado(QFrame):
         lbl_grado = QLabel(f"{grado} coaut.", self)
         lbl_grado.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {COLOR_DTI};")
         layout.addWidget(lbl_grado)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        ancho = max(0, self._lbl_nom.width())
+        texto = QFontMetrics(self._lbl_nom.font()).elidedText(
+            self._nombre_completo,
+            Qt.TextElideMode.ElideRight,
+            ancho,
+        )
+        self._lbl_nom.setText(texto)
 
     def mousePressEvent(self, event: Any) -> None:
         self.clicado.emit(self.codigo)
@@ -163,6 +178,7 @@ class PantallaRedes(QWidget):
         self._min_coautorias_actual: int = 2
         self._datos_red_actual: dict[str, Any] = {}
         self._investigador_seleccionado_cod: str | None = None
+        self._panel_metricas_visible = True
 
         self._construir_ui()
         self._configurar_atajos()
@@ -192,7 +208,9 @@ class PantallaRedes(QWidget):
 
         self._splitter.setStretchFactor(0, 1)
         self._splitter.setStretchFactor(1, 0)
-        self._splitter.setSizes([920, 340])
+        self._splitter.setChildrenCollapsible(False)
+        self._splitter.splitterMoved.connect(self._al_mover_splitter)
+        self._ajustar_distribucion(self.width())
 
         layout_raiz.addWidget(self._splitter, 1)
 
@@ -235,6 +253,18 @@ class PantallaRedes(QWidget):
         self.btn_exportar.clicked.connect(self.exportar_png)
         layout.addWidget(self.btn_exportar)
 
+        self.btn_alternar_panel = QPushButton("Ocultar panel", barra)
+        self.btn_alternar_panel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_alternar_panel.setToolTip("Oculta o muestra el panel de métricas")
+        self.btn_alternar_panel.setStyleSheet(
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 7px 12px; "
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
+        )
+        self.btn_alternar_panel.clicked.connect(self._alternar_panel_metricas)
+        layout.addWidget(self.btn_alternar_panel)
+
         return barra
 
     def _crear_tarjeta_red(self) -> Tarjeta:
@@ -249,14 +279,14 @@ class PantallaRedes(QWidget):
 
         # 1. Combo Grupo
         self.combo_grupo = QComboBox(contenedor_controles)
-        self.combo_grupo.setMinimumWidth(160)
+        self.combo_grupo.setMinimumWidth(120)
         self.combo_grupo.addItem("Todos los grupos", None)
         self.combo_grupo.currentIndexChanged.connect(self._al_cambiar_grupo)
         layout_c.addWidget(self.combo_grupo)
 
         # 2. Selector Mínimo de coautorías
         self.combo_min_coautorias = QComboBox(contenedor_controles)
-        self.combo_min_coautorias.setMinimumWidth(130)
+        self.combo_min_coautorias.setMinimumWidth(100)
         for val in range(1, 6):
             txt = f"Mín. {val} coautoría" if val == 1 else f"Mín. {val} coautorías"
             self.combo_min_coautorias.addItem(txt, val)
@@ -270,7 +300,7 @@ class PantallaRedes(QWidget):
             retardo_ms=250,
             parent=contenedor_controles,
         )
-        self.campo_busqueda.setMinimumWidth(180)
+        self.campo_busqueda.setMinimumWidth(140)
         self.campo_busqueda.texto_cambiado.connect(self._al_buscar_investigador)
         layout_c.addWidget(self.campo_busqueda, 1)
 
@@ -359,7 +389,8 @@ class PantallaRedes(QWidget):
 
     def _crear_panel_metricas(self) -> Tarjeta:
         tarjeta = Tarjeta(titulo="Métricas de centralidad", con_sombra=True, parent=self)
-        tarjeta.setFixedWidth(340)
+        tarjeta.setMinimumWidth(280)
+        tarjeta.setMaximumWidth(340)
         self.panel_metricas = tarjeta
         self.lbl_titulo_metricas = QLabel("Métricas de centralidad", self)
 
@@ -367,6 +398,7 @@ class PantallaRedes(QWidget):
         self._scroll_panel = QScrollArea(tarjeta)
         self._scroll_panel.setWidgetResizable(True)
         self._scroll_panel.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll_panel.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll_panel.setStyleSheet("background: transparent;")
 
         self._cuerpo_panel = QWidget(self._scroll_panel)
@@ -511,6 +543,41 @@ class PantallaRedes(QWidget):
         self._scroll_panel.setWidget(self._cuerpo_panel)
         tarjeta.agregar_widget(self._scroll_panel)
         return tarjeta
+
+    def _ajustar_distribucion(self, ancho: int) -> None:
+        if not hasattr(self, "_splitter"):
+            return
+        compacto = ancho < 1240
+        self.combo_grupo.setMinimumWidth(120 if compacto else 160)
+        self.combo_min_coautorias.setMinimumWidth(100 if compacto else 130)
+        self.campo_busqueda.setMinimumWidth(140 if compacto else 180)
+        self.btn_reordenar.setText("Ordenar" if compacto else "Reordenar")
+        self.btn_zoom_ajustar.setText("Ajustar" if not compacto else "↔")
+        self.btn_zoom_ajustar.setToolTip("Ajusta el grafo al lienzo")
+        self.btn_exportar.setText("PNG" if compacto else "Exportar red (PNG)")
+        self.btn_exportar.setToolTip("Exporta la red como imagen PNG")
+        self.btn_alternar_panel.setText("Panel" if compacto else ("Ocultar panel" if self._panel_metricas_visible else "Mostrar panel"))
+        self.btn_alternar_panel.setToolTip(
+            "Muestra el panel de métricas" if not self._panel_metricas_visible else "Oculta el panel de métricas"
+        )
+        if not self._panel_metricas_visible:
+            self._splitter.setSizes([self._splitter.width(), 0])
+            return
+        ancho_panel = 280 if ancho < 1240 else 340
+        self._splitter.setSizes([max(0, self._splitter.width() - ancho_panel), ancho_panel])
+
+    def _al_mover_splitter(self, _: int, __: int) -> None:
+        self.vista_red._programar_reencuadre()
+
+    def _alternar_panel_metricas(self) -> None:
+        self._panel_metricas_visible = not self._panel_metricas_visible
+        self._panel_metricas.setVisible(self._panel_metricas_visible)
+        self._ajustar_distribucion(self.width())
+        self.vista_red._programar_reencuadre()
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._ajustar_distribucion(self.width())
 
     def _configurar_atajos(self) -> None:
         atajo_buscar = QShortcut(QKeySequence.StandardKey.Find, self)

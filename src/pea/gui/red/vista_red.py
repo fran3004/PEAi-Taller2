@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QMouseEvent,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QGraphicsView,
     QHBoxLayout,
     QLabel,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -121,6 +122,7 @@ class VistaRed(QGraphicsView):
         self._nodo_seleccionado: NodoGrafoItem | None = None
         self._nodo_hover: NodoGrafoItem | None = None
         self._zoom_actual = 1.0
+        self._temporizador_reencuadre: QTimer | None = None
 
         # Configuración de rendimiento y calidad gráfica
         self.setRenderHints(
@@ -138,7 +140,21 @@ class VistaRed(QGraphicsView):
 
         # Leyenda flotante
         self._leyenda = LeyendaRed(self)
+        self._estado_vacio = QLabel("No hay datos de red para los filtros seleccionados.", self)
+        self._estado_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._estado_vacio.setWordWrap(True)
+        self._estado_vacio.setStyleSheet(
+            f"color: {TEXTO_SECUNDARIO}; font-size: {estilo.TAMANO_CUERPO}pt; "
+            f"background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; "
+            f"border-radius: {estilo.RADIO_BOTON}px; padding: 12px;"
+        )
+        self._estado_vacio.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Preferred,
+        )
+        self._estado_vacio.show()
         self._actualizar_posicion_leyenda()
+        self._actualizar_estado_vacio()
 
     @property
     def zoom_actual(self) -> float:
@@ -186,6 +202,24 @@ class VistaRed(QGraphicsView):
     def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
         self._actualizar_posicion_leyenda()
+        self._actualizar_estado_vacio()
+        if self._items_nodos:
+            self._programar_reencuadre()
+
+    def showEvent(self, event: Any) -> None:
+        super().showEvent(event)
+        QTimer.singleShot(0, self.ajustar_vista)
+
+    def _actualizar_estado_vacio(self) -> None:
+        if not hasattr(self, "_estado_vacio"):
+            return
+        self._estado_vacio.setVisible(not self._items_nodos)
+        if self._items_nodos:
+            return
+        self._estado_vacio.adjustSize()
+        x = max(0, (self.width() - self._estado_vacio.width()) // 2)
+        y = max(0, (self.height() - self._estado_vacio.height()) // 2)
+        self._estado_vacio.move(x, y)
 
     def _actualizar_posicion_leyenda(self) -> None:
         if hasattr(self, "_leyenda") and self._leyenda:
@@ -211,6 +245,7 @@ class VistaRed(QGraphicsView):
         self._items_aristas.clear()
         self._nodo_seleccionado = None
         self._nodo_hover = None
+        self._actualizar_estado_vacio()
 
         total_original = len(nodos_data)
 
@@ -233,6 +268,7 @@ class VistaRed(QGraphicsView):
         ]
 
         if not nodos_filtrados:
+            self._actualizar_estado_vacio()
             return
 
         # Calcular posiciones si no fueron proporcionadas
@@ -284,7 +320,8 @@ class VistaRed(QGraphicsView):
                 self._escena.addItem(item_arista)
                 self._items_aristas.append(item_arista)
 
-        self.ajustar_vista()
+        self._actualizar_estado_vacio()
+        QTimer.singleShot(0, self.ajustar_vista)
 
     # -----------------------------------------------------------------------
     # Interacción: Hover y Resaltado de Vecinos
@@ -373,6 +410,13 @@ class VistaRed(QGraphicsView):
             self.scale(factor, factor)
             self._zoom_actual *= factor
             self._actualizar_etiquetas_zoom()
+
+    def _programar_reencuadre(self) -> None:
+        if self._temporizador_reencuadre is None:
+            self._temporizador_reencuadre = QTimer(self)
+            self._temporizador_reencuadre.setSingleShot(True)
+            self._temporizador_reencuadre.timeout.connect(self.ajustar_vista)
+        self._temporizador_reencuadre.start(80)
 
     def alejar(self) -> None:
         factor = 1.0 / 1.18
