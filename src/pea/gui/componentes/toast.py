@@ -145,7 +145,7 @@ class Toast(QFrame):
         if tipo == "aviso":
             return (AVISO_FONDO, AVISO, "▲")
         if tipo == "error":
-            return (ERROR_FONDO, ERROR, "✕")
+            return (ERROR_FONDO, ERROR, "X")
         return (INFO_FONDO, INFO, "ℹ")
 
     def enterEvent(self, event: QEvent) -> None:

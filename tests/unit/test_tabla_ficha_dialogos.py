@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication, QLabel
 
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.popover_historial import PopoverHistorial
 from pea.gui.componentes.tabla import (
+    ColumnSpecification,
     TablaEstilizada,
 )
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
@@ -77,13 +80,45 @@ def test_tabla_estilizada_y_delegados(qapp: QApplication, qtbot: Any) -> None:
     assert len(bloque_copia.args) == 1
 
 
+@pytest.mark.parametrize(("ancho", "ancho_ficha"), [(1100, 320), (1366, 380), (1920, 440)])
+def test_responsividad_tabla_y_ficha(
+    qapp: QApplication, qtbot: Any, ancho: int, ancho_ficha: int
+) -> None:
+    """Comprueba el contrato responsive en las tres resoluciones de aceptación."""
+    tabla_widget = TablaEstilizada()
+    qtbot.addWidget(tabla_widget)
+    modelo = QStandardItemModel(2, 4, tabla_widget)
+    tabla_widget.establecer_modelo(modelo)
+    tabla_widget.configurar_columnas([
+        ColumnSpecification("estirar", 200, 1),
+        ColumnSpecification("fijo", 120, 2),
+        ColumnSpecification("contenido", 100, 3),
+        ColumnSpecification("contenido", 100, 3),
+    ])
+    tabla_widget.resize(max(400, ancho - ancho_ficha - 40), 400)
+    tabla_widget.show()
+    qapp.processEvents()
+
+    assert not tabla_widget.vista.horizontalScrollBar().isVisible()
+    assert tabla_widget.vista.columnWidth(0) >= 200
+
+    ficha = FichaLateral()
+    qtbot.addWidget(ficha)
+    ficha.ajustar_ancho_ficha(ancho)
+    assert ficha.width() == ancho_ficha
+
+
 def test_ficha_lateral_base(qapp: QApplication, qtbot: Any) -> None:
-    """Verifica dimensiones de 360 px, zonas de cabecera, KPI, contenido y acciones."""
+    """Verifica el ancho mínimo responsive y las zonas de la ficha."""
     ficha = FichaLateral()
     qtbot.addWidget(ficha)
     ficha.show()
 
-    assert ficha.width() == 360
+    assert ficha.width() == 320
+    ficha.ajustar_ancho_ficha(1366)
+    assert ficha.width() == 380
+    ficha.ajustar_ancho_ficha(1920)
+    assert ficha.width() == 440
 
     # Estado inicial: vacío
     assert ficha._lbl_vacio.isVisible()
@@ -235,4 +270,3 @@ def test_popover_historial(qapp: QApplication, qtbot: Any) -> None:
     # Emitir señal al hacer clic en deshacer
     with qtbot.waitSignal(popover.deshacer_solicitado, timeout=1000):
         popover.btn_deshacer.click()
-

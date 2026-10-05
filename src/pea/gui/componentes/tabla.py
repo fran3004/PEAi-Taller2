@@ -17,6 +17,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 8 y 6.2).
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import (
@@ -31,6 +32,7 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QHelpEvent,
     QLinearGradient,
     QMouseEvent,
     QPainter,
@@ -44,6 +46,7 @@ from PySide6.QtWidgets import (
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QTableView,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -103,9 +106,21 @@ class TextoDelegate(QStyledItemDelegate):
         painter.setPen(QPen(QColor(TEXTO)))
 
         rect_txt = option.rect.adjusted(12, 0, -12, 0)
-        painter.drawText(rect_txt, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto)
+        texto_visible = painter.fontMetrics().elidedText(
+            texto,
+            Qt.TextElideMode.ElideRight,
+            max(0, rect_txt.width()),
+        )
+        painter.drawText(rect_txt, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto_visible)
 
         painter.restore()
+
+    def helpEvent(self, event: QHelpEvent, view: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
+        texto = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        if texto:
+            QToolTip.showText(event.globalPos(), texto, view)
+            return True
+        return super().helpEvent(event, view, option, index)
 
 
 class PildoraDelegate(QStyledItemDelegate):
@@ -144,8 +159,10 @@ class PildoraDelegate(QStyledItemDelegate):
         painter.setFont(fuente)
 
         fm = painter.fontMetrics()
-        ancho_txt = fm.horizontalAdvance(valor)
-        ancho_pildora = ancho_txt + 16.0
+        ancho_disponible = max(0, option.rect.width() - 20)
+        texto_visible = fm.elidedText(valor, Qt.TextElideMode.ElideRight, max(0, ancho_disponible - 16))
+        ancho_txt = fm.horizontalAdvance(texto_visible)
+        ancho_pildora = min(ancho_txt + 16.0, ancho_disponible)
         alto_pildora = 22.0
 
         x_pildora = option.rect.left() + 10.0
@@ -157,7 +174,7 @@ class PildoraDelegate(QStyledItemDelegate):
         painter.drawRoundedRect(rect_pildora, RADIO_PILDORA, RADIO_PILDORA)
 
         painter.setPen(QPen(QColor(texto_hex)))
-        painter.drawText(rect_pildora, Qt.AlignmentFlag.AlignCenter, valor)
+        painter.drawText(rect_pildora, Qt.AlignmentFlag.AlignCenter, texto_visible)
 
         painter.restore()
 
@@ -264,9 +281,21 @@ class EnlaceDelegate(QStyledItemDelegate):
         painter.setPen(QPen(QColor(ENLACE)))
 
         rect_txt = option.rect.adjusted(12, 0, -12, 0)
-        painter.drawText(rect_txt, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto)
+        texto_visible = painter.fontMetrics().elidedText(
+            texto,
+            Qt.TextElideMode.ElideRight,
+            max(0, rect_txt.width()),
+        )
+        painter.drawText(rect_txt, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, texto_visible)
 
         painter.restore()
+
+    def helpEvent(self, event: QHelpEvent, view: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
+        texto = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        if texto:
+            QToolTip.showText(event.globalPos(), texto, view)
+            return True
+        return super().helpEvent(event, view, option, index)
 
     def editorEvent(
         self,
@@ -349,11 +378,14 @@ class _VistaTablaEstilizada(QTableView):
         self.verticalHeader().setDefaultSectionSize(48)
 
         encabezado_h = self.horizontalHeader()
-        encabezado_h.setStretchLastSection(True)
+        encabezado_h.setStretchLastSection(False)
         encabezado_h.setHighlightSections(False)
         encabezado_h.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         encabezado_h.setFixedHeight(38)
-        encabezado_h.setDefaultSectionSize(160)
+        encabezado_h.setDefaultSectionSize(120)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._especificaciones: list[ColumnSpecification] = []
+        self._columnas_ocultas: set[int] = set()
 
         self.setStyleSheet(
             f"QTableView#vistaTablaEstilizada {{"
@@ -387,6 +419,59 @@ class _VistaTablaEstilizada(QTableView):
             f"  border-bottom: 2px solid {LINEA};"
             f"}}"
         )
+
+    def configurar_columnas(self, especificaciones: list[ColumnSpecification]) -> None:
+        self._especificaciones = especificaciones
+        self._aplicar_columnas()
+
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        self._aplicar_columnas()
+
+    def _aplicar_columnas(self) -> None:
+        if self.model() is None or not self._especificaciones:
+            return
+        cantidad = self.model().columnCount()
+        specs = self._especificaciones[:cantidad]
+        if len(specs) < cantidad:
+            specs += [ColumnSpecification("contenido", 120, 3)] * (cantidad - len(specs))
+        disponibles = max(0, self.viewport().width())
+        visibles = set(range(cantidad))
+        while sum(specs[i].ancho_minimo for i in visibles) > disponibles:
+            candidatos = [i for i in visibles if specs[i].prioridad > 1]
+            if not candidatos:
+                break
+            visibles.remove(max(candidatos, key=lambda i: specs[i].prioridad))
+        for indice in range(cantidad):
+            visible = indice in visibles
+            self.setColumnHidden(indice, not visible)
+            if visible:
+                spec = specs[indice]
+                modo = {
+                    "estirar": self.horizontalHeader().ResizeMode.Stretch,
+                    "contenido": self.horizontalHeader().ResizeMode.ResizeToContents,
+                    "fijo": self.horizontalHeader().ResizeMode.Fixed,
+                }[spec.modo]
+                self.horizontalHeader().setSectionResizeMode(indice, modo)
+                if spec.modo != "estirar":
+                    self.setColumnWidth(indice, max(spec.ancho_minimo, self.columnWidth(indice)))
+
+
+@dataclass(frozen=True)
+class ColumnSpecification:
+    """Regla responsive para una columna de tabla."""
+
+    modo: str
+    ancho_minimo: int
+    prioridad: int = 2
+
+    def __post_init__(self) -> None:
+        if self.modo not in {"estirar", "contenido", "fijo"}:
+            raise ValueError(f"Modo de columna no válido: {self.modo}")
+        if self.ancho_minimo < 0:
+            raise ValueError("El ancho mínimo de una columna no puede ser negativo")
+        if self.prioridad not in {1, 2, 3}:
+            raise ValueError("La prioridad de una columna debe ser 1, 2 o 3")
 
 
 class TablaEstilizada(QWidget):
@@ -471,6 +556,10 @@ class TablaEstilizada(QWidget):
     def establecer_delegado_columna(self, columna: int, delegado: QStyledItemDelegate) -> None:
         """Asigna un delegado visual a una columna específica."""
         self._vista.setItemDelegateForColumn(columna, delegado)
+
+    def configurar_columnas(self, especificaciones: list[ColumnSpecification]) -> None:
+        """Configura modos, mínimos y prioridades responsive de las columnas."""
+        self._vista.configurar_columnas(especificaciones)
 
     def actualizar_pie(self, mostrados: int | None = None, total: int | None = None) -> None:
         """Actualiza el texto del pie con las filas visibles y el total."""

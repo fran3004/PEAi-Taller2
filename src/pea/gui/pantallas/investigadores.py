@@ -69,6 +69,7 @@ from pea.gui.componentes.graficos.serie_anual import GraficoSerieAnual
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ColumnSpecification,
     TablaEstilizada,
 )
 from pea.gui.componentes.tarjeta import Tarjeta
@@ -394,7 +395,6 @@ class DialogoConfirmarEliminar(QDialog):
         super().__init__(parent)
         self.setWindowTitle(titulo)
         self.setModal(True)
-        self.setFixedWidth(460)
         self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
@@ -779,14 +779,14 @@ class PantallaInvestigadores(QWidget):
         self.tabla.fila_doble_clic.connect(lambda _: self._al_pulsar_ver_ficha_completa())
 
         # Anchos preferidos de columnas
-        self.tabla.ajustar_columnas({
-            0: 240,
-            1: 170,
-            2: 120,
-            3: 140,
-            4: 100,
-            5: 140,
-        })
+        self.tabla.configurar_columnas([
+            ColumnSpecification("estirar", 220, 1),
+            ColumnSpecification("contenido", 120, 2),
+            ColumnSpecification("contenido", 100, 3),
+            ColumnSpecification("contenido", 120, 2),
+            ColumnSpecification("fijo", 80, 2),
+            ColumnSpecification("contenido", 120, 3),
+        ])
 
         tarjeta.agregar_widget(self.tabla)
         return tarjeta

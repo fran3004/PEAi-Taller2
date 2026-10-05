@@ -49,7 +49,7 @@ def test_pantalla_grupos_construccion_y_componentes(
     # 3. Ficha lateral (FichaGrupo)
     ficha = pantalla._ficha_lateral
     assert isinstance(ficha, FichaGrupo)
-    assert ficha.width() == 360
+    assert ficha.width() == 320
     assert ficha.kpi_integrantes is not None
     assert ficha.kpi_estudiantes is not None
     assert ficha.kpi_productos is not None

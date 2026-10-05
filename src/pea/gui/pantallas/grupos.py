@@ -68,6 +68,7 @@ from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ColumnSpecification,
     TablaEstilizada,
 )
 from pea.gui.componentes.tarjeta import Tarjeta
@@ -286,7 +287,6 @@ class DialogoConfirmarEliminar(QDialog):
         super().__init__(parent)
         self.setWindowTitle(titulo)
         self.setModal(True)
-        self.setFixedWidth(460)
         self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
@@ -668,7 +668,9 @@ class PantallaGrupos(QWidget):
         # Proporciones del divisor: Directorio flexible y Ficha 360 px
         self._splitter.setStretchFactor(0, 1)
         self._splitter.setStretchFactor(1, 0)
-        self._splitter.setSizes([900, 360])
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
+        self._splitter.setSizes([900, 320])
 
         layout_raiz.addWidget(self._splitter, 1)
 
@@ -800,15 +802,15 @@ class PantallaGrupos(QWidget):
         self.tabla.fila_doble_clic.connect(lambda _: self._al_pulsar_ver_ficha_completa())
 
         # Anchos preferidos de columnas
-        self.tabla.ajustar_columnas({
-            0: 240,
-            1: 130,
-            2: 110,
-            3: 160,
-            4: 100,
-            5: 100,
-            6: 90,
-        })
+        self.tabla.configurar_columnas([
+            ColumnSpecification("estirar", 220, 1),
+            ColumnSpecification("contenido", 100, 2),
+            ColumnSpecification("contenido", 100, 3),
+            ColumnSpecification("contenido", 120, 2),
+            ColumnSpecification("fijo", 80, 2),
+            ColumnSpecification("fijo", 80, 3),
+            ColumnSpecification("contenido", 90, 3),
+        ])
 
         tarjeta.agregar_widget(self.tabla)
         return tarjeta

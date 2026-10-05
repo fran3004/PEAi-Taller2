@@ -46,10 +46,10 @@ def test_pantalla_productos_construccion_y_componentes(
     assert pantalla.btn_nuevo is not None
     assert pantalla.tabla is not None
 
-    # 3. Ficha lateral (FichaProducto, 360 px)
+    # 3. Ficha lateral responsive
     ficha = pantalla._ficha_lateral
     assert isinstance(ficha, FichaProducto)
-    assert ficha.width() == 360
+    assert ficha.width() == 320
     assert ficha._lbl_titulo is not None
     assert ficha._lbl_codigo is not None
     assert ficha._pildora_tipologia is not None

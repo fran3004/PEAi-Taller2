@@ -21,7 +21,7 @@ FUENTES_INTER: Final[tuple[str, ...]] = (
 )
 
 # Caracteres usados por la interfaz y comprobados contra la fuente cargada.
-SIMBOLOS_ESPECIALES: Final[str] = "●·→↑↓✓✕▲▼…•"
+SIMBOLOS_ESPECIALES: Final[str] = "●·→↑↓✓X▲▼…•"
 
 _CACHE_RENDERERS: dict[str, QSvgRenderer] = {}
 _CACHE_PIXMAPS: dict[tuple[str, int | None, int | None], QPixmap] = {}

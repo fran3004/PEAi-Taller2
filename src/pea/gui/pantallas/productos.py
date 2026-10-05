@@ -64,6 +64,7 @@ from pea.gui.componentes.filtro_anios import ChipVentana
 from pea.gui.componentes.pildora import Pildora
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ColumnSpecification,
     TablaEstilizada,
 )
 from pea.gui.componentes.tarjeta import Tarjeta
@@ -297,7 +298,6 @@ class DialogoConfirmarEliminar(QDialog):
         super().__init__(parent)
         self.setWindowTitle(titulo)
         self.setModal(True)
-        self.setFixedWidth(460)
         self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
@@ -643,7 +643,9 @@ class PantallaProductos(QWidget):
         # Proporciones del divisor: Catálogo flexible y Ficha 360 px
         self._splitter.setStretchFactor(0, 1)
         self._splitter.setStretchFactor(1, 0)
-        self._splitter.setSizes([900, 360])
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
+        self._splitter.setSizes([900, 320])
 
         layout_raiz.addWidget(self._splitter, 1)
 
@@ -790,17 +792,17 @@ class PantallaProductos(QWidget):
         self.tabla.clave_seleccionada.connect(self._al_seleccionar_clave)
 
         # Anchos preferidos de columnas
-        self.tabla.ajustar_columnas({
-            0: 110,
-            1: 270,
-            2: 85,
-            3: 120,
-            4: 65,
-            5: 95,
-            6: 150,
-            7: 150,
-            8: 85,
-        })
+        self.tabla.configurar_columnas([
+            ColumnSpecification("fijo", 80, 3),
+            ColumnSpecification("estirar", 220, 1),
+            ColumnSpecification("contenido", 85, 3),
+            ColumnSpecification("contenido", 100, 2),
+            ColumnSpecification("fijo", 65, 2),
+            ColumnSpecification("contenido", 95, 3),
+            ColumnSpecification("contenido", 120, 2),
+            ColumnSpecification("contenido", 120, 3),
+            ColumnSpecification("contenido", 85, 3),
+        ])
 
         tarjeta.agregar_widget(self.tabla)
         return tarjeta

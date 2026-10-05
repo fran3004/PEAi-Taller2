@@ -11,6 +11,8 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 8, 6.2, 6.3 y 6
 
 from __future__ import annotations
 
+from typing import Any
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
@@ -51,7 +53,9 @@ class FichaLateral(QFrame):
     def __init__(self, parent: QWidget | None = None, diametro_avatar: int = 80) -> None:
         super().__init__(parent)
         self.setObjectName("fichaLateral")
-        self.setFixedWidth(360)
+        self.setMinimumWidth(320)
+        self.setMaximumWidth(440)
+        self.ajustar_ancho_ficha(self.window().width())
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self.setStyleSheet(
@@ -214,6 +218,27 @@ class FichaLateral(QFrame):
 
         self.mostrar_vacio()
 
+    def resizeEvent(self, event: Any) -> None:
+        super().resizeEvent(event)
+        if self.window() is not self:
+            self.ajustar_ancho_ficha(self.window().width())
+
+    def ajustar_ancho_ficha(self, ancho_ventana: int) -> None:
+        """Ajusta el ancho lateral a la ventana sin habilitar desplazamiento horizontal."""
+        if ancho_ventana < 1240:
+            ancho = 320
+        elif ancho_ventana < 1500:
+            ancho = 380
+        else:
+            ancho = 440
+        self.setMinimumWidth(ancho)
+        self.setMaximumWidth(ancho)
+        self.resize(ancho, self.height())
+
+    def _asegurar_texto_envuelve(self, widget: QWidget) -> None:
+        for etiqueta in widget.findChildren(QLabel):
+            etiqueta.setWordWrap(True)
+
     # -----------------------------------------------------------------------
     # Métodos de configuración y gestión de estados
     # -----------------------------------------------------------------------
@@ -282,6 +307,7 @@ class FichaLateral(QFrame):
     def agregar_contenido(self, widget: QWidget) -> None:
         """Inserta un widget en la zona de contenido libre."""
         self._layout_contenido.addWidget(widget)
+        self._asegurar_texto_envuelve(widget)
 
     def configurar_estado_activo(self, activo: bool) -> None:
         """Ajusta el texto y estilo del botón de activación/desactivación."""
@@ -299,4 +325,3 @@ class FichaLateral(QFrame):
                 f"border: 1px solid {estilo.EXITO_BORDE_SUAVE}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
                 f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_EXITO_HOVER}; }}"
             )
-

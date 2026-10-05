@@ -114,7 +114,7 @@ class ZonaSoltarArchivo(QFrame):
         layout.addWidget(self.btn_examinar)
 
         # Botón limpiar (inicialmente oculto)
-        self.btn_limpiar = QPushButton("✕", self)
+        self.btn_limpiar = QPushButton("X", self)
         self.btn_limpiar.setToolTip("Quitar archivo")
         self.btn_limpiar.setFixedWidth(28)
         self.btn_limpiar.setCursor(Qt.CursorShape.PointingHandCursor)

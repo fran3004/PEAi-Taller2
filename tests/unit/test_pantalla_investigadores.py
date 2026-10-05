@@ -49,7 +49,7 @@ def test_pantalla_investigadores_construccion_y_componentes(
     # 3. Ficha lateral
     ficha = pantalla._ficha_lateral
     assert ficha is not None
-    assert ficha.width() == 360
+    assert ficha.width() == 320
     assert pantalla.kpi_productos is not None
     assert pantalla.kpi_grupos is not None
     assert pantalla.kpi_coautores is not None
