@@ -5,8 +5,10 @@ from __future__ import annotations
 import os
 import sys
 
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
+from pea.gui.recursos.cargador import cargar_fuentes
 from pea.gui.ventana_principal import Pantalla, VentanaPrincipal, ejecutar_autoprueba
 from pea.version import APP_NAME, APP_VERSION, INSTITUCION
 
@@ -25,6 +27,8 @@ def main(argv: list[str] | None = None) -> int:
     if app is None:
         app = QApplication([sys.argv[0]] + list(args))
 
+    familia = cargar_fuentes()
+    app.setFont(QFont(familia, 11))
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName(INSTITUCION)
@@ -38,4 +42,3 @@ def main(argv: list[str] | None = None) -> int:
 
     ventana.show()
     return app.exec()
-

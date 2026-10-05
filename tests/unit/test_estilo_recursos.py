@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QFont, QFontDatabase, QFontMetricsF, QIcon, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 from pea.gui.estilo import (
@@ -69,8 +69,12 @@ from pea.gui.formato import (
     nombre_validacion,
 )
 from pea.gui.recursos import (
+    CARPETA_FUENTES,
     CARPETA_ICONOS,
     CARPETA_RECURSOS,
+    FUENTES_INTER,
+    SIMBOLOS_ESPECIALES,
+    cargar_fuentes,
     cargar_icono,
     cargar_pixmap,
     cargar_svg_renderer,
@@ -263,6 +267,29 @@ def test_existencia_archivos_recursos() -> None:
     for nombre in pestanas_seccion_4_4 + iconos_utilitarios:
         ruta_svg = CARPETA_ICONOS / f"{nombre}.svg"
         assert ruta_svg.is_file(), f"No existe el icono requerido: {ruta_svg}"
+
+    for nombre in FUENTES_INTER:
+        assert (CARPETA_FUENTES / nombre).is_file(), f"No existe la fuente requerida: {nombre}"
+    assert (CARPETA_FUENTES / "OFL.txt").is_file()
+
+
+def test_cargar_fuentes_registra_inter(qapp: Any) -> None:
+    """Las variantes estáticas deben exponer la familia Inter en Qt."""
+    familia = cargar_fuentes()
+
+    assert familia == "Inter"
+    assert "Inter" in QFontDatabase.families()
+
+
+def test_inter_contiene_acentos_y_simbolos_visibles(qapp: Any) -> None:
+    """Inter debe cubrir el texto español y los símbolos que usa la GUI."""
+    cargar_fuentes()
+    metricas = QFontMetricsF(QFont("Inter", 11))
+    caracteres = "áéíóúüñÁÉÍÓÚÑ¿¡°" + SIMBOLOS_ESPECIALES
+
+    faltantes = [caracter for caracter in caracteres if not metricas.inFontUcs4(ord(caracter))]
+
+    assert not faltantes, f"Inter no contiene estos caracteres: {faltantes!r}"
 
 
 def test_cargador_svg_renderer(qapp: Any) -> None:

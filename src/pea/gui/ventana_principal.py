@@ -91,7 +91,7 @@ from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
 from pea.gui.pantallas.productos import PantallaProductos
 from pea.gui.pantallas.redes import PantallaRedes
-from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap
+from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap, fuente_inter_cargada
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoConexion, ModoFiltroAnios
 from pea.version import ESLOGAN_LINEA_1, ESLOGAN_LINEA_2, NOMBRE_COMPLETO
@@ -1145,6 +1145,9 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     import os
 
     os.environ["PEA_SIN_ANIMACIONES"] = "1"
+    if not fuente_inter_cargada():
+        print("[AUTOPRUEBA] ERROR: la fuente Inter no está cargada; no se generan capturas.")
+        return 2
     print("[AUTOPRUEBA] Iniciando autoprueba de ventana principal PEA-i (PEA_SIN_ANIMACIONES=1)...")
     salida_dir = Path("datos/capturas")
     salida_dir.mkdir(parents=True, exist_ok=True)

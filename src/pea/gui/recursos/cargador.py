@@ -1,4 +1,4 @@
-"""Cargador de recursos gráficos (iconos SVG e imágenes PNG) con caché en memoria."""
+"""Cargador de recursos gráficos y tipográficos con caché en memoria."""
 
 from __future__ import annotations
 
@@ -6,15 +6,56 @@ from pathlib import Path
 from typing import Final
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPainter, QPixmap
+from PySide6.QtGui import QFontDatabase, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
 CARPETA_RECURSOS: Final[Path] = Path(__file__).resolve().parent
 CARPETA_ICONOS: Final[Path] = CARPETA_RECURSOS / "iconos"
+CARPETA_FUENTES: Final[Path] = CARPETA_RECURSOS / "fuentes"
+FUENTES_INTER: Final[tuple[str, ...]] = (
+    "Inter-Regular.ttf",
+    "Inter-Medium.ttf",
+    "Inter-SemiBold.ttf",
+    "Inter-Bold.ttf",
+    "Inter-ExtraBold.ttf",
+)
+
+# Caracteres usados por la interfaz y comprobados contra la fuente cargada.
+SIMBOLOS_ESPECIALES: Final[str] = "●·→↑↓✓✕▲▼…•"
 
 _CACHE_RENDERERS: dict[str, QSvgRenderer] = {}
 _CACHE_PIXMAPS: dict[tuple[str, int | None, int | None], QPixmap] = {}
 _CACHE_ICONOS: dict[str, QIcon] = {}
+_FAMILIA_INTER: str | None = None
+
+
+def cargar_fuentes() -> str:
+    """Registra las variantes estáticas de Inter y devuelve su familia real."""
+    global _FAMILIA_INTER
+    if _FAMILIA_INTER is not None:
+        return _FAMILIA_INTER
+
+    familias: set[str] = set()
+    for nombre in FUENTES_INTER:
+        ruta = CARPETA_FUENTES / nombre
+        if not ruta.is_file():
+            raise RuntimeError(f"No se encontró la fuente Inter requerida: {ruta}")
+        identificador = QFontDatabase.addApplicationFont(str(ruta))
+        if identificador < 0:
+            raise RuntimeError(f"No se pudo registrar la fuente Inter: {ruta}")
+        familias.update(QFontDatabase.applicationFontFamilies(identificador))
+
+    if "Inter" not in familias:
+        raise RuntimeError(
+            "Las fuentes Inter fueron registradas, pero Qt no expuso la familia 'Inter'."
+        )
+    _FAMILIA_INTER = "Inter"
+    return _FAMILIA_INTER
+
+
+def fuente_inter_cargada() -> bool:
+    """Indica si la familia Inter está disponible para la aplicación."""
+    return _FAMILIA_INTER == "Inter" and "Inter" in QFontDatabase.families()
 
 
 def resolver_ruta_recurso(nombre: str | Path) -> Path:

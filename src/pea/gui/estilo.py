@@ -174,7 +174,7 @@ def calcular_radio_contraste(color1_hex: str, color2_hex: str) -> float:
 # 4.2 Tipografía
 # ---------------------------------------------------------------------------
 
-FAMILIA_TIPOGRAFICA: Final[str] = '"Segoe UI", "Inter", "Noto Sans", "Helvetica Neue", sans-serif'
+FAMILIA_TIPOGRAFICA: Final[str] = '"Inter", "Segoe UI", "Noto Sans", "Helvetica Neue", sans-serif'
 
 TAMANO_MARCA: Final[int] = 30           # pt, peso 800 (Black)
 PESO_MARCA: Final[int] = 800
