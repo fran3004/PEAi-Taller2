@@ -2,11 +2,11 @@
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.2).
 Referencia visual: brain/_adjuntos/ref-investigadores.png.
-- Barra de contexto: título, ChipVentana y menú Exportar ▾.
+- Barra de contexto: título, ChipVentana y menú Exportar .
 - Directorio de Investigadores:
   * Cabecera con búsqueda (Ctrl+F, debounce 250 ms), combos Grupo, Categoría y Estado (Activos/Todos),
     y botón primario «+ Nuevo investigador».
-  * Tabla con filas de 48 px, hover #F3F7FB, selección #E3EEF7 con barra de acento de 3 px,
+  * Tabla con filas de 48 px, hover superficie de gr?fico, selección superficie seleccionada con barra de acento de 3 px,
     encabezado FICHA en 10 pt negrita, ordenación insensible a mayúsculas y numérica en productos.
   * Columnas: Nombre (avatar 28 px + nombre), Grupo(s), Categoría (píldora), Formación,
     Productos (alineado a derecha) y Código CvLAC (enlace copiable con toast).
@@ -15,10 +15,10 @@ Referencia visual: brain/_adjuntos/ref-investigadores.png.
 - Ficha lateral de 360 px:
   * Avatar de 96 px con iniciales y degradado determinista.
   * Nombre (16 pt negrita) y subtítulo «GRUPO · Categoría».
-  * Cuadrícula 2×2 de FichaKPI: Productos (ventana), Grupos (membresías), Coautores y Años con producción.
+  * Cuadrícula 22 de FichaKPI: Productos (ventana), Grupos (membresías), Coautores y Años con producción.
   * Minigráfico de Producción anual (GraficoSerieAnual).
   * Barras de tipología (GNC, DTI, ASC, FRH) con porcentajes y barras proporcionales.
-  * Botones de acción: Editar, Activar/Desactivar, Eliminar… (muestra describir_cascada),
+  * Botones de acción: Editar, Activar/Desactivar, Eliminar (muestra describir_cascada),
     Ver ficha completa (diálogo con pestañas de Aportes, Membresías y Productos) y Ver productos.
 - Notificaciones breves mediante Toast (GestorAvisos).
 """
@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.filtro_anios import ChipVentana
@@ -153,7 +154,7 @@ class ModeloDirectorioInvestigadores(QAbstractTableModel):
                     return "Inactivo"
                 return reg["categoria"] or "Sin categoría"
             if col == 3:
-                return reg["formacion"] or "—"
+                return reg["formacion"] or ""
             if col == 4:
                 return reg["productos"]
             if col == 5:
@@ -309,7 +310,7 @@ class _BarraProgresoMini(QWidget):
         rect_total = QRectF(0, 0, ancho, alto)
 
         # Fondo tenue
-        painter.setBrush(QBrush(QColor("#E2E8F0")))
+        painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_GRAFICO_GUIA)))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(rect_total, 4.0, 4.0)
 
@@ -331,7 +332,7 @@ class BarrasTipologia(QWidget):
         layout.setSpacing(8)
 
         lbl_tit = QLabel("Tipología de productos", self)
-        lbl_tit.setStyleSheet(f"font-size: 10.5pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout.addWidget(lbl_tit)
 
         self._filas: dict[str, tuple[_BarraProgresoMini, QLabel]] = {}
@@ -352,7 +353,7 @@ class BarrasTipologia(QWidget):
             badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
             badge.setStyleSheet(
                 f"background-color: {color_hex}; color: {TEXTO_SOBRE_OSCURO}; "
-                f"font-weight: bold; font-size: 8.5pt; border-radius: {RADIO_PILDORA}px;"
+                f"font-weight: bold; font-size: {estilo.TAMANO_AUXILIAR}pt; border-radius: {RADIO_PILDORA}px;"
             )
             fila.addWidget(badge)
 
@@ -362,7 +363,7 @@ class BarrasTipologia(QWidget):
             lbl_valor = QLabel("0 (0 %)", self)
             lbl_valor.setMinimumWidth(80)
             lbl_valor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            lbl_valor.setStyleSheet(f"font-size: 9.5pt; color: {TEXTO_SECUNDARIO};")
+            lbl_valor.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             fila.addWidget(lbl_valor)
 
             layout.addLayout(fila)
@@ -394,7 +395,7 @@ class DialogoConfirmarEliminar(QDialog):
         self.setWindowTitle(titulo)
         self.setModal(True)
         self.setFixedWidth(460)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
+        self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -403,12 +404,12 @@ class DialogoConfirmarEliminar(QDialog):
         # Encabezado con ícono
         fila_tit = QHBoxLayout()
         fila_tit.setSpacing(10)
-        lbl_ico = QLabel("⚠️", self)
-        lbl_ico.setStyleSheet("font-size: 18pt;")
+        lbl_ico = QLabel("️", self)
+        lbl_ico.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt;")
         fila_tit.addWidget(lbl_ico)
 
         lbl_tit = QLabel("¿Confirmar eliminación permanente?", self)
-        lbl_tit.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         fila_tit.addWidget(lbl_tit, 1)
         layout.addLayout(fila_tit)
 
@@ -424,11 +425,11 @@ class DialogoConfirmarEliminar(QDialog):
 
         lbl_cascada = QLabel(descripcion_cascada, cuadro_aviso)
         lbl_cascada.setWordWrap(True)
-        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: 10.5pt; font-weight: 500;")
+        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 500;")
         layout_aviso.addWidget(lbl_cascada)
 
         lbl_undo = QLabel("Nota: La operación se guardará en la pila de deshacer (Ctrl+Z).", cuadro_aviso)
-        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: 9.5pt;")
+        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {estilo.TAMANO_AUXILIAR}pt;")
         layout_aviso.addWidget(lbl_undo)
 
         layout.addWidget(cuadro_aviso)
@@ -442,9 +443,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_cancelar = QPushButton("Cancelar", self)
         btn_cancelar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancelar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; border: 1px solid {LINEA}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; border: 1px solid {LINEA}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         btn_cancelar.clicked.connect(self.reject)
         fila_btn.addWidget(btn_cancelar)
@@ -452,9 +453,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_eliminar = QPushButton("Eliminar permanentemente", self)
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_eliminar.setStyleSheet(
-            f"QPushButton {{ background-color: {ERROR}; color: #FFFFFF; border: none; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #7A1D1D; }}"
+            f"QPushButton {{ background-color: {ERROR}; color: {estilo.SUPERFICIE}; border: none; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.ERROR_HOVER}; }}"
         )
         btn_eliminar.clicked.connect(self.accept)
         fila_btn.addWidget(btn_eliminar)
@@ -480,7 +481,7 @@ class DialogoFichaCompletaInvestigador(QDialog):
         self.setWindowTitle(f"Ficha Completa · {vista['nombre']} ({vista['codigo']})")
         self.setModal(True)
         self.resize(860, 580)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
+        self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -493,14 +494,14 @@ class DialogoFichaCompletaInvestigador(QDialog):
         barra_acento = QFrame(self)
         barra_acento.setFixedWidth(3)
         barra_acento.setFixedHeight(36)
-        barra_acento.setStyleSheet(f"background-color: {COLOR_DTI}; border-radius: 1px;")
+        barra_acento.setStyleSheet(f"background-color: {COLOR_DTI}; border-radius: {estilo.ESPACIADO_4}px;")
         fila_cab.addWidget(barra_acento)
 
         col_tit = QVBoxLayout()
         col_tit.setSpacing(2)
 
         lbl_nom = QLabel(vista["nombre"], self)
-        lbl_nom.setStyleSheet(f"font-size: 15pt; font-weight: bold; color: {TEXTO};")
+        lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         col_tit.addWidget(lbl_nom)
 
         lbl_meta = QLabel(
@@ -508,7 +509,7 @@ class DialogoFichaCompletaInvestigador(QDialog):
             f"Formación: {vista['formacion']}  ·  Filtro: {vista['filtro']}",
             self,
         )
-        lbl_meta.setStyleSheet(f"font-size: 10.5pt; color: {TEXTO_SECUNDARIO};")
+        lbl_meta.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_meta)
         fila_cab.addLayout(col_tit)
         fila_cab.addStretch()
@@ -518,10 +519,10 @@ class DialogoFichaCompletaInvestigador(QDialog):
         # Pestañas con tablas completas
         self.pestanas = QTabWidget(self)
         self.pestanas.setStyleSheet(
-            f"QTabWidget::pane {{ border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; background: #FFFFFF; }}"
-            f"QTabBar::tab {{ background: #F1F5F9; color: {TEXTO}; padding: 8px 16px; font-weight: 600; "
-            f"border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 10.5pt; }}"
-            f"QTabBar::tab:selected {{ background: #FFFFFF; color: {PRIMARIO}; border: 1px solid {LINEA}; border-bottom: none; }}"
+            f"QTabWidget::pane {{ border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; background: {estilo.SUPERFICIE}; }}"
+            f"QTabBar::tab {{ background: {estilo.FONDO_APP}; color: {TEXTO}; padding: 8px 16px; font-weight: 600; "
+            f"border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QTabBar::tab:selected {{ background: {estilo.SUPERFICIE}; color: {PRIMARIO}; border: 1px solid {LINEA}; border-bottom: none; }}"
         )
 
         # Tab 1: Aporte a Grupos
@@ -551,9 +552,9 @@ class DialogoFichaCompletaInvestigador(QDialog):
         btn_exportar = QPushButton("Exportar tablas (CSV)", self)
         btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; border: 1px solid {PRIMARIO}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-weight: 600; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; border: 1px solid {PRIMARIO}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         btn_exportar.clicked.connect(lambda: self._exportar_csv(servicio, vista))
         fila_pie.addWidget(btn_exportar)
@@ -563,8 +564,8 @@ class DialogoFichaCompletaInvestigador(QDialog):
         btn_cerrar = QPushButton("Cerrar", self)
         btn_cerrar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cerrar.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; border: none; "
-            f"border-radius: {RADIO_BOTON}px; padding: 7px 22px; font-weight: bold; font-size: 10.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; border: none; "
+            f"border-radius: {RADIO_BOTON}px; padding: 7px 22px; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         btn_cerrar.clicked.connect(self.accept)
@@ -657,11 +658,11 @@ class PantallaInvestigadores(QWidget):
         layout.setSpacing(12)
 
         lbl_tit = QLabel("Investigadores", barra)
-        lbl_tit.setStyleSheet(f"font-size: 14pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         layout.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Directorio institucional clasificado según CvLAC y producción Minciencias", barra)
-        lbl_sub.setStyleSheet(f"font-size: 10pt; color: {TEXTO_SECUNDARIO};")
+        lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         layout.addWidget(lbl_sub)
 
         layout.addStretch(1)
@@ -672,19 +673,19 @@ class PantallaInvestigadores(QWidget):
         layout.addWidget(self._chip_ventana)
 
         # Menú Exportar
-        self._btn_exportar = QPushButton("Exportar ▾", barra)
+        self._btn_exportar = QPushButton("Exportar ", barra)
         self._btn_exportar.setObjectName("btnExportarInvestigadores")
         self._btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; border: 1px solid {LINEA}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 6px 14px; font-weight: 600; font-size: 10pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; border: 1px solid {LINEA}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 6px 14px; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         menu_exp = QMenu(self._btn_exportar)
         menu_exp.setStyleSheet(
-            f"QMenu {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 8px; padding: 4px; }}"
-            f"QMenu::item {{ padding: 6px 16px; font-size: 10.5pt; color: {TEXTO}; }}"
-            f"QMenu::item:selected {{ background-color: #F1F5F9; color: {PRIMARIO}; }}"
+            f"QMenu {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; padding: 4px; }}"
+            f"QMenu::item {{ padding: 6px 16px; font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO}; }}"
+            f"QMenu::item:selected {{ background-color: {estilo.FONDO_APP}; color: {PRIMARIO}; }}"
         )
         act_csv = menu_exp.addAction("Directorio actual (CSV)")
         act_csv.triggered.connect(self._al_exportar_directorio_csv)
@@ -707,7 +708,7 @@ class PantallaInvestigadores(QWidget):
         layout_f.setSpacing(10)
 
         # Campo de búsqueda
-        self.campo_busqueda = CampoBusqueda(placeholder="Buscar investigador…", parent=contenedor_filtros)
+        self.campo_busqueda = CampoBusqueda(placeholder="Buscar investigador", parent=contenedor_filtros)
         self.campo_busqueda.setMinimumWidth(220)
         self.campo_busqueda.texto_cambiado.connect(self._al_buscar_texto)
         layout_f.addWidget(self.campo_busqueda, 1)
@@ -744,8 +745,8 @@ class PantallaInvestigadores(QWidget):
         self.btn_nuevo = QPushButton("+ Nuevo investigador", contenedor_filtros)
         self.btn_nuevo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_nuevo.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: bold; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: 10.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: bold; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         self.btn_nuevo.clicked.connect(self._al_pulsar_nuevo)
@@ -793,7 +794,7 @@ class PantallaInvestigadores(QWidget):
     def _crear_ficha_lateral(self) -> FichaLateral:
         ficha = FichaLateral(diametro_avatar=96, parent=self)
 
-        # Cuadrícula 2×2 de Fichas KPI
+        # Cuadrícula 22 de Fichas KPI
         self.kpi_productos = FichaKPI("Productos", "0", "En ventana", parent=ficha)
         self.kpi_grupos = FichaKPI("Grupos", "0", "Membresías", parent=ficha)
         self.kpi_coautores = FichaKPI("Coautores", "0", "Red de coautoría", parent=ficha)
@@ -871,7 +872,7 @@ class PantallaInvestigadores(QWidget):
                 "codigo_rh": i.codigo_rh,
                 "nombre_completo": i.nombre_completo,
                 "categoria": i.categoria or "Sin categoría",
-                "formacion": i.formacion_academica or "—",
+                "formacion": i.formacion_academica or "",
                 "grupos": nom_grupos,
                 "productos": n_prod,
                 "activo": i.activo,

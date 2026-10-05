@@ -5,7 +5,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.3).
 - Directorio de Grupos:
   * Cabecera con búsqueda (Ctrl+F, debounce 250 ms), combos Categoría y Estado (Activos/Todos),
     y botón primario «+ Nuevo grupo».
-  * Tabla con filas de 48 px, hover #F3F7FB, selección #E3EEF7 con barra de acento de 3 px,
+  * Tabla con filas de 48 px, hover superficie de gr?fico, selección superficie seleccionada con barra de acento de 3 px,
     encabezado FICHA en 10 pt negrita, ordenación insensible a mayúsculas y numérica en métricas.
   * Columnas: Nombre (avatar 28 px + nombre), Código GrupLAC (enlace copiable con toast),
     Categoría (píldora), Líder, Integrantes (número alineado a la derecha),
@@ -60,6 +60,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.filtro_anios import ChipVentana
@@ -286,7 +287,7 @@ class DialogoConfirmarEliminar(QDialog):
         self.setWindowTitle(titulo)
         self.setModal(True)
         self.setFixedWidth(460)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
+        self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -296,11 +297,11 @@ class DialogoConfirmarEliminar(QDialog):
         fila_tit = QHBoxLayout()
         fila_tit.setSpacing(10)
         lbl_ico = QLabel("⚠️", self)
-        lbl_ico.setStyleSheet("font-size: 18pt;")
+        lbl_ico.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt;")
         fila_tit.addWidget(lbl_ico)
 
         lbl_tit = QLabel("¿Confirmar eliminación permanente?", self)
-        lbl_tit.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         fila_tit.addWidget(lbl_tit, 1)
         layout.addLayout(fila_tit)
 
@@ -316,11 +317,11 @@ class DialogoConfirmarEliminar(QDialog):
 
         lbl_cascada = QLabel(descripcion_cascada, cuadro_aviso)
         lbl_cascada.setWordWrap(True)
-        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: 10.5pt; font-weight: 500;")
+        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 500;")
         layout_aviso.addWidget(lbl_cascada)
 
         lbl_undo = QLabel("Nota: La operación se guardará en la pila de deshacer (Ctrl+Z).", cuadro_aviso)
-        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: 9pt;")
+        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {estilo.TAMANO_AUXILIAR}pt;")
         layout_aviso.addWidget(lbl_undo)
 
         layout.addWidget(cuadro_aviso)
@@ -333,9 +334,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_cancelar = QPushButton("Cancelar", self)
         btn_cancelar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancelar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; border: 1px solid {LINEA}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; border: 1px solid {LINEA}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         btn_cancelar.clicked.connect(self.reject)
         fila_btn.addWidget(btn_cancelar)
@@ -343,9 +344,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_eliminar = QPushButton("Eliminar permanentemente", self)
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_eliminar.setStyleSheet(
-            f"QPushButton {{ background-color: {ERROR}; color: #FFFFFF; border: none; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #7A1D1D; }}"
+            f"QPushButton {{ background-color: {ERROR}; color: {estilo.SUPERFICIE}; border: none; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.ERROR_HOVER}; }}"
         )
         btn_eliminar.clicked.connect(self.accept)
         fila_btn.addWidget(btn_eliminar)
@@ -371,7 +372,7 @@ class DialogoFichaCompletaGrupo(QDialog):
         self.setWindowTitle(f"Ficha Completa · {vista['nombre']} ({vista['codigo']})")
         self.setModal(True)
         self.resize(880, 600)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
+        self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -384,14 +385,14 @@ class DialogoFichaCompletaGrupo(QDialog):
         barra_acento = QFrame(self)
         barra_acento.setFixedWidth(3)
         barra_acento.setFixedHeight(36)
-        barra_acento.setStyleSheet(f"background-color: {COLOR_DTI}; border-radius: 1px;")
+        barra_acento.setStyleSheet(f"background-color: {COLOR_DTI}; border-radius: {estilo.ESPACIADO_4}px;")
         fila_cab.addWidget(barra_acento)
 
         col_tit = QVBoxLayout()
         col_tit.setSpacing(2)
 
         lbl_nom = QLabel(vista["nombre"], self)
-        lbl_nom.setStyleSheet(f"font-size: 15pt; font-weight: bold; color: {TEXTO};")
+        lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         col_tit.addWidget(lbl_nom)
 
         lbl_meta = QLabel(
@@ -399,7 +400,7 @@ class DialogoFichaCompletaGrupo(QDialog):
             f"Líder: {vista['lider']}  ·  Filtro: {vista['filtro']}",
             self,
         )
-        lbl_meta.setStyleSheet(f"font-size: 10.5pt; color: {TEXTO_SECUNDARIO};")
+        lbl_meta.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_meta)
         fila_cab.addLayout(col_tit)
         fila_cab.addStretch()
@@ -409,10 +410,10 @@ class DialogoFichaCompletaGrupo(QDialog):
         # Pestañas con tablas completas
         self.pestanas = QTabWidget(self)
         self.pestanas.setStyleSheet(
-            f"QTabWidget::pane {{ border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; background: #FFFFFF; }}"
-            f"QTabBar::tab {{ background: #F1F5F9; color: {TEXTO}; padding: 8px 16px; font-weight: 600; "
-            f"border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: 10.5pt; }}"
-            f"QTabBar::tab:selected {{ background: #FFFFFF; color: {PRIMARIO}; border: 1px solid {LINEA}; border-bottom: none; }}"
+            f"QTabWidget::pane {{ border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; background: {estilo.SUPERFICIE}; }}"
+            f"QTabBar::tab {{ background: {estilo.FONDO_APP}; color: {TEXTO}; padding: 8px 16px; font-weight: 600; "
+            f"border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 4px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QTabBar::tab:selected {{ background: {estilo.SUPERFICIE}; color: {PRIMARIO}; border: 1px solid {LINEA}; border-bottom: none; }}"
         )
 
         # Tab 1: Integrantes y coautores
@@ -436,9 +437,9 @@ class DialogoFichaCompletaGrupo(QDialog):
         btn_exportar = QPushButton("Exportar tablas (CSV)", self)
         btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; border: 1px solid {PRIMARIO}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-weight: 600; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; border: 1px solid {PRIMARIO}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         btn_exportar.clicked.connect(lambda: self._exportar_csv(servicio, vista))
         fila_pie.addWidget(btn_exportar)
@@ -448,8 +449,8 @@ class DialogoFichaCompletaGrupo(QDialog):
         btn_cerrar = QPushButton("Cerrar", self)
         btn_cerrar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cerrar.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; border: none; "
-            f"border-radius: {RADIO_BOTON}px; padding: 7px 22px; font-weight: bold; font-size: 10.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; border: none; "
+            f"border-radius: {RADIO_BOTON}px; padding: 7px 22px; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         btn_cerrar.clicked.connect(self.accept)
@@ -487,7 +488,7 @@ class FichaGrupo(FichaLateral):
         self.btn_detalles.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_detalles.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
-            f"font-weight: 600; font-size: 9.5pt; padding: 2px 8px; }}"
+            f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 2px 8px; }}"
             f"QPushButton:hover {{ text-decoration: underline; }}"
         )
         self.btn_detalles.clicked.connect(self._alternar_detalles)
@@ -496,7 +497,7 @@ class FichaGrupo(FichaLateral):
         # Panel desplegable de detalles
         self._panel_detalles = QFrame(self._contenedor_cabecera)
         self._panel_detalles.setStyleSheet(
-            f"QFrame {{ background-color: {FICHA}; border-radius: 8px; padding: 6px; }}"
+            f"QFrame {{ background-color: {FICHA}; border-radius: {estilo.RADIO_BOTON}px; padding: 6px; }}"
         )
         self._layout_detalles = QVBoxLayout(self._panel_detalles)
         self._layout_detalles.setContentsMargins(10, 6, 10, 6)
@@ -574,9 +575,9 @@ class FichaGrupo(FichaLateral):
             fila = QHBoxLayout()
             fila.setContentsMargins(0, 0, 0, 0)
             l1 = QLabel(k, self._panel_detalles)
-            l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+            l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
             l2 = QLabel(str(v), self._panel_detalles)
-            l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO};")
+            l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
             fila.addWidget(l1)
             fila.addWidget(l2)
             fila.addStretch()
@@ -684,11 +685,11 @@ class PantallaGrupos(QWidget):
         col_tit.setSpacing(2)
 
         lbl_tit = QLabel("Grupos de Investigación", barra)
-        lbl_tit.setStyleSheet(f"font-size: 16pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Directorio de grupos clasificados según Scienti / GrupLAC", barra)
-        lbl_sub.setStyleSheet(f"font-size: 9.5pt; color: {TEXTO_SECUNDARIO};")
+        lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
         layout.addLayout(col_tit)
 
@@ -704,9 +705,9 @@ class PantallaGrupos(QWidget):
         self.btn_exportar = QPushButton("Exportar ▾", barra)
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; font-weight: 600; "
-            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: 10pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
+            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
@@ -757,8 +758,8 @@ class PantallaGrupos(QWidget):
         self.btn_nuevo = QPushButton("+ Nuevo grupo", contenedor_filtros)
         self.btn_nuevo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_nuevo.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: bold; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: 10.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: bold; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         self.btn_nuevo.clicked.connect(self._al_pulsar_nuevo)

@@ -7,7 +7,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.4).
   * Cabecera con búsqueda («Buscar por título, código o autor…», Ctrl+F, debounce 250 ms),
     combos Tipología (GNC, DTI, ASC, FRH), Validación (Avalado, Con soporte, No avalado)
     y Estado (Activos/Todos), y botón primario «+ Nuevo producto».
-  * Tabla con filas de 48 px, hover #F3F7FB, selección #E3EEF7 con barra de acento de 3 px,
+  * Tabla con filas de 48 px, hover superficie de gr?fico, selección superficie seleccionada con barra de acento de 3 px,
     encabezado FICHA en 10 pt negrita, ordenación insensible a mayúsculas y numérica en años.
   * Columnas: Código (enlace copiable con toast), Título (hasta 2 líneas con elipsis),
     Tipología (píldora con color de dato), Subtipo, Año (número centrado),
@@ -56,6 +56,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.ficha_lateral import FichaLateral
@@ -297,7 +298,7 @@ class DialogoConfirmarEliminar(QDialog):
         self.setWindowTitle(titulo)
         self.setModal(True)
         self.setFixedWidth(460)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
+        self.setStyleSheet(f"QDialog {{ background-color: {estilo.SUPERFICIE}; }}")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -307,11 +308,11 @@ class DialogoConfirmarEliminar(QDialog):
         fila_tit = QHBoxLayout()
         fila_tit.setSpacing(10)
         lbl_ico = QLabel("⚠️", self)
-        lbl_ico.setStyleSheet("font-size: 18pt;")
+        lbl_ico.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt;")
         fila_tit.addWidget(lbl_ico)
 
         lbl_tit = QLabel("¿Confirmar eliminación permanente?", self)
-        lbl_tit.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         fila_tit.addWidget(lbl_tit, 1)
         layout.addLayout(fila_tit)
 
@@ -327,11 +328,11 @@ class DialogoConfirmarEliminar(QDialog):
 
         lbl_cascada = QLabel(descripcion_cascada, cuadro_aviso)
         lbl_cascada.setWordWrap(True)
-        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: 10.5pt; font-weight: 500;")
+        lbl_cascada.setStyleSheet(f"color: {AVISO}; font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 500;")
         layout_aviso.addWidget(lbl_cascada)
 
         lbl_undo = QLabel("Nota: La operación se guardará en la pila de deshacer (Ctrl+Z).", cuadro_aviso)
-        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: 9pt;")
+        lbl_undo.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {estilo.TAMANO_AUXILIAR}pt;")
         layout_aviso.addWidget(lbl_undo)
 
         layout.addWidget(cuadro_aviso)
@@ -344,9 +345,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_cancelar = QPushButton("Cancelar", self)
         btn_cancelar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancelar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; border: 1px solid {LINEA}; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; border: 1px solid {LINEA}; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         btn_cancelar.clicked.connect(self.reject)
         fila_btn.addWidget(btn_cancelar)
@@ -354,9 +355,9 @@ class DialogoConfirmarEliminar(QDialog):
         btn_eliminar = QPushButton("Eliminar permanentemente", self)
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_eliminar.setStyleSheet(
-            f"QPushButton {{ background-color: {ERROR}; color: #FFFFFF; border: none; "
-            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: 10.5pt; }}"
-            f"QPushButton:hover {{ background-color: #7A1D1D; }}"
+            f"QPushButton {{ background-color: {ERROR}; color: {estilo.SUPERFICIE}; border: none; "
+            f"border-radius: {RADIO_BOTON}px; padding: 8px 18px; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.ERROR_HOVER}; }}"
         )
         btn_eliminar.clicked.connect(self.accept)
         fila_btn.addWidget(btn_eliminar)
@@ -386,7 +387,7 @@ class FichaProducto(FichaLateral):
 
         # Configurar nombre a alineación izquierda y tamaño adaptable
         self._lbl_nombre.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self._lbl_nombre.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {TEXTO};")
+        self._lbl_nombre.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
 
         self._lbl_subtitulo.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
@@ -401,7 +402,7 @@ class FichaProducto(FichaLateral):
         # 1. Metadatos generales (Año, Grupo, Subtipo)
         self._cuadro_meta = QFrame(self._cuerpo)
         self._cuadro_meta.setStyleSheet(
-            f"QFrame {{ background-color: {FICHA}; border-radius: 8px; padding: 6px; }}"
+            f"QFrame {{ background-color: {FICHA}; border-radius: {estilo.RADIO_BOTON}px; padding: 6px; }}"
         )
         self._layout_meta = QVBoxLayout(self._cuadro_meta)
         self._layout_meta.setContentsMargins(10, 8, 10, 8)
@@ -416,7 +417,7 @@ class FichaProducto(FichaLateral):
 
         self.lbl_insignia_ventana = QLabel("✔ Dentro de la ventana del Modelo 2024", self.insignia_ventana)
         self.lbl_insignia_ventana.setWordWrap(True)
-        self.lbl_insignia_ventana.setStyleSheet("font-weight: 600; font-size: 9.5pt;")
+        self.lbl_insignia_ventana.setStyleSheet(f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
         layout_ins.addWidget(self.lbl_insignia_ventana)
 
         self.agregar_contenido(self.insignia_ventana)
@@ -428,7 +429,7 @@ class FichaProducto(FichaLateral):
         self._layout_autores.setSpacing(6)
 
         lbl_tit_autores = QLabel("Autores y colaboradores vinculados", self._contenedor_autores)
-        lbl_tit_autores.setStyleSheet(f"font-size: 10.5pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit_autores.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         self._layout_autores.addWidget(lbl_tit_autores)
 
         self._caja_lista_autores = QVBoxLayout()
@@ -497,9 +498,9 @@ class FichaProducto(FichaLateral):
             fila = QHBoxLayout()
             fila.setContentsMargins(0, 0, 0, 0)
             l1 = QLabel(k, self._cuadro_meta)
-            l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+            l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
             l2 = QLabel(v, self._cuadro_meta)
-            l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO};")
+            l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
             fila.addWidget(l1)
             fila.addWidget(l2)
             fila.addStretch()
@@ -508,21 +509,21 @@ class FichaProducto(FichaLateral):
         # Insignia de la ventana del Modelo 2024
         if en_ventana:
             self.insignia_ventana.setStyleSheet(
-                f"QFrame {{ background-color: {EXITO_FONDO}; border: 1px solid #A5D6A7; "
-                f"border-radius: 8px; }}"
+                f"QFrame {{ background-color: {EXITO_FONDO}; border: 1px solid {estilo.EXITO_BORDE_SUAVE}; "
+                f"border-radius: {estilo.RADIO_BOTON}px; }}"
             )
             self.lbl_insignia_ventana.setText("✔ Dentro de la ventana del Modelo 2024")
-            self.lbl_insignia_ventana.setStyleSheet(f"color: {EXITO}; font-weight: 600; font-size: 9.5pt;")
+            self.lbl_insignia_ventana.setStyleSheet(f"color: {EXITO}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
             self.insignia_ventana.setToolTip(
                 "Cumple con la ventana de observación del Modelo Minciencias 2024\n"
                 "(5 años para artículos, software, ASC y FRH; 10 años para libros y patentes)."
             )
         else:
             self.insignia_ventana.setStyleSheet(
-                "QFrame { background-color: #FFEBEE; border: 1px solid #FFCDD2; border-radius: 8px; }"
+                f"QFrame {{ background-color: {estilo.ERROR_FONDO}; border: 1px solid {estilo.ERROR_DESHABILITADO}; border-radius: {estilo.RADIO_BOTON}px; }}"
             )
             self.lbl_insignia_ventana.setText("✖ Fuera de la ventana del Modelo 2024")
-            self.lbl_insignia_ventana.setStyleSheet(f"color: {ERROR}; font-weight: 600; font-size: 9.5pt;")
+            self.lbl_insignia_ventana.setStyleSheet(f"color: {ERROR}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
             self.insignia_ventana.setToolTip(
                 "No se encuentra dentro de la ventana de observación del Modelo Minciencias 2024\n"
                 "(5 años para artículos, software, ASC y FRH; 10 años para libros y patentes)."
@@ -553,8 +554,8 @@ class FichaProducto(FichaLateral):
                 fila_aut = QFrame(self._contenedor_autores)
                 fila_aut.setCursor(Qt.CursorShape.PointingHandCursor)
                 fila_aut.setStyleSheet(
-                    "QFrame { background: transparent; border-radius: 6px; padding: 2px 4px; }"
-                    "QFrame:hover { background-color: #F1F5F9; }"
+                    "QFrame { background: transparent; border-radius: {estilo.RADIO_BOTON}px; padding: 2px 4px; }"
+                    "QFrame:hover { background-color: {estilo.FONDO_APP}; }"
                 )
                 lay_aut = QHBoxLayout(fila_aut)
                 lay_aut.setContentsMargins(4, 2, 4, 2)
@@ -564,7 +565,7 @@ class FichaProducto(FichaLateral):
                 lay_aut.addWidget(av_aut)
 
                 lbl_aut = QLabel(nombre_aut, fila_aut)
-                lbl_aut.setStyleSheet(f"font-size: 9.5pt; font-weight: 600; color: {COLOR_DTI};")
+                lbl_aut.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {COLOR_DTI};")
                 lbl_aut.setWordWrap(True)
                 lay_aut.addWidget(lbl_aut, 1)
 
@@ -577,7 +578,7 @@ class FichaProducto(FichaLateral):
                 self._caja_lista_autores.addWidget(fila_aut)
         else:
             lbl_sin = QLabel("Sin autores registrados para este producto", self._contenedor_autores)
-            lbl_sin.setStyleSheet(f"font-size: 9pt; color: {TEXTO_SECUNDARIO}; padding: 4px;")
+            lbl_sin.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; padding: 4px;")
             self._caja_lista_autores.addWidget(lbl_sin)
 
         # Estado del botón Activar / Desactivar
@@ -659,11 +660,11 @@ class PantallaProductos(QWidget):
         col_tit.setSpacing(2)
 
         lbl_tit = QLabel("Catálogo de Productos", barra)
-        lbl_tit.setStyleSheet(f"font-size: 16pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Producción científica clasificada en las 4 tipologías del Modelo Minciencias", barra)
-        lbl_sub.setStyleSheet(f"font-size: 9.5pt; color: {TEXTO_SECUNDARIO};")
+        lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
         layout.addLayout(col_tit)
 
@@ -679,9 +680,9 @@ class PantallaProductos(QWidget):
         self.btn_exportar = QPushButton("Exportar ▾", barra)
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; font-weight: 600; "
-            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: 10pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
+            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
@@ -744,8 +745,8 @@ class PantallaProductos(QWidget):
         self.btn_nuevo = QPushButton("+ Nuevo producto", contenedor_filtros)
         self.btn_nuevo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_nuevo.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: bold; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: 10.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: bold; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         self.btn_nuevo.clicked.connect(self._al_pulsar_nuevo)
