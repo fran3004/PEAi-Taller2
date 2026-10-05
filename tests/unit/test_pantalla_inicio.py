@@ -150,10 +150,10 @@ def test_pantalla_inicio_estado_vacio(
 def test_pantalla_inicio_responsividad_rejilla(
     qapp: QApplication, servicio_con_datos: ServicioAplicacion
 ) -> None:
-    """Verifica la conmutación entre 4 columnas (>=1360 px) y 2x2 (<1360 px)."""
+    """Verifica la conmutación entre 4 columnas (>=1500 px) y 2x2 (<1500 px)."""
     pantalla = PantallaInicio(servicio=servicio_con_datos)
 
-    # ≥ 1360 px
+    # ≥ 1500 px
     pantalla.resize(QSize(1600, 900))
     pantalla._reorganizar_rejilla(1600)
     assert pantalla._es_cuatro_columnas is True
@@ -162,3 +162,30 @@ def test_pantalla_inicio_responsividad_rejilla(
     pantalla.resize(QSize(1100, 700))
     pantalla._reorganizar_rejilla(1100)
     assert pantalla._es_cuatro_columnas is False
+
+
+@pytest.mark.parametrize(
+    ("ancho", "alto", "cuatro_columnas", "minimo_combo"),
+    [
+        (1100, 700, False, 200),
+        (1366, 768, False, 280),
+        (1920, 1080, True, 280),
+    ],
+)
+def test_pantalla_inicio_sin_desborde_horizontal(
+    qapp: QApplication,
+    servicio_con_datos: ServicioAplicacion,
+    ancho: int,
+    alto: int,
+    cuatro_columnas: bool,
+    minimo_combo: int,
+) -> None:
+    """Comprueba que Inicio conserva su rejilla sin barra horizontal."""
+    pantalla = PantallaInicio(servicio=servicio_con_datos)
+    pantalla.resize(QSize(ancho, alto))
+    pantalla.show()
+    qapp.processEvents()
+
+    assert not pantalla._scroll_contenido.horizontalScrollBar().isVisible()
+    assert pantalla._es_cuatro_columnas is cuatro_columnas
+    assert pantalla._combo_grupos.minimumWidth() == minimo_combo

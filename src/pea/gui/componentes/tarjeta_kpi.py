@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from pea.gui.componentes.graficos.minigrafico import Minigrafico
 from pea.gui.estilo import (
@@ -30,6 +30,8 @@ class FichaKPI(QFrame):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("fichaKPI")
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(
             f"QFrame#fichaKPI {{ background-color: {FICHA}; border-radius: {RADIO_FICHA_KPI}px; border: none; }}"
@@ -42,6 +44,8 @@ class FichaKPI(QFrame):
 
         # Rótulo auxiliar superior (10 pt)
         self.lbl_titulo = QLabel(titulo, self)
+        self.lbl_titulo.setMinimumWidth(0)
+        self.lbl_titulo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.lbl_titulo.setObjectName("tarjetaTitulo")
         self.lbl_titulo.setStyleSheet(
             f"font-size: {TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO_SECUNDARIO};"
@@ -54,6 +58,8 @@ class FichaKPI(QFrame):
         fila_valor.setSpacing(8)
 
         self.lbl_valor = QLabel(str(valor_inicial), self)
+        self.lbl_valor.setMinimumWidth(0)
+        self.lbl_valor.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.lbl_valor.setObjectName("tarjetaValor")
         self.lbl_valor.setStyleSheet(
             f"font-size: {TAMANO_KPI}pt; font-weight: bold; color: {PRIMARIO};"
@@ -70,6 +76,8 @@ class FichaKPI(QFrame):
 
         # Subtítulo explicativo inferior
         self.lbl_subtitulo = QLabel(subtitulo, self)
+        self.lbl_subtitulo.setMinimumWidth(0)
+        self.lbl_subtitulo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.lbl_subtitulo.setObjectName("tarjetaSub")
         self.lbl_subtitulo.setStyleSheet(
             f"font-size: {TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};"

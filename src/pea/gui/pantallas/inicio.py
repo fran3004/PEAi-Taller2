@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -90,6 +91,8 @@ class FilaRanking(QFrame):
     ) -> None:
         super().__init__(parent)
         self.setFixedHeight(48)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setStyleSheet(
             f"QFrame {{ background-color: transparent; border-bottom: 1px solid {LINEA}; }}"
         )
@@ -115,12 +118,16 @@ class FilaRanking(QFrame):
         col_centro.setSpacing(3)
 
         lbl_tit = QLabel(titulo, self)
+        lbl_tit.setMinimumWidth(0)
+        lbl_tit.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
         lbl_tit.setWordWrap(False)
         col_centro.addWidget(lbl_tit)
 
         if subtitulo:
             lbl_sub = QLabel(subtitulo, self)
+            lbl_sub.setMinimumWidth(0)
+            lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             col_centro.addWidget(lbl_sub)
         else:
@@ -145,6 +152,8 @@ class FilaRanking(QFrame):
 
         # Valor numérico a la derecha
         lbl_val = QLabel(f"{formatear_entero(valor)} {etiqueta_valor}", self)
+        lbl_val.setMinimumWidth(0)
+        lbl_val.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_val.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {PRIMARIO};")
         lbl_val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(lbl_val)
@@ -202,6 +211,7 @@ class PantallaInicio(QWidget):
         # Estado 1: Contenido con desplazamiento
         self._scroll_contenido = QScrollArea(self)
         self._scroll_contenido.setWidgetResizable(True)
+        self._scroll_contenido.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll_contenido.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll_contenido.setStyleSheet(
             "QScrollArea { background-color: transparent; border: none; }"
@@ -209,6 +219,8 @@ class PantallaInicio(QWidget):
         )
 
         self._widget_rejilla = QWidget(self._scroll_contenido)
+        self._widget_rejilla.setMinimumWidth(0)
+        self._widget_rejilla.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._widget_rejilla.setStyleSheet("background-color: transparent;")
         self._layout_rejilla = QGridLayout(self._widget_rejilla)
         self._layout_rejilla.setContentsMargins(0, 0, 0, 0)
@@ -264,7 +276,8 @@ class PantallaInicio(QWidget):
         # Combo selector de grupo (oculto en modo institución)
         self._combo_grupos = QComboBox(barra)
         self._combo_grupos.setObjectName("comboGruposInicio")
-        self._combo_grupos.setMinimumWidth(280)
+        self._combo_grupos.setMinimumWidth(200)
+        self._combo_grupos.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._combo_grupos.setVisible(False)
         self._combo_grupos.currentIndexChanged.connect(self._al_cambiar_grupo_combo)
         layout.addWidget(self._combo_grupos)
@@ -482,7 +495,7 @@ class PantallaInicio(QWidget):
     # -----------------------------------------------------------------------
 
     def _reorganizar_rejilla(self, ancho: int) -> None:
-        es_cuatro_columnas = ancho >= 1360
+        es_cuatro_columnas = ancho >= 1500
         if self._es_cuatro_columnas == es_cuatro_columnas:
             return
         self._es_cuatro_columnas = es_cuatro_columnas
@@ -530,6 +543,7 @@ class PantallaInicio(QWidget):
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self._reorganizar_rejilla(self.width())
+        self._combo_grupos.setMinimumWidth(200 if self.width() < 1240 else 280)
 
     # -----------------------------------------------------------------------
     # Refresco y Carga de Datos

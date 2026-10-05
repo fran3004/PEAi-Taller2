@@ -28,7 +28,7 @@ from PySide6.QtGui import (
     QPaintEvent,
     QPen,
 )
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from pea.gui import estilo
 from pea.gui.componentes.animacion import animaciones_habilitadas
@@ -62,7 +62,8 @@ class GraficoBase(QWidget):
         self._tooltip_visible: bool = False
 
         self.setMouseTracking(True)
-        self.setMinimumSize(QSize(280, 200))
+        self.setMinimumSize(QSize(0, 0))
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
 
     def esta_vacio(self) -> bool:
         """Indica si el gráfico no contiene datos para renderizar."""

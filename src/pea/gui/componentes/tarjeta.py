@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -37,6 +38,11 @@ class Tarjeta(QFrame):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("tarjeta")
+        self.setMinimumWidth(0)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Expanding,
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self._titulo = titulo
