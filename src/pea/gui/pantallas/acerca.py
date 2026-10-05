@@ -76,6 +76,8 @@ class PantallaAcerca(QWidget):
         area_desplazable = QScrollArea(self)
         area_desplazable.setWidgetResizable(True)
         area_desplazable.setFrameShape(QFrame.Shape.NoFrame)
+        area_desplazable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.area_desplazable = area_desplazable
 
         contenedor = QWidget()
         layout = QVBoxLayout(contenedor)
@@ -150,6 +152,7 @@ class PantallaAcerca(QWidget):
         disp_textos_upc.setSpacing(4)
 
         lbl_upc = QLabel("UNIVERSIDAD POPULAR DEL CESAR", tarjeta_institucional)
+        self.lbl_institucion = lbl_upc
         lbl_upc.setStyleSheet(
             f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: 800; color: {TEXTO_SOBRE_OSCURO}; letter-spacing: 0.5px;"
         )
@@ -181,10 +184,12 @@ class PantallaAcerca(QWidget):
         # -------------------------------------------------------------------
         self.tarjeta_software = Tarjeta(titulo="Software PEA-i", parent=contenedor)
         lbl_titulo_soft = QLabel(f"{NOMBRE_COMPLETO} (v{APP_VERSION})", self.tarjeta_software)
+        self.lbl_nombre_version = lbl_titulo_soft
         lbl_titulo_soft.setStyleSheet(f"font-size: {estilo.TAMANO_SUBTITULO}pt; font-weight: bold; color: {PRIMARIO};")
         self.tarjeta_software.agregar_widget(lbl_titulo_soft)
 
         lbl_eslogan = QLabel(f"{ESLOGAN_LINEA_1} — {ESLOGAN_LINEA_2}", self.tarjeta_software)
+        self.lbl_proposito = lbl_eslogan
         lbl_eslogan.setStyleSheet(f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         lbl_eslogan.setWordWrap(True)
         self.tarjeta_software.agregar_widget(lbl_eslogan)

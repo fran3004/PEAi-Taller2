@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFontMetrics, QResizeEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -70,6 +71,7 @@ class ZonaSoltarArchivo(QFrame):
         self._filtro = filtro
         self._placeholder = placeholder
         self._ruta_archivo: str = ""
+        self._nombre_archivo: str = ""
 
         self._construir_ui()
         self._establecer_estilo(arrastrando=False)
@@ -173,8 +175,9 @@ class ZonaSoltarArchivo(QFrame):
     def establecer_ruta(self, ruta: str) -> None:
         self._ruta_archivo = ruta.strip()
         if self._ruta_archivo:
-            nombre = Path(self._ruta_archivo).name
-            self._lbl_principal.setText(nombre)
+            self._nombre_archivo = Path(self._ruta_archivo).name
+            self._actualizar_nombre_visible()
+            self._lbl_principal.setToolTip(self._nombre_archivo)
             self._lbl_principal.setStyleSheet(
                 f"font-size: {TAMANO_CUERPO}pt; font-weight: bold; color: {PRIMARIO};"
             )
@@ -188,12 +191,30 @@ class ZonaSoltarArchivo(QFrame):
 
     def limpiar(self) -> None:
         self._ruta_archivo = ""
+        self._nombre_archivo = ""
         self._lbl_principal.setText(self._placeholder)
+        self._lbl_principal.setToolTip("")
         self._lbl_principal.setStyleSheet(
             f"font-size: {TAMANO_CUERPO}pt; font-weight: 500; color: {TEXTO};"
         )
         self.btn_limpiar.setVisible(False)
         self.archivo_seleccionado.emit("")
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._actualizar_nombre_visible()
+
+    def _actualizar_nombre_visible(self) -> None:
+        if not self._nombre_archivo:
+            return
+        ancho = max(0, self._lbl_principal.width())
+        self._lbl_principal.setText(
+            QFontMetrics(self._lbl_principal.font()).elidedText(
+                self._nombre_archivo,
+                Qt.TextElideMode.ElideMiddle,
+                ancho,
+            )
+        )
 
 
 class PantallaImportar(QWidget):
@@ -218,7 +239,12 @@ class PantallaImportar(QWidget):
         self.refrescar()
 
     def _construir_ui(self) -> None:
-        layout_principal = QVBoxLayout(self)
+        area_desplazable = QScrollArea(self)
+        area_desplazable.setWidgetResizable(True)
+        area_desplazable.setFrameShape(QFrame.Shape.NoFrame)
+        area_desplazable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        contenedor = QWidget()
+        layout_principal = QVBoxLayout(contenedor)
         layout_principal.setContentsMargins(24, 20, 24, 20)
         layout_principal.setSpacing(18)
 
@@ -229,7 +255,7 @@ class PantallaImportar(QWidget):
         caja_titulo.setContentsMargins(0, 0, 0, 0)
         caja_titulo.setSpacing(4)
 
-        lbl_titulo = QLabel("Importación e Ingesta de Fuentes", self)
+        lbl_titulo = QLabel("Importación e Ingesta de Fuentes", contenedor)
         lbl_titulo.setObjectName("tituloPantalla")
         lbl_titulo.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {TEXTO};")
         caja_titulo.addWidget(lbl_titulo)
@@ -406,6 +432,8 @@ class PantallaImportar(QWidget):
 
         self.tarjeta_cola.agregar_widget(self.tabla_cola)
         layout_principal.addWidget(self.tarjeta_cola, 1)
+        area_desplazable.setWidget(contenedor)
+        QVBoxLayout(self).addWidget(area_desplazable)
 
     # -----------------------------------------------------------------------
     # Métodos de Encolamiento

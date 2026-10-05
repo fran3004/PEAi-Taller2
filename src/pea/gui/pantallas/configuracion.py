@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QStackedWidget,
     QVBoxLayout,
@@ -217,19 +218,23 @@ class PantallaConfiguracion(QWidget):
         cfg = self.servicio.configuracion_entorno()
 
         self.txt_url = QLineEdit(cfg.get("url", ""), self.tarjeta_form)
+        self.txt_url.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_url.setPlaceholderText("https://xxxxxxxxxxxx.supabase.co")
         layout_form.addRow("URL de Supabase (HTTPS):", self.txt_url)
 
         self.txt_clave = QLineEdit(cfg.get("clave_publicable", ""), self.tarjeta_form)
+        self.txt_clave.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_clave.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_clave.setPlaceholderText("Clave publicable (sb_publishable_... o anon JWT)")
         layout_form.addRow("Clave publicable:", self.txt_clave)
 
         self.txt_correo = QLineEdit(cfg.get("correo", ""), self.tarjeta_form)
+        self.txt_correo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_correo.setPlaceholderText("usuario@unicesar.edu.co (opcional para Auth)")
         layout_form.addRow("Correo de usuario:", self.txt_correo)
 
         self.txt_pass = QLineEdit(self.tarjeta_form)
+        self.txt_pass.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_pass.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_pass.setPlaceholderText("Contraseña del usuario")
         layout_form.addRow("Contraseña:", self.txt_pass)
@@ -328,6 +333,8 @@ class PantallaConfiguracion(QWidget):
 
         # Splitter vertical: Tabla de pasos arriba, Visores monoespaciados abajo
         splitter = QSplitter(Qt.Orientation.Vertical, contenedor)
+        splitter.setObjectName("splitterVerificacion")
+        splitter.setChildrenCollapsible(False)
 
         # 1. Tabla de Pasos
         self.tabla_pasos = TablaEstilizada(splitter)
@@ -399,6 +406,8 @@ class PantallaConfiguracion(QWidget):
         splitter.addWidget(frame_visores)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
+        splitter.setSizes([220, 260])
+        self.splitter_verificacion = splitter
 
         layout.addWidget(splitter, 1)
 
