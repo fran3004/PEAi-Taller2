@@ -17,6 +17,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.estilo import COLOR_DTI, LINEA_FUERTE
 
 
@@ -102,7 +103,7 @@ class Minigrafico(QWidget):
         # 3. Punto destacado en el último valor
         ultimo = puntos[-1]
         painter.setBrush(QBrush(QColor(self._color_linea)))
-        painter.setPen(QPen(QColor("#FFFFFF"), 1.0))
+        painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.0))
         painter.drawEllipse(QRectF(ultimo.x() - 2.5, ultimo.y() - 2.5, 5.0, 5.0))
 
         painter.end()

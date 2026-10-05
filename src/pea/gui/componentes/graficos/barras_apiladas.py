@@ -3,10 +3,10 @@
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 9.1).
 - Datos: dict[int, dict[str, int]] (año -> tipología -> cantidad).
 - Apilado de abajo hacia arriba: GNC, DTI, ASC, FRH.
-- Eje Y con líneas punteadas #E2E8F0 y escala redondeada.
+- Eje Y con líneas punteadas {estilo.SUPERFICIE_GRAFICO_GUIA} y escala redondeada.
 - Esquinas superiores redondeadas (4 px) solo en el segmento más alto.
 - Leyenda inferior interactiva con clic para atenuar/restaurar series.
-- Tooltip oscuro institucional (#0A2045, radio 8, texto blanco).
+- Tooltip oscuro institucional ({estilo.ENCABEZADO_INICIO}, radio 8, texto blanco).
 - Alternancia con tabla accesible mediante botón «Ver como tabla».
 """
 
@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.estilo import (
     COLOR_ASC,
@@ -209,7 +210,7 @@ class _LienzoBarrasApiladas(GraficoBase):
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
         # Fondo blanco limpio
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
 
         alto_encabezado = self.dibujar_encabezado(painter, rect)
         margen = 16.0
@@ -243,10 +244,10 @@ class _LienzoBarrasApiladas(GraficoBase):
         lineas_y = 4
         paso_y_val = max_redondo / lineas_y
         fuente_eje = QFont()
-        fuente_eje.setPointSize(10)
+        fuente_eje.setPointSize(estilo.TAMANO_AUXILIAR)
         painter.setFont(fuente_eje)
 
-        pen_guia = QPen(QColor("#E2E8F0"), 1, Qt.PenStyle.DashLine)
+        pen_guia = QPen(QColor(estilo.SUPERFICIE_GRAFICO_GUIA), 1, Qt.PenStyle.DashLine)
         pen_eje = QPen(QColor(LINEA), 1)
 
         for i in range(lineas_y + 1):
@@ -268,11 +269,11 @@ class _LienzoBarrasApiladas(GraficoBase):
 
         self._rects_columnas = []
         fuente_total = QFont()
-        fuente_total.setPointSize(10)
+        fuente_total.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_total.setBold(True)
 
         fuente_anio = QFont()
-        fuente_anio.setPointSize(10)
+        fuente_anio.setPointSize(estilo.TAMANO_AUXILIAR)
 
         for i, anio in enumerate(anios):
             x_centro = area_grafico.left() + (i + 0.5) * paso_col
@@ -309,7 +310,7 @@ class _LienzoBarrasApiladas(GraficoBase):
                     color_base.setAlpha(45)
 
                 painter.setBrush(QBrush(color_base))
-                painter.setPen(QPen(QColor("#FFFFFF"), 1.5))
+                painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.5))
 
                 if tipo == tipo_mas_alto and alto_seg >= 4.0:
                     # Esquinas superiores redondeadas (radio 4 px)
@@ -361,7 +362,7 @@ class _LienzoBarrasApiladas(GraficoBase):
         """Dibuja la leyenda inferior en dos columnas con indicadores de atenuación."""
         self._rect_leyenda_items = []
         fuente_ley = QFont()
-        fuente_ley.setPointSize(10)
+        fuente_ley.setPointSize(estilo.TAMANO_AUXILIAR)
         painter.setFont(fuente_ley)
 
         # Disponer en 2 columnas equilibradas
@@ -389,7 +390,7 @@ class _LienzoBarrasApiladas(GraficoBase):
                     color_cuadro.setAlpha(60)
 
                 painter.setBrush(QBrush(color_cuadro))
-                painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "#FFFFFF"), 1))
+                painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
                 painter.drawRoundedRect(QRectF(x_col, y_item + 2.0, 11.0, 11.0), 3.0, 3.0)
 
                 # Texto
@@ -425,7 +426,7 @@ class GraficoBarrasApiladas(QWidget):
         barra_controles.setContentsMargins(12, 8, 12, 0)
 
         self._lbl_titulo = QLabel(titulo)
-        self._lbl_titulo.setStyleSheet("font-size: 13pt; font-weight: bold; color: #102B44;")
+        self._lbl_titulo.setStyleSheet("font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {estilo.TEXTO};")
         barra_controles.addWidget(self._lbl_titulo)
         barra_controles.addStretch()
 
@@ -434,9 +435,9 @@ class GraficoBarrasApiladas(QWidget):
         self._btn_alternar.setAccessibleName("Alternar entre visualización gráfica y tabla de datos")
         self._btn_alternar.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_alternar.setStyleSheet(
-            "QPushButton { font-size: 10pt; font-weight: 600; padding: 4px 10px; "
-            "border: 1px solid #D9E1EA; border-radius: 6px; background-color: #FFFFFF; color: #0E3A5C; }"
-            "QPushButton:hover { background-color: #F1F5F9; border-color: #35B6E8; }"
+            "QPushButton { font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; padding: 4px 10px; "
+            "border: 1px solid {estilo.LINEA}; border-radius: 6px; background-color: {estilo.SUPERFICIE}; color: {estilo.PRIMARIO}; }"
+            "QPushButton:hover { background-color: {estilo.FONDO_APP}; border-color: {estilo.ACENTO}; }"
         )
         self._btn_alternar.clicked.connect(self.alternar_vista_tabla)
         barra_controles.addWidget(self._btn_alternar)

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.pildora import Pildora
 from pea.gui.estilo import (
@@ -55,7 +56,7 @@ class FichaLateral(QFrame):
 
         self.setStyleSheet(
             f"QFrame#fichaLateral {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {RADIO_TARJETA}px;"
             f"}}"
@@ -94,14 +95,14 @@ class FichaLateral(QFrame):
         self._lbl_nombre.setObjectName("fichaLateralNombre")
         self._lbl_nombre.setWordWrap(True)
         self._lbl_nombre.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._lbl_nombre.setStyleSheet(f"font-size: 15pt; font-weight: bold; color: {TEXTO};")
+        self._lbl_nombre.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         layout_cab.addWidget(self._lbl_nombre)
 
         self._lbl_subtitulo = QLabel("", self._contenedor_cabecera)
         self._lbl_subtitulo.setObjectName("fichaLateralSubtitulo")
         self._lbl_subtitulo.setWordWrap(True)
         self._lbl_subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._lbl_subtitulo.setStyleSheet(f"font-size: 11pt; color: {TEXTO_SECUNDARIO};")
+        self._lbl_subtitulo.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         layout_cab.addWidget(self._lbl_subtitulo)
 
         self._contenedor_pildoras = QWidget(self._contenedor_cabecera)
@@ -147,7 +148,7 @@ class FichaLateral(QFrame):
         self.btn_editar.setStyleSheet(
             f"QPushButton {{ background-color: {FICHA}; color: {TEXTO}; font-weight: 600; "
             f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-            f"QPushButton:hover {{ background-color: #DDE5F0; }}"
+            f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_SUAVE}; }}"
         )
         self.btn_editar.clicked.connect(self.editar_solicitado.emit)
         fila_btn_primarios.addWidget(self.btn_editar)
@@ -158,7 +159,7 @@ class FichaLateral(QFrame):
         self.btn_estado.setStyleSheet(
             f"QPushButton {{ background-color: {FICHA}; color: {TEXTO}; font-weight: 600; "
             f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-            f"QPushButton:hover {{ background-color: #DDE5F0; }}"
+            f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_SUAVE}; }}"
         )
         self.btn_estado.clicked.connect(self.cambiar_estado_solicitado.emit)
         fila_btn_primarios.addWidget(self.btn_estado)
@@ -167,9 +168,9 @@ class FichaLateral(QFrame):
         self.btn_eliminar.setAccessibleName("Eliminar entidad permanentemente")
         self.btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_eliminar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFF0F0; color: {ERROR}; font-weight: 600; "
-            f"border: 1px solid #F5C6C6; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-            f"QPushButton:hover {{ background-color: #FDE8E8; border-color: {ERROR}; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE_ERROR}; color: {ERROR}; font-weight: 600; "
+            f"border: 1px solid {estilo.BORDE_ERROR_SUAVE}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
+            f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_ERROR}; border-color: {ERROR}; }}"
         )
         self.btn_eliminar.clicked.connect(self.eliminar_solicitado.emit)
         fila_btn_primarios.addWidget(self.btn_eliminar)
@@ -181,9 +182,9 @@ class FichaLateral(QFrame):
         self.btn_ver_completa.setAccessibleName("Abrir diálogo con todos los datos y pestañas")
         self.btn_ver_completa.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ver_completa.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; font-weight: 600; "
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
             f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_ver_completa.clicked.connect(self.ver_completa_solicitado.emit)
         self._layout_acciones.addWidget(self.btn_ver_completa)
@@ -195,7 +196,7 @@ class FichaLateral(QFrame):
         self.btn_ver_productos.setStyleSheet(
             f"QPushButton {{ background-color: transparent; color: {PRIMARIO}; font-weight: 600; "
             f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; border-color: {PRIMARIO}; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {PRIMARIO}; }}"
         )
         self.btn_ver_productos.clicked.connect(self.ver_productos_solicitado.emit)
         self._layout_acciones.addWidget(self.btn_ver_productos)
@@ -208,7 +209,7 @@ class FichaLateral(QFrame):
         self._lbl_vacio = QLabel("Selecciona un elemento para ver su detalle", self)
         self._lbl_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._lbl_vacio.setWordWrap(True)
-        self._lbl_vacio.setStyleSheet(f"font-size: 11pt; color: {TEXTO_SECUNDARIO}; padding: 32px;")
+        self._lbl_vacio.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO}; padding: 32px;")
         layout_raiz.addWidget(self._lbl_vacio)
 
         self.mostrar_vacio()
@@ -289,13 +290,13 @@ class FichaLateral(QFrame):
             self.btn_estado.setStyleSheet(
                 f"QPushButton {{ background-color: {FICHA}; color: {TEXTO}; font-weight: 600; "
                 f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-                f"QPushButton:hover {{ background-color: #DDE5F0; }}"
+                f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_SUAVE}; }}"
             )
         else:
             self.btn_estado.setText("Activar")
             self.btn_estado.setStyleSheet(
-                f"QPushButton {{ background-color: #E6F4EC; color: #1B6E3F; font-weight: 600; "
-                f"border: 1px solid #B8E2CB; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
-                f"QPushButton:hover {{ background-color: #D7EFE0; }}"
+                f"QPushButton {{ background-color: {estilo.SUPERFICIE_EXITO}; color: {estilo.EXITO}; font-weight: 600; "
+                f"border: 1px solid {estilo.EXITO_BORDE_SUAVE}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
+                f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_EXITO_HOVER}; }}"
             )
 

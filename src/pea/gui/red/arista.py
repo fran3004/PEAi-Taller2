@@ -3,7 +3,7 @@
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.5) y ADR-0015.
 - Conecta los centros de dos nodos investigadores.
 - Grosor proporcional a los productos compartidos: min(4.0, 1.0 + log2(peso)).
-- Color base: #9DB5C9 (gris azulado).
+- Color base: {estilo.COLOR_RED_ARISTAS} (gris azulado).
 - Resaltado y atenuación interactiva según el foco del usuario.
 """
 

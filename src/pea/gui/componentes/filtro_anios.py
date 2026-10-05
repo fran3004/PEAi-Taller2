@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     ACENTO,
     COLOR_DTI,
@@ -240,7 +241,7 @@ class ChipVentana(QPushButton):
             f"  font-weight: 500;"
             f"}}"
             f"QPushButton#chipVentana:hover {{"
-            f"  background-color: #EEF3FA;"
+            f"  background-color: {estilo.SUPERFICIE_HOVER};"
             f"  border-color: {ACENTO};"
             f"}}"
             f"QPushButton#chipVentana:focus {{"

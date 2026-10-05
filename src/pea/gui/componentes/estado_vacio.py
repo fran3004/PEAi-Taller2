@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.animacion import animaciones_habilitadas
 from pea.gui.estilo import (
     FICHA,
@@ -62,7 +63,7 @@ class EstadoVacio(QFrame):
         self.lbl_icono.setObjectName("estadoVacioIcono")
         self.lbl_icono.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_icono.setStyleSheet(
-            f"font-size: 32pt; color: {TEXTO_SECUNDARIO}; background: transparent;"
+            f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; color: {TEXTO_SECUNDARIO}; background: transparent;"
         )
         layout.addWidget(self.lbl_icono)
 

@@ -2,9 +2,9 @@
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 8 y 6.2).
 - Filas de 48 px con espaciado amplio y legible (11 pt).
-- Selección institucional con barra de acento (3 px en #35B6E8).
-- Estados hover (#F3F7FB) y selección (#E3EEF7).
-- Encabezado institucional en color FICHA (#E9EEF6) de 10 pt negrita.
+- Selección institucional con barra de acento (3 px en {estilo.ACENTO}).
+- Estados hover ({estilo.SUPERFICIE_GRAFICO}) y selección ({estilo.SUPERFICIE_SELECCIONADA}).
+- Encabezado institucional en color FICHA ({estilo.FICHA}) de 10 pt negrita.
 - Ordenamiento y filtrado mediante QSortFilterProxyModel.
 - Pie descriptivo «Mostrando N de M».
 - Delegados:
@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.avatar import PALETA_DEGRADADOS
 from pea.gui.componentes.pildora import resolver_estilo_pildora
 from pea.gui.estilo import (
@@ -84,11 +85,11 @@ class TextoDelegate(QStyledItemDelegate):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#E3EEF7"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            painter.fillRect(option.rect, QColor("#F3F7FB"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_GRAFICO))
         else:
-            painter.fillRect(option.rect, QColor("#FFFFFF"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
@@ -97,7 +98,7 @@ class TextoDelegate(QStyledItemDelegate):
             painter.setOpacity(0.60)
 
         fuente = QFont()
-        fuente.setPointSize(11)
+        fuente.setPointSize(estilo.TAMANO_CUERPO)
         painter.setFont(fuente)
         painter.setPen(QPen(QColor(TEXTO)))
 
@@ -121,11 +122,11 @@ class PildoraDelegate(QStyledItemDelegate):
 
         # Fondo de selección si aplica
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#E3EEF7"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            painter.fillRect(option.rect, QColor("#F3F7FB"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_GRAFICO))
         else:
-            painter.fillRect(option.rect, QColor("#FFFFFF"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE))
 
         # Barra de acento si es primera columna y seleccionada
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
@@ -138,7 +139,7 @@ class PildoraDelegate(QStyledItemDelegate):
 
         # Calcular tamaño de la píldora
         fuente = QFont()
-        fuente.setPointSize(9)
+        fuente.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente.setBold(True)
         painter.setFont(fuente)
 
@@ -172,11 +173,11 @@ class AvatarNombreDelegate(QStyledItemDelegate):
 
         # Fondo de selección / hover
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#E3EEF7"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            painter.fillRect(option.rect, QColor("#F3F7FB"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_GRAFICO))
         else:
-            painter.fillRect(option.rect, QColor("#FFFFFF"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
@@ -202,12 +203,12 @@ class AvatarNombreDelegate(QStyledItemDelegate):
         grad.setColorAt(1.0, QColor(c_fin_hex))
 
         painter.setBrush(QBrush(grad))
-        painter.setPen(QPen(QColor("#FFFFFF"), 1.0))
+        painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.0))
         painter.drawEllipse(rect_avatar)
 
         # Iniciales en blanco
         fuente_ini = QFont()
-        fuente_ini.setPointSize(8)
+        fuente_ini.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_ini.setBold(True)
         painter.setFont(fuente_ini)
         painter.setPen(QPen(QColor(TEXTO_SOBRE_OSCURO)))
@@ -215,7 +216,7 @@ class AvatarNombreDelegate(QStyledItemDelegate):
 
         # Nombre en 11 pt negrita
         fuente_nom = QFont()
-        fuente_nom.setPointSize(11)
+        fuente_nom.setPointSize(estilo.TAMANO_CUERPO)
         fuente_nom.setBold(True)
         painter.setFont(fuente_nom)
         painter.setPen(QPen(QColor(TEXTO)))
@@ -239,11 +240,11 @@ class EnlaceDelegate(QStyledItemDelegate):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#E3EEF7"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            painter.fillRect(option.rect, QColor("#F3F7FB"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_GRAFICO))
         else:
-            painter.fillRect(option.rect, QColor("#FFFFFF"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
@@ -257,7 +258,7 @@ class EnlaceDelegate(QStyledItemDelegate):
             return
 
         fuente = QFont()
-        fuente.setPointSize(11)
+        fuente.setPointSize(estilo.TAMANO_CUERPO)
         fuente.setUnderline(bool(option.state & QStyle.StateFlag.State_MouseOver))
         painter.setFont(fuente)
         painter.setPen(QPen(QColor(ENLACE)))
@@ -294,11 +295,11 @@ class NumeroDelegate(QStyledItemDelegate):
 
         painter.save()
         if option.state & QStyle.StateFlag.State_Selected:
-            painter.fillRect(option.rect, QColor("#E3EEF7"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            painter.fillRect(option.rect, QColor("#F3F7FB"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_GRAFICO))
         else:
-            painter.fillRect(option.rect, QColor("#FFFFFF"))
+            painter.fillRect(option.rect, QColor(estilo.SUPERFICIE))
 
         if index.column() == 0 and (option.state & QStyle.StateFlag.State_Selected):
             painter.fillRect(QRectF(option.rect.left(), option.rect.top(), 3.0, option.rect.height()), QColor(ACENTO))
@@ -316,7 +317,7 @@ class NumeroDelegate(QStyledItemDelegate):
             texto_formateado = str(val)
 
         fuente = QFont()
-        fuente.setPointSize(11)
+        fuente.setPointSize(estilo.TAMANO_CUERPO)
         painter.setFont(fuente)
         painter.setPen(QPen(QColor(TEXTO)))
 
@@ -356,30 +357,30 @@ class _VistaTablaEstilizada(QTableView):
 
         self.setStyleSheet(
             f"QTableView#vistaTablaEstilizada {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {RADIO_BOTON}px;"
-            f"  gridline-color: #F1F5F9;"
-            f"  selection-background-color: #E3EEF7;"
+            f"  gridline-color: {estilo.FONDO_APP};"
+            f"  selection-background-color: {estilo.SUPERFICIE_SELECCIONADA};"
             f"  selection-color: {TEXTO};"
-            f"  font-size: 11pt;"
+            f"  font-size: {estilo.TAMANO_CUERPO}pt;"
             f"}}"
             f"QTableView#vistaTablaEstilizada::item {{"
             f"  height: 48px;"
             f"  padding: 4px 8px;"
-            f"  border-bottom: 1px solid #F1F5F9;"
+            f"  border-bottom: 1px solid {estilo.FONDO_APP};"
             f"}}"
             f"QTableView#vistaTablaEstilizada::item:hover {{"
-            f"  background-color: #F3F7FB;"
+            f"  background-color: {estilo.SUPERFICIE_GRAFICO};"
             f"}}"
             f"QTableView#vistaTablaEstilizada::item:selected {{"
-            f"  background-color: #E3EEF7;"
+            f"  background-color: {estilo.SUPERFICIE_SELECCIONADA};"
             f"  color: {TEXTO};"
             f"}}"
             f"QHeaderView::section {{"
             f"  background-color: {FICHA};"
             f"  color: {TEXTO};"
-            f"  font-size: 10pt;"
+            f"  font-size: {estilo.TAMANO_AUXILIAR}pt;"
             f"  font-weight: bold;"
             f"  padding: 6px 12px;"
             f"  border: none;"
@@ -421,7 +422,7 @@ class TablaEstilizada(QWidget):
         # Pie con conteo
         self._lbl_pie = QLabel("Mostrando 0 de 0", self)
         self._lbl_pie.setObjectName("tablaPie")
-        self._lbl_pie.setStyleSheet(f"font-size: 10pt; color: {TEXTO_SECUNDARIO}; padding: 2px 4px;")
+        self._lbl_pie.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; padding: 2px 4px;")
         layout.addWidget(self._lbl_pie)
 
         # Conectar señales

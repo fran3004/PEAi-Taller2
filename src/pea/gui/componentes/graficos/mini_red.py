@@ -3,7 +3,7 @@
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 9.5).
 - Muestra hasta 18 nodos de mayor grado.
 - Sin etiquetas saturadas: solo los 6 primeros llevan rótulo textual.
-- Aristas en gris azulado (#9DB5C9).
+- Aristas en gris azulado ({estilo.COLOR_RED_ARISTAS}).
 - Hover en nodo resalta vecinos y muestra tooltip oscuro institucional.
 - Al hacer clic abre la pantalla completa de Análisis de redes (señal abrir_analisis_completo).
 """
@@ -30,6 +30,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.estilo import (
     COLOR_CAT_ASOCIADO,
@@ -245,7 +246,7 @@ class MiniRed(GraficoBase):
         super().mousePressEvent(event)
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
         alto_encabezado = self.dibujar_encabezado(painter, rect)
         margen = 16.0
 
@@ -286,7 +287,7 @@ class MiniRed(GraficoBase):
 
         # 2. Dibujar nodos
         fuente_eti = QFont()
-        fuente_eti.setPointSize(8)
+        fuente_eti.setPointSize(estilo.TAMANO_AUXILIAR)
         painter.setFont(fuente_eti)
 
         for n in self._nodos_geom:
@@ -297,7 +298,7 @@ class MiniRed(GraficoBase):
             color_nodo = QColor(col_hex)
 
             painter.setBrush(QBrush(color_nodo))
-            painter.setPen(QPen(QColor("#FFFFFF"), 1.75))
+            painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.75))
             painter.drawEllipse(n.pos, r_actual, r_actual)
 
             # Rótulo visible solo para los 6 primeros nodos
@@ -313,7 +314,7 @@ class MiniRed(GraficoBase):
 
         # 3. Pie interactivo «Ver análisis completo →»
         fuente_pie = QFont()
-        fuente_pie.setPointSize(9)
+        fuente_pie.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_pie.setBold(True)
         painter.setFont(fuente_pie)
         painter.setPen(QPen(QColor(COLOR_DTI)))

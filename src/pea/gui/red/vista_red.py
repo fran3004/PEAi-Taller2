@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     COLOR_CAT_ASOCIADO,
     COLOR_CAT_EMERITO,
@@ -54,7 +55,7 @@ class LeyendaRed(QFrame):
         self.setObjectName("leyendaRed")
         self.setStyleSheet(
             f"QFrame#leyendaRed {{"
-            f"  background-color: rgba(255, 255, 255, 0.94);"
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_94};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: 8px;"
             f"  padding: 6px 12px;"
@@ -83,9 +84,9 @@ class LeyendaRed(QFrame):
             item_c.setSpacing(4)
 
             punto = QLabel("●", self)
-            punto.setStyleSheet(f"color: {color_hex}; font-size: 11pt;")
+            punto.setStyleSheet(f"color: {color_hex}; font-size: {estilo.TAMANO_CUERPO}pt;")
             lbl = QLabel(nombre_cat, self)
-            lbl.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO}; font-weight: 500;")
+            lbl.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO}; font-weight: 500;")
 
             item_c.addWidget(punto)
             item_c.addWidget(lbl)
@@ -95,7 +96,7 @@ class LeyendaRed(QFrame):
 
         # Rótulo de escala
         lbl_escala = QLabel("Tamaño del nodo = coautores  ·  Grosor de línea = productos compartidos", self)
-        lbl_escala.setStyleSheet(f"font-size: 8pt; color: {TEXTO_SECUNDARIO};")
+        lbl_escala.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         layout.addWidget(lbl_escala)
 
 
@@ -133,7 +134,7 @@ class VistaRed(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet("background-color: #FFFFFF;")
+        self.setStyleSheet("background-color: {estilo.SUPERFICIE};")
 
         # Leyenda flotante
         self._leyenda = LeyendaRed(self)
@@ -161,7 +162,7 @@ class VistaRed(QGraphicsView):
 
     def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
         painter.save()
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
 
         # Cuadrícula suave de puntos cada 36 px
         paso = 36.0
@@ -169,7 +170,7 @@ class VistaRed(QGraphicsView):
         top = math.floor(rect.top() / paso) * paso
 
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#E2E8F0"))
+        painter.setBrush(QColor(estilo.SUPERFICIE_GRAFICO_GUIA))
 
         r_punto = 1.2
         x = left

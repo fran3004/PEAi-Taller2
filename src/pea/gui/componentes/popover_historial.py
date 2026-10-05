@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     COLOR_DTI,
     FICHA,
@@ -46,7 +47,7 @@ class PopoverHistorial(QFrame):
 
         self.setStyleSheet(
             f"QFrame#popoverHistorial {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {RADIO_FICHA_KPI}px;"
             f"}}"
@@ -68,13 +69,13 @@ class PopoverHistorial(QFrame):
         fila_cabecera.setSpacing(8)
 
         lbl_tit = QLabel("Historial de operaciones", self)
-        lbl_tit.setStyleSheet(f"font-size: 11pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         fila_cabecera.addWidget(lbl_tit)
         fila_cabecera.addStretch()
 
         self._lbl_contador = QLabel("0 ops", self)
         self._lbl_contador.setStyleSheet(
-            f"font-size: 9pt; font-weight: bold; color: {TEXTO_SECUNDARIO}; "
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {TEXTO_SECUNDARIO}; "
             f"background-color: {FICHA}; border-radius: 4px; padding: 2px 6px;"
         )
         fila_cabecera.addWidget(self._lbl_contador)
@@ -99,15 +100,15 @@ class PopoverHistorial(QFrame):
         # Estado vacío
         self._lbl_vacio = QLabel("No hay operaciones para deshacer", self)
         self._lbl_vacio.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._lbl_vacio.setStyleSheet(f"font-size: 10pt; color: {TEXTO_SECUNDARIO}; padding: 18px 0;")
+        self._lbl_vacio.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; padding: 18px 0;")
         layout_raiz.addWidget(self._lbl_vacio)
 
         # 3. Pie con acción principal
         self.btn_deshacer = QPushButton("Deshacer última (Ctrl+Z)", self)
         self.btn_deshacer.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_deshacer.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: 600; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 12px; font-size: 10pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: 600; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
             f"QPushButton:disabled {{ background-color: {FICHA}; color: {TEXTO_SECUNDARIO}; }}"
         )
@@ -139,7 +140,7 @@ class PopoverHistorial(QFrame):
         for idx, op_texto in enumerate(operaciones):
             fila_w = QWidget(self._cuerpo_lista)
             fila_w.setStyleSheet(
-                f"QWidget {{ background-color: {'#F8FAFC' if idx == 0 else '#FFFFFF'}; "
+                f"QWidget {{ background-color: {'{estilo.SUPERFICIE_ALTERNADA}' if idx == 0 else '{estilo.SUPERFICIE}'}; "
                 f"border: 1px solid {LINEA}; border-radius: 6px; padding: 4px; }}"
             )
             layout_f = QHBoxLayout(fila_w)
@@ -154,7 +155,7 @@ class PopoverHistorial(QFrame):
 
             lbl_txt = QLabel(op_texto, fila_w)
             lbl_txt.setStyleSheet(
-                f"font-size: 9pt; {'font-weight: bold; ' if idx == 0 else ''}color: {TEXTO};"
+                f"font-size: {estilo.TAMANO_AUXILIAR}pt; {'font-weight: bold; ' if idx == 0 else ''}color: {TEXTO};"
             )
             lbl_txt.setWordWrap(True)
             layout_f.addWidget(lbl_txt)

@@ -32,6 +32,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.estilo import (
     COLOR_ASC,
@@ -300,7 +301,7 @@ class GraficoDonaDoble(GraficoBase):
         return None
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
         alto_encabezado = self.dibujar_encabezado(painter, rect)
         margen = 16.0
 
@@ -365,7 +366,7 @@ class GraficoDonaDoble(GraficoBase):
 
         painter.save()
         painter.setBrush(QBrush(color))
-        painter.setPen(QPen(QColor("#FFFFFF"), 1.5))
+        painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.5))
         painter.drawPath(path)
         painter.restore()
 
@@ -375,7 +376,7 @@ class GraficoDonaDoble(GraficoBase):
 
         painter.save()
         # Fondo blanco interior
-        painter.setBrush(QBrush(QColor("#FFFFFF")))
+        painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(rect_centro)
 
@@ -384,7 +385,7 @@ class GraficoDonaDoble(GraficoBase):
             seg = self._segmento_hover
 
             fuente_nom = QFont()
-            fuente_nom.setPointSize(10)
+            fuente_nom.setPointSize(estilo.TAMANO_AUXILIAR)
             fuente_nom.setBold(True)
             painter.setFont(fuente_nom)
             painter.setPen(QPen(QColor(seg.color_hex)))
@@ -392,7 +393,7 @@ class GraficoDonaDoble(GraficoBase):
             painter.drawText(rect_nom, Qt.AlignmentFlag.AlignCenter, seg.clave)
 
             fuente_val = QFont()
-            fuente_val.setPointSize(16)
+            fuente_val.setPointSize(estilo.TAMANO_TITULO_TARJETA)
             fuente_val.setBold(True)
             painter.setFont(fuente_val)
             painter.setPen(QPen(QColor(TEXTO)))
@@ -401,7 +402,7 @@ class GraficoDonaDoble(GraficoBase):
             painter.drawText(rect_val, Qt.AlignmentFlag.AlignCenter, texto_cifra)
 
             fuente_pct = QFont()
-            fuente_pct.setPointSize(10)
+            fuente_pct.setPointSize(estilo.TAMANO_AUXILIAR)
             painter.setFont(fuente_pct)
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
             rect_pct = QRectF(rect_centro.left(), cy + 18.0, rect_centro.width(), 16.0)
@@ -409,7 +410,7 @@ class GraficoDonaDoble(GraficoBase):
         else:
             # Estado normal: total de productos
             fuente_tot = QFont()
-            fuente_tot.setPointSize(22)
+            fuente_tot.setPointSize(estilo.TAMANO_KPI)
             fuente_tot.setBold(True)
             painter.setFont(fuente_tot)
             painter.setPen(QPen(QColor(TEXTO)))
@@ -417,7 +418,7 @@ class GraficoDonaDoble(GraficoBase):
             painter.drawText(rect_tot, Qt.AlignmentFlag.AlignCenter, formatear_entero(total))
 
             fuente_sub = QFont()
-            fuente_sub.setPointSize(10)
+            fuente_sub.setPointSize(estilo.TAMANO_AUXILIAR)
             painter.setFont(fuente_sub)
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
             rect_sub = QRectF(rect_centro.left(), cy + 10.0, rect_centro.width(), 16.0)
@@ -439,11 +440,11 @@ class GraficoDonaDoble(GraficoBase):
         ancho_col = ancho_util / 2.0
 
         fuente_tit_ley = QFont()
-        fuente_tit_ley.setPointSize(10)
+        fuente_tit_ley.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_tit_ley.setBold(True)
 
         fuente_item_ley = QFont()
-        fuente_item_ley.setPointSize(9)
+        fuente_item_ley.setPointSize(estilo.TAMANO_AUXILIAR)
 
         # Columna 1: Tipologías
         x_col1 = rect.left() + 16.0
@@ -465,7 +466,7 @@ class GraficoDonaDoble(GraficoBase):
                 color.setAlpha(60)
 
             painter.setBrush(QBrush(color))
-            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "#FFFFFF"), 1))
+            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
             painter.drawRoundedRect(QRectF(x_col1, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)
@@ -493,7 +494,7 @@ class GraficoDonaDoble(GraficoBase):
                 color.setAlpha(60)
 
             painter.setBrush(QBrush(color))
-            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "#FFFFFF"), 1))
+            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
             painter.drawRoundedRect(QRectF(x_col2, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.animacion import animar_desvanecimiento
 from pea.gui.estilo import (
     AVISO,
@@ -86,7 +87,7 @@ class Toast(QFrame):
 
         # Icono visual a la izquierda
         lbl_icono = QLabel(icono, self)
-        lbl_icono.setStyleSheet(f"font-size: 16pt; color: {color_borde}; font-weight: bold;")
+        lbl_icono.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; color: {color_borde}; font-weight: bold;")
         lbl_icono.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout_principal.addWidget(lbl_icono)
 
@@ -117,10 +118,10 @@ class Toast(QFrame):
         btn_cerrar.setStyleSheet(
             f"QPushButton {{"
             f"  border: none; background: transparent; color: {color_borde};"
-            f"  font-size: 16pt; font-weight: bold; padding: 0px;"
+            f"  font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; padding: 0px;"
             f"}}"
             f"QPushButton:hover {{"
-            f"  background-color: rgba(0, 0, 0, 0.08); border-radius: 12px;"
+            f"  background-color: {estilo.SUPERPOSICION_NEGRA_8}; border-radius: {estilo.RADIO_BOTON}px;"
             f"}}"
         )
         btn_cerrar.clicked.connect(self.cerrar)

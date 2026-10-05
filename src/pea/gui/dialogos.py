@@ -1,8 +1,8 @@
 """Diálogos modales institucionales de creación y edición de entidades.
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 8).
-- Radio 16 px, botones primario (#0E3A5C) y secundario (#FFFFFF).
-- Errores de validación visibles bajo cada campo en color ERROR (#A12626).
+- Radio definido por los tokens de estilo; botones primario y secundario.
+- Errores de validación visibles bajo cada campo en color ERROR.
 - Incluye:
   * DialogoGrupo (creación y edición)
   * DialogoInvestigador (creación y edición)
@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     COLOR_DTI,
     ERROR,
@@ -52,21 +53,21 @@ class DialogoBase(QDialog):
 
         self.setStyleSheet(
             f"QDialog {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"}}"
             f"QLineEdit, QComboBox, QSpinBox {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"  color: {TEXTO};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {RADIO_BOTON}px;"
             f"  padding: 8px 12px;"
-            f"  font-size: 11pt;"
+            f"  font-size: {estilo.TAMANO_CUERPO}pt;"
             f"}}"
             f"QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{"
             f"  border: 1px solid {COLOR_DTI};"
             f"}}"
             f"QLineEdit:disabled, QComboBox:disabled {{"
-            f"  background-color: #F1F5F9;"
+            f"  background-color: {estilo.FONDO_APP};"
             f"  color: {TEXTO_SECUNDARIO};"
             f"}}"
         )
@@ -91,14 +92,14 @@ class DialogoBase(QDialog):
         fila_tit.addWidget(barra_acento)
 
         self._lbl_titulo = QLabel(titulo, self._cabecera)
-        self._lbl_titulo.setStyleSheet(f"font-size: 14pt; font-weight: bold; color: {TEXTO};")
+        self._lbl_titulo.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         fila_tit.addWidget(self._lbl_titulo)
         fila_tit.addStretch()
         layout_cab.addLayout(fila_tit)
 
         if subtitulo:
             self._lbl_sub = QLabel(subtitulo, self._cabecera)
-            self._lbl_sub.setStyleSheet(f"font-size: 10pt; color: {TEXTO_SECUNDARIO};")
+            self._lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             layout_cab.addWidget(self._lbl_sub)
 
         self._layout_raiz.addWidget(self._cabecera)
@@ -119,9 +120,9 @@ class DialogoBase(QDialog):
         self.btn_cancelar = QPushButton("Cancelar", self)
         self.btn_cancelar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cancelar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO_SECUNDARIO}; font-weight: 600; "
-            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: 11pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; color: {TEXTO}; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO_SECUNDARIO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 8px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; color: {TEXTO}; }}"
         )
         self.btn_cancelar.clicked.connect(self.reject)
         fila_botones.addWidget(self.btn_cancelar)
@@ -129,8 +130,8 @@ class DialogoBase(QDialog):
         self.btn_guardar = QPushButton("Guardar", self)
         self.btn_guardar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_guardar.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: 600; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 20px; font-size: 11pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: 600; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 8px 20px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         self.btn_guardar.clicked.connect(self._al_pulsar_guardar)
@@ -151,13 +152,13 @@ class DialogoBase(QDialog):
         layout_b.setSpacing(3)
 
         lbl_eti = QLabel(etiqueta_texto, bloque)
-        lbl_eti.setStyleSheet(f"font-size: 10pt; font-weight: 600; color: {TEXTO};")
+        lbl_eti.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO};")
         layout_b.addWidget(lbl_eti)
 
         layout_b.addWidget(widget_entrada)
 
         lbl_err = QLabel(mensaje_error, bloque)
-        lbl_err.setStyleSheet(f"font-size: 9pt; color: {ERROR}; padding-left: 2px;")
+        lbl_err.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {ERROR}; padding-left: 2px;")
         lbl_err.setVisible(False)
         layout_b.addWidget(lbl_err)
 
@@ -479,4 +480,3 @@ class DialogoEditarProducto(DialogoBase):
             "codigo_grupo": self.combo_grupo.currentData(),
         }
         return self._codigo_original, datos
-

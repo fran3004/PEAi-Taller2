@@ -30,6 +30,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.componentes.animacion import animaciones_habilitadas
 from pea.gui.estilo import (
     ENCABEZADO_INICIO,
@@ -113,7 +114,7 @@ class GraficoBase(QWidget):
         ancho_px = int(round(ancho * escala))
         alto_px = int(round(alto * escala))
         imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32)
-        imagen.fill(QColor("#FFFFFF"))
+        imagen.fill(QColor(estilo.SUPERFICIE))
 
         painter = QPainter(imagen)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -149,7 +150,7 @@ class GraficoBase(QWidget):
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
         """Método de dibujo base; por defecto dibuja fondo, encabezado y estado vacío si aplica."""
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
         alto_enc = self.dibujar_encabezado(painter, rect)
         if self.esta_vacio():
             rect_vacio = rect.adjusted(16.0, alto_enc + 10.0, -16.0, -16.0)
@@ -168,7 +169,7 @@ class GraficoBase(QWidget):
         y_act = rect.top() + margen
         if self.titulo:
             fuente_tit = QFont()
-            fuente_tit.setPointSize(12)
+            fuente_tit.setPointSize(estilo.TAMANO_CUERPO)
             fuente_tit.setBold(True)
             painter.setFont(fuente_tit)
             painter.setPen(QPen(QColor(TEXTO)))
@@ -178,7 +179,7 @@ class GraficoBase(QWidget):
 
         if self.subtitulo:
             fuente_sub = QFont()
-            fuente_sub.setPointSize(10)
+            fuente_sub.setPointSize(estilo.TAMANO_AUXILIAR)
             painter.setFont(fuente_sub)
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
             rect_sub = QRectF(rect.left() + margen, y_act, rect.width() - 2 * margen, 18)
@@ -218,7 +219,7 @@ class GraficoBase(QWidget):
 
         # Texto principal
         fuente_msg = QFont()
-        fuente_msg.setPointSize(11)
+        fuente_msg.setPointSize(estilo.TAMANO_CUERPO)
         fuente_msg.setBold(True)
         painter.setFont(fuente_msg)
         painter.setPen(QPen(QColor(TEXTO)))
@@ -227,7 +228,7 @@ class GraficoBase(QWidget):
 
         # Sugerencia
         fuente_sug = QFont()
-        fuente_sug.setPointSize(10)
+        fuente_sug.setPointSize(estilo.TAMANO_AUXILIAR)
         painter.setFont(fuente_sug)
         painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
         rect_sug = QRectF(rect.left() + 10, cy + 50, rect.width() - 20, 18)
@@ -241,7 +242,7 @@ class GraficoBase(QWidget):
         titulo: str,
         filas: list[tuple[str, str, str | None]],
     ) -> None:
-        """Dibuja un tooltip flotante oscuro institucional (#0A2045, radio 8, texto blanco).
+        """Dibuja un tooltip flotante oscuro institucional ({estilo.ENCABEZADO_INICIO}, radio 8, texto blanco).
 
         Args:
             painter: Pintor activo.
@@ -251,11 +252,11 @@ class GraficoBase(QWidget):
             filas: Lista de (etiqueta, valor, color_hex_opcional).
         """
         fuente_tit = QFont()
-        fuente_tit.setPointSize(10)
+        fuente_tit.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_tit.setBold(True)
 
         fuente_cuerpo = QFont()
-        fuente_cuerpo.setPointSize(9)
+        fuente_cuerpo.setPointSize(estilo.TAMANO_AUXILIAR)
 
         fm_tit = QFontMetrics(fuente_tit)
         fm_cuerpo = QFontMetrics(fuente_cuerpo)
@@ -289,9 +290,9 @@ class GraficoBase(QWidget):
         path = QPainterPath()
         path.addRoundedRect(rect_tt, RADIO_BOTON, RADIO_BOTON)
 
-        # Fondo oscuro #0A2045
+        # Fondo oscuro {estilo.ENCABEZADO_INICIO}
         painter.fillPath(path, QColor(ENCABEZADO_INICIO))
-        painter.setPen(QPen(QColor("#1F3E68"), 1))
+        painter.setPen(QPen(QColor(estilo.TEXTO_TOOLTIP), 1))
         painter.drawPath(path)
 
         # Título
@@ -309,7 +310,7 @@ class GraficoBase(QWidget):
             x_linea = rect_tt.left() + 10.0
             if col_hex:
                 painter.setBrush(QBrush(QColor(col_hex)))
-                painter.setPen(QPen(QColor("#FFFFFF"), 0.5))
+                painter.setPen(QPen(QColor(estilo.SUPERFICIE), 0.5))
                 painter.drawEllipse(QRectF(x_linea, y_cursor + 3, 7, 7))
                 x_linea += 12.0
 

@@ -19,6 +19,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     ACENTO,
     COLOR_ASC,
@@ -158,7 +159,7 @@ class Avatar(QWidget):
 
             # Iniciales centradas
             texto_iniciales = iniciales_nombre(self._nombre)
-            tam_fuente = max(9, int(rect_avatar.height() * 0.38))
+            tam_fuente = estilo.TAMANO_AUXILIAR
             fuente = QFont(self.font())
             fuente.setPointSize(tam_fuente)
             fuente.setBold(True)

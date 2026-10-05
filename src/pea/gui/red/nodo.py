@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     ACENTO,
     COLOR_CAT_ASOCIADO,
@@ -87,7 +88,7 @@ class NodoGrafoItem(QGraphicsItem):
 
         # Color cromático institucional por categoría
         self.color_relleno = self._resolver_color_categoria(self.categoria)
-        self.color_texto = QColor("#FFFFFF") if self.categoria != "Sin categoría" else QColor(COLOR_CAT_SIN_CATEGORIA_TEXTO)
+        self.color_texto = QColor(estilo.SUPERFICIE) if self.categoria != "Sin categoría" else QColor(COLOR_CAT_SIN_CATEGORIA_TEXTO)
 
         self.aristas: list[AristaGrafoItem] = []
         self._seleccionado = False
@@ -231,7 +232,7 @@ class NodoGrafoItem(QGraphicsItem):
 
         # 2. Círculo principal del nodo
         pen_borde = QPen(
-            QColor("#FFFFFF"),
+            QColor(estilo.SUPERFICIE),
             2.0 if not self.es_externo else 1.8,
             Qt.PenStyle.SolidLine if not self.es_externo else Qt.PenStyle.DashLine,
         )
@@ -242,7 +243,7 @@ class NodoGrafoItem(QGraphicsItem):
         # 3. Iniciales en nodos con suficiente radio (radio >= 14)
         if self.radio >= 14.0:
             fuente_ini = QFont()
-            fuente_ini.setPointSize(max(7, int(self.radio * 0.45)))
+            fuente_ini.setPointSize(estilo.TAMANO_AUXILIAR)
             fuente_ini.setBold(True)
             painter.setFont(fuente_ini)
             painter.setPen(QPen(self.color_texto))
@@ -266,7 +267,7 @@ class NodoGrafoItem(QGraphicsItem):
 
         if debe_mostrar_etiqueta and self.etiqueta_abreviada:
             fuente_lbl = QFont()
-            fuente_lbl.setPointSize(9 if self.radio < 12 else 10)
+            fuente_lbl.setPointSize(estilo.TAMANO_AUXILIAR)
             fuente_lbl.setBold(self._seleccionado or self._resaltado)
             painter.setFont(fuente_lbl)
 

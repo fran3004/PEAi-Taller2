@@ -1,10 +1,10 @@
 """Gráfico de evolución temporal anual mediante barras simples con QPainter.
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 9.3).
-- Barras simples en color petróleo (#1F7A9E) con valor numérico encima.
+- Barras simples en color petróleo ({estilo.COLOR_DTI}) con valor numérico encima.
 - Sin línea de tendencia artificial.
-- Eje X con años y líneas de referencia horizontales punteadas #E2E8F0.
-- Tooltip oscuro institucional (#0A2045) al pasar el cursor.
+- Eje X con años y líneas de referencia horizontales punteadas {estilo.SUPERFICIE_GRAFICO_GUIA}.
+- Tooltip oscuro institucional ({estilo.ENCABEZADO_INICIO}) al pasar el cursor.
 - Diseñado para fichas laterales de grupos e investigadores.
 """
 
@@ -29,6 +29,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
+from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.estilo import (
     COLOR_DTI,
@@ -120,7 +121,7 @@ class GraficoSerieAnual(GraficoBase):
         super().leaveEvent(event)
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
-        painter.fillRect(rect, QColor("#FFFFFF"))
+        painter.fillRect(rect, QColor(estilo.SUPERFICIE))
         alto_encabezado = self.dibujar_encabezado(painter, rect)
         margen = 16.0
 
@@ -148,10 +149,10 @@ class GraficoSerieAnual(GraficoBase):
         lineas_y = 3
         paso_y_val = max_redondo / lineas_y
         fuente_eje = QFont()
-        fuente_eje.setPointSize(10)
+        fuente_eje.setPointSize(estilo.TAMANO_AUXILIAR)
         painter.setFont(fuente_eje)
 
-        pen_guia = QPen(QColor("#E2E8F0"), 1, Qt.PenStyle.DashLine)
+        pen_guia = QPen(QColor(estilo.SUPERFICIE_GRAFICO_GUIA), 1, Qt.PenStyle.DashLine)
         pen_eje = QPen(QColor(LINEA), 1)
 
         for i in range(lineas_y + 1):
@@ -165,18 +166,18 @@ class GraficoSerieAnual(GraficoBase):
             rect_lbl = QRectF(rect.left() + margen, y_pos - 8.0, 28.0, 16.0)
             painter.drawText(rect_lbl, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, formatear_entero(val_y))
 
-        # 2. Barras anuales simples en color petróleo #1F7A9E
+        # 2. Barras anuales simples en color petróleo {estilo.COLOR_DTI}
         n_anios = max(1, len(anios))
         paso_col = area_grafico.width() / float(n_anios)
         ancho_barra = min(32.0, paso_col * 0.55)
 
         self._rects_columnas = []
         fuente_total = QFont()
-        fuente_total.setPointSize(10)
+        fuente_total.setPointSize(estilo.TAMANO_AUXILIAR)
         fuente_total.setBold(True)
 
         fuente_anio = QFont()
-        fuente_anio.setPointSize(10)
+        fuente_anio.setPointSize(estilo.TAMANO_AUXILIAR)
 
         prog = min(1.0, max(0.0, self._progreso_animacion))
 
