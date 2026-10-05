@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.estilo import (
     FICHA,
     LINEA,
@@ -78,7 +79,7 @@ class SelectorSegmentado(QFrame):
             f"  font-weight: 500;"
             f"}}"
             f"QPushButton:hover:!checked {{"
-            f"  background-color: rgba(255, 255, 255, 0.45);"
+            f"  background-color: {estilo.SUPERPOSICION_CLARA_45};"
             f"  color: {PRIMARIO};"
             f"}}"
             f"QPushButton:checked {{"

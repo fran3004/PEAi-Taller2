@@ -40,6 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.estado_vacio import Esqueleto, EstadoVacio
 from pea.gui.componentes.filtro_anios import ChipVentana
@@ -104,7 +105,7 @@ class FilaRanking(QFrame):
         color_puesto = PRIMARIO if puesto <= 3 else TEXTO_SECUNDARIO
         lbl_puesto.setStyleSheet(
             f"background-color: {FICHA}; color: {color_puesto}; font-weight: bold; "
-            f"border-radius: 12px; font-size: 9.5pt;"
+            f"border-radius: {estilo.RADIO_PESTANA_ACTIVA}px; font-size: {estilo.TAMANO_AUXILIAR}pt;"
         )
         layout.addWidget(lbl_puesto)
 
@@ -114,13 +115,13 @@ class FilaRanking(QFrame):
         col_centro.setSpacing(3)
 
         lbl_tit = QLabel(titulo, self)
-        lbl_tit.setStyleSheet(f"font-size: 10.5pt; font-weight: 600; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
         lbl_tit.setWordWrap(False)
         col_centro.addWidget(lbl_tit)
 
         if subtitulo:
             lbl_sub = QLabel(subtitulo, self)
-            lbl_sub.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO};")
+            lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             col_centro.addWidget(lbl_sub)
         else:
             # Barra horizontal proporcional
@@ -130,8 +131,8 @@ class FilaRanking(QFrame):
             barra.setRange(0, max(1, max_valor))
             barra.setValue(valor)
             barra.setStyleSheet(
-                f"QProgressBar {{ background-color: #E2E8F0; border-radius: 3px; border: none; }}"
-                f"QProgressBar::chunk {{ background-color: {COLOR_DTI}; border-radius: 3px; }}"
+                f"QProgressBar {{ background-color: {estilo.SUPERFICIE_GRAFICO_GUIA}; border-radius: {estilo.ESPACIADO_4}px; border: none; }}"
+                f"QProgressBar::chunk {{ background-color: {COLOR_DTI}; border-radius: {estilo.ESPACIADO_4}px; }}"
             )
             col_centro.addWidget(barra)
 
@@ -144,7 +145,7 @@ class FilaRanking(QFrame):
 
         # Valor numérico a la derecha
         lbl_val = QLabel(f"{formatear_entero(valor)} {etiqueta_valor}", self)
-        lbl_val.setStyleSheet(f"font-size: 10.5pt; font-weight: bold; color: {PRIMARIO};")
+        lbl_val.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {PRIMARIO};")
         lbl_val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(lbl_val)
 
@@ -279,10 +280,10 @@ class PantallaInicio(QWidget):
         self._btn_exportar.setObjectName("btnExportarInicio")
         self._btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; border: 1px solid {LINEA}; "
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; "
             f"border-radius: {RADIO_BOTON}px; padding: 6px 14px; font-weight: 600; "
             f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO}; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; border-color: {COLOR_DTI}; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {COLOR_DTI}; }}"
         )
         self._menu_exportar = QMenu(self._btn_exportar)
         act_csv = QAction("Exportar datos a CSV", self._menu_exportar)
@@ -336,7 +337,7 @@ class PantallaInicio(QWidget):
         self._btn_detalles.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_detalles.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
-            f"font-weight: 600; font-size: 9.5pt; padding: 2px 8px; }}"
+            f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 2px 8px; }}"
             f"QPushButton:hover {{ text-decoration: underline; }}"
         )
         self._btn_detalles.clicked.connect(self._alternar_detalles)
@@ -347,7 +348,7 @@ class PantallaInicio(QWidget):
         # Panel desplegable de detalles
         self._panel_detalles = QFrame(self._tarjeta_ambito)
         self._panel_detalles.setStyleSheet(
-            f"QFrame {{ background-color: {FICHA}; border-radius: 8px; padding: 6px; }}"
+            f"QFrame {{ background-color: {FICHA}; border-radius: {estilo.RADIO_BOTON}px; padding: 6px; }}"
         )
         self._layout_detalles = QVBoxLayout(self._panel_detalles)
         self._layout_detalles.setContentsMargins(10, 6, 10, 6)
@@ -429,7 +430,7 @@ class PantallaInicio(QWidget):
         btn_abrir.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_abrir.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
-            f"font-weight: 600; font-size: 9.5pt; padding: 0 4px; }}"
+            f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 0 4px; }}"
             f"QPushButton:hover {{ text-decoration: underline; }}"
         )
         btn_abrir.clicked.connect(self._al_abrir_red_completa)
@@ -615,9 +616,9 @@ class PantallaInicio(QWidget):
         ]:
             fila = QHBoxLayout()
             l1 = QLabel(k, self._panel_detalles)
-            l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+            l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
             l2 = QLabel(v, self._panel_detalles)
-            l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO};")
+            l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
             fila.addWidget(l1)
             fila.addWidget(l2)
             fila.addStretch()
@@ -724,9 +725,9 @@ class PantallaInicio(QWidget):
             if v:
                 fila = QHBoxLayout()
                 l1 = QLabel(k, self._panel_detalles)
-                l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+                l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
                 l2 = QLabel(str(v), self._panel_detalles)
-                l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO};")
+                l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
                 fila.addWidget(l1)
                 fila.addWidget(l2)
                 fila.addStretch()

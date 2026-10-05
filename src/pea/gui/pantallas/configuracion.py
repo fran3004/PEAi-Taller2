@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.pildora import Pildora
 from pea.gui.componentes.selector_segmentado import SelectorSegmentado
@@ -95,7 +96,7 @@ class PantallaConfiguracion(QWidget):
 
         lbl_titulo = QLabel("Configuración del Sistema", self)
         lbl_titulo.setObjectName("tituloPantalla")
-        lbl_titulo.setStyleSheet(f"font-size: 16pt; font-weight: 800; color: {TEXTO};")
+        lbl_titulo.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {TEXTO};")
         caja_titulo.addWidget(lbl_titulo)
 
         lbl_desc = QLabel(
@@ -365,9 +366,9 @@ class PantallaConfiguracion(QWidget):
             f"  background-color: {FICHA};"
             f"  color: {TEXTO};"
             f"  border: 1px solid {LINEA};"
-            f"  border-radius: 4px;"
+            f"  border-radius: {estilo.ESPACIADO_4}px;"
             f"  font-family: Consolas, monospace;"
-            f"  font-size: 10pt;"
+            f"  font-size: {estilo.TAMANO_CUERPO}pt;"
             f"}}"
         )
         col_py.addWidget(self.txt_out_py)
@@ -387,9 +388,9 @@ class PantallaConfiguracion(QWidget):
             f"  background-color: {FICHA};"
             f"  color: {TEXTO};"
             f"  border: 1px solid {LINEA};"
-            f"  border-radius: 4px;"
+            f"  border-radius: {estilo.ESPACIADO_4}px;"
             f"  font-family: Consolas, monospace;"
-            f"  font-size: 10pt;"
+            f"  font-size: {estilo.TAMANO_CUERPO}pt;"
             f"}}"
         )
         col_cpp.addWidget(self.txt_out_cpp)
@@ -500,7 +501,7 @@ class PantallaConfiguracion(QWidget):
         self.btn_ejecutar.setEnabled(False)
         self.lbl_estado.setText("Ejecutando verificaciones cruzadas en segundo plano...")
         self.frame_resultado.setStyleSheet(
-            f"background-color: #E3ECF8; border: 1px solid #0D47A1; border-radius: {RADIO_BOTON}px; padding: 8px 14px;"
+            f"background-color: {estilo.SUPERFICIE_SELECCIONADA}; border: 1px solid {estilo.PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 8px 14px;"
         )
 
         def trabajo() -> ResultadoVerificacionCruzada:

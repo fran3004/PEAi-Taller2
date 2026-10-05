@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.filtro_anios import ChipVentana
@@ -92,13 +93,13 @@ class FilaTopConectado(QFrame):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet(
             f"QFrame {{"
-            f"  background-color: #FFFFFF;"
+            f"  background-color: {estilo.SUPERFICIE};"
             f"  border: 1px solid {LINEA};"
-            f"  border-radius: 8px;"
+            f"  border-radius: {estilo.RADIO_BOTON}px;"
             f"  padding: 4px 8px;"
             f"}}"
             f"QFrame:hover {{"
-            f"  background-color: #F1F5F9;"
+            f"  background-color: {estilo.FONDO_APP};"
             f"  border-color: {ACENTO};"
             f"}}"
         )
@@ -108,7 +109,7 @@ class FilaTopConectado(QFrame):
         layout.setSpacing(8)
 
         lbl_num = QLabel(f"#{puesto}", self)
-        lbl_num.setStyleSheet(f"font-size: 9.5pt; font-weight: bold; color: {TEXTO_SECUNDARIO};")
+        lbl_num.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {TEXTO_SECUNDARIO};")
         lbl_num.setFixedWidth(24)
         layout.addWidget(lbl_num)
 
@@ -120,16 +121,16 @@ class FilaTopConectado(QFrame):
         col_txt.setSpacing(1)
 
         lbl_nom = QLabel(abreviar_nombre_investigador(nombre), self)
-        lbl_nom.setStyleSheet(f"font-size: 9.5pt; font-weight: 600; color: {TEXTO};")
+        lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO};")
         lbl_sub = QLabel(categoria, self)
-        lbl_sub.setStyleSheet(f"font-size: 8pt; color: {TEXTO_SECUNDARIO};")
+        lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
 
         col_txt.addWidget(lbl_nom)
         col_txt.addWidget(lbl_sub)
         layout.addLayout(col_txt, 1)
 
         lbl_grado = QLabel(f"{grado} coaut.", self)
-        lbl_grado.setStyleSheet(f"font-size: 9pt; font-weight: bold; color: {COLOR_DTI};")
+        lbl_grado.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {COLOR_DTI};")
         layout.addWidget(lbl_grado)
 
     def mousePressEvent(self, event: Any) -> None:
@@ -207,11 +208,11 @@ class PantallaRedes(QWidget):
         col_tit.setSpacing(2)
 
         lbl_tit = QLabel("Análisis de Redes de Colaboración", barra)
-        lbl_tit.setStyleSheet(f"font-size: 16pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
         col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Grafo de coautorías académicas y métricas de centralidad topológica", barra)
-        lbl_sub.setStyleSheet(f"font-size: 9.5pt; color: {TEXTO_SECUNDARIO};")
+        lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
         layout.addLayout(col_tit)
 
@@ -227,9 +228,9 @@ class PantallaRedes(QWidget):
         self.btn_exportar_png = self.btn_exportar
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_exportar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {PRIMARIO}; font-weight: 600; "
-            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: 10pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
+            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_exportar.clicked.connect(self.exportar_png)
         layout.addWidget(self.btn_exportar)
@@ -277,9 +278,9 @@ class PantallaRedes(QWidget):
         self.btn_reordenar = QPushButton("Reordenar", contenedor_controles)
         self.btn_reordenar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_reordenar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; font-weight: 600; "
-            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; font-size: 9.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_reordenar.clicked.connect(self._reordenar_grafo)
         layout_c.addWidget(self.btn_reordenar)
@@ -292,8 +293,8 @@ class PantallaRedes(QWidget):
         self.btn_zoom_mas.setFixedSize(28, 28)
         self.btn_zoom_mas.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_zoom_mas.setStyleSheet(
-            f"QPushButton {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 6px; font-weight: bold; }}"
-            f"QPushButton:hover {{ background: #F1F5F9; }}"
+            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-weight: bold; }}"
+            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
         )
         self.btn_zoom_mas.clicked.connect(lambda: self.vista_red.acercar())
         fila_zoom.addWidget(self.btn_zoom_mas)
@@ -302,8 +303,8 @@ class PantallaRedes(QWidget):
         self.btn_zoom_menos.setFixedSize(28, 28)
         self.btn_zoom_menos.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_zoom_menos.setStyleSheet(
-            f"QPushButton {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 6px; font-weight: bold; }}"
-            f"QPushButton:hover {{ background: #F1F5F9; }}"
+            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-weight: bold; }}"
+            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
         )
         self.btn_zoom_menos.clicked.connect(lambda: self.vista_red.alejar())
         fila_zoom.addWidget(self.btn_zoom_menos)
@@ -312,8 +313,8 @@ class PantallaRedes(QWidget):
         self.btn_zoom_ajustar.setFixedHeight(28)
         self.btn_zoom_ajustar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_zoom_ajustar.setStyleSheet(
-            f"QPushButton {{ background: #FFFFFF; border: 1px solid {LINEA}; border-radius: 6px; font-size: 8.5pt; padding: 0 6px; }}"
-            f"QPushButton:hover {{ background: #F1F5F9; }}"
+            f"QPushButton {{ background: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 0 6px; }}"
+            f"QPushButton:hover {{ background: {estilo.FONDO_APP}; }}"
         )
         self.btn_zoom_ajustar.clicked.connect(lambda: self.vista_red.ajustar_vista())
         fila_zoom.addWidget(self.btn_zoom_ajustar)
@@ -326,7 +327,7 @@ class PantallaRedes(QWidget):
         self.banner_tope.setVisible(False)
         self.banner_tope.setStyleSheet(
             f"QFrame {{ background-color: {AVISO_FONDO}; border: 1px solid {AVISO}; "
-            f"border-radius: 6px; padding: 4px 8px; }}"
+            f"border-radius: {estilo.RADIO_BOTON}px; padding: 4px 8px; }}"
         )
         self.banner_limite = self.banner_tope
         lay_b = QHBoxLayout(self.banner_tope)
@@ -340,7 +341,7 @@ class PantallaRedes(QWidget):
             "La red contiene más de 400 investigadores; se muestran los 400 con mayor número de coautorías.",
             self.banner_tope,
         )
-        self.lbl_texto_tope.setStyleSheet(f"color: {AVISO}; font-weight: 600; font-size: 9pt;")
+        self.lbl_texto_tope.setStyleSheet(f"color: {AVISO}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
         self.lbl_texto_banner = self.lbl_texto_tope
         lay_b.addWidget(self.lbl_texto_tope, 1)
 
@@ -384,11 +385,11 @@ class PantallaRedes(QWidget):
 
         lbl_orientacion = QLabel("Selecciona un nodo para ver su posición en la red.", self._caja_sin_seleccion)
         lbl_orientacion.setWordWrap(True)
-        lbl_orientacion.setStyleSheet(f"font-size: 10pt; color: {TEXTO_SECUNDARIO};")
+        lbl_orientacion.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         layout_sin.addWidget(lbl_orientacion)
 
         lbl_tit_top = QLabel("Investigadores más conectados", self._caja_sin_seleccion)
-        lbl_tit_top.setStyleSheet(f"font-size: 11pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit_top.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout_sin.addWidget(lbl_tit_top)
 
         self._contenedor_top = QVBoxLayout()
@@ -420,12 +421,12 @@ class PantallaRedes(QWidget):
 
         self._lbl_nom_sel = QLabel("", self._caja_con_seleccion)
         self._lbl_nom_sel.setWordWrap(True)
-        self._lbl_nom_sel.setStyleSheet(f"font-size: 12pt; font-weight: bold; color: {TEXTO};")
+        self._lbl_nom_sel.setStyleSheet(f"font-size: {estilo.TAMANO_SUBTITULO}pt; font-weight: bold; color: {TEXTO};")
         self.lbl_nombre_inv = self._lbl_nom_sel
         col_tit_sel.addWidget(self._lbl_nom_sel)
 
         self._lbl_sub_sel = QLabel("", self._caja_con_seleccion)
-        self._lbl_sub_sel.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO};")
+        self._lbl_sub_sel.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         self.lbl_cvlac_inv = self._lbl_sub_sel
         col_tit_sel.addWidget(self._lbl_sub_sel)
 
@@ -446,7 +447,7 @@ class PantallaRedes(QWidget):
         # Cuadro de metadatos del investigador en la red
         self._cuadro_meta_sel = QFrame(self._caja_con_seleccion)
         self._cuadro_meta_sel.setStyleSheet(
-            f"QFrame {{ background-color: {FICHA}; border-radius: 8px; padding: 6px; }}"
+            f"QFrame {{ background-color: {FICHA}; border-radius: {estilo.RADIO_BOTON}px; padding: 6px; }}"
         )
         self._layout_meta_sel = QVBoxLayout(self._cuadro_meta_sel)
         self._layout_meta_sel.setContentsMargins(8, 8, 8, 8)
@@ -461,8 +462,8 @@ class PantallaRedes(QWidget):
         self.btn_ver_ficha = self.btn_ver_investigador
         self.btn_ver_investigador.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ver_investigador.setStyleSheet(
-            f"QPushButton {{ background-color: {PRIMARIO}; color: #FFFFFF; font-weight: bold; "
-            f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: 9.5pt; }}"
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: bold; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
             f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
         )
         self.btn_ver_investigador.clicked.connect(self._al_pulsar_ver_ficha_nodo)
@@ -471,9 +472,9 @@ class PantallaRedes(QWidget):
         self.btn_deseleccionar = QPushButton("Deseleccionar", self._caja_con_seleccion)
         self.btn_deseleccionar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_deseleccionar.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: {TEXTO}; font-weight: 600; "
-            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 7px 12px; font-size: 9.5pt; }}"
-            f"QPushButton:hover {{ background-color: #F1F5F9; }}"
+            f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 7px 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_deseleccionar.clicked.connect(self._al_pulsar_deseleccionar)
         fila_btn_sel.addWidget(self.btn_deseleccionar)
@@ -487,21 +488,21 @@ class PantallaRedes(QWidget):
         self._tarjeta_resumen_red = QFrame(self._cuerpo_panel)
         self._tarjeta_resumen_red.setStyleSheet(
             f"QFrame {{ background-color: {FICHA}; border: 1px solid {LINEA}; "
-            f"border-radius: 8px; padding: 8px; }}"
+            f"border-radius: {estilo.RADIO_BOTON}px; padding: 8px; }}"
         )
         layout_res = QVBoxLayout(self._tarjeta_resumen_red)
         layout_res.setContentsMargins(8, 8, 8, 8)
         layout_res.setSpacing(6)
 
         lbl_tit_res = QLabel("Resumen de la red", self._tarjeta_resumen_red)
-        lbl_tit_res.setStyleSheet(f"font-size: 10pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit_res.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout_res.addWidget(lbl_tit_res)
 
         self.lbl_resumen_red = QLabel(
             "Investigadores: 0\nEnlaces de coautoría: 0\nDensidad: 0,0000",
             self._tarjeta_resumen_red,
         )
-        self.lbl_resumen_red.setStyleSheet(f"font-size: 9pt; color: {TEXTO};")
+        self.lbl_resumen_red.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
         layout_res.addWidget(self.lbl_resumen_red)
 
         self._layout_cuerpo_panel.addStretch(1)
@@ -680,7 +681,7 @@ class PantallaRedes(QWidget):
 
         if not top_5:
             lbl_vac = QLabel("Sin coautorías registradas en este período.", self._caja_sin_seleccion)
-            lbl_vac.setStyleSheet(f"font-size: 9pt; color: {TEXTO_SECUNDARIO};")
+            lbl_vac.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             self._contenedor_top.addWidget(lbl_vac)
             return
 
@@ -741,9 +742,9 @@ class PantallaRedes(QWidget):
             f = QHBoxLayout()
             f.setContentsMargins(0, 0, 0, 0)
             l1 = QLabel(k, self._cuadro_meta_sel)
-            l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+            l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
             l2 = QLabel(v, self._cuadro_meta_sel)
-            l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO};")
+            l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
             f.addWidget(l1)
             f.addWidget(l2)
             f.addStretch()
@@ -806,7 +807,7 @@ class PantallaRedes(QWidget):
             alto_px = int(rect_escena.height() * 2.0)
 
             imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32_Premultiplied)
-            imagen.fill(QColor("#FFFFFF"))
+            imagen.fill(QColor("{estilo.SUPERFICIE}"))
 
             painter = QPainter(imagen)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)

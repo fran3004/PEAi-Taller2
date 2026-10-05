@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import TablaEstilizada
 from pea.gui.componentes.tarjeta import Tarjeta
@@ -83,7 +84,7 @@ class ZonaSoltarArchivo(QFrame):
 
         # Ícono decorativo
         self._lbl_icono = QLabel("📁", self)
-        self._lbl_icono.setStyleSheet("font-size: 18pt;")
+        self._lbl_icono.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt;")
         layout.addWidget(self._lbl_icono)
 
         # Columna de texto (nombre de archivo o ayuda)
@@ -124,7 +125,7 @@ class ZonaSoltarArchivo(QFrame):
     def _establecer_estilo(self, arrastrando: bool) -> None:
         if arrastrando:
             borde = f"2px dashed {ACENTO}"
-            fondo = "#F0F9FF"
+            fondo = "{estilo.INFO_FONDO}"
         else:
             borde = f"2px dashed {LINEA_FUERTE}"
             fondo = FICHA
@@ -230,7 +231,7 @@ class PantallaImportar(QWidget):
 
         lbl_titulo = QLabel("Importación e Ingesta de Fuentes", self)
         lbl_titulo.setObjectName("tituloPantalla")
-        lbl_titulo.setStyleSheet(f"font-size: 16pt; font-weight: 800; color: {TEXTO};")
+        lbl_titulo.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {TEXTO};")
         caja_titulo.addWidget(lbl_titulo)
 
         lbl_desc = QLabel(
@@ -369,7 +370,7 @@ class PantallaImportar(QWidget):
 
         # Barra superior de control de la cola (acciones de tarjeta)
         self.lbl_estado_cola = QLabel("Tareas pendientes: 0", self.tarjeta_cola)
-        self.lbl_estado_cola.setStyleSheet(f"font-weight: bold; color: {PRIMARIO}; font-size: 11pt;")
+        self.lbl_estado_cola.setStyleSheet(f"font-weight: bold; color: {PRIMARIO}; font-size: {estilo.TAMANO_CUERPO}pt;")
         self.tarjeta_cola.agregar_accion(self.lbl_estado_cola)
 
         self.btn_procesar_siguiente = QPushButton("Procesar siguiente", self.tarjeta_cola)

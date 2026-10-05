@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.estilo import (
     ACENTO,
@@ -102,7 +103,7 @@ class PantallaAcerca(QWidget):
             f"  font-size: {TAMANO_CUERPO}pt;"
             f"}}"
             f"QPushButton#btnVolverAcerca:hover {{"
-            f"  background-color: #E2E8F0;"
+            f"  background-color: {estilo.SUPERFICIE_GRAFICO_GUIA};"
             f"}}"
         )
         self.btn_volver.clicked.connect(self.volver_solicitado.emit)
@@ -120,7 +121,7 @@ class PantallaAcerca(QWidget):
         tarjeta_institucional.setStyleSheet(
             f"QFrame#tarjetaInstitucional {{"
             f"  background-color: {ENCABEZADO_INICIO};"
-            f"  border-radius: 16px;"
+            f"  border-radius: {estilo.RADIO_TARJETA}px;"
             f"  padding: 24px;"
             f"}}"
         )
@@ -131,7 +132,7 @@ class PantallaAcerca(QWidget):
         # Pastilla blanca con logo de la UPC
         pastilla_logo = QFrame(tarjeta_institucional)
         pastilla_logo.setFixedSize(72, 72)
-        pastilla_logo.setStyleSheet("background-color: #FFFFFF; border-radius: 12px;")
+        pastilla_logo.setStyleSheet(f"background-color: {estilo.SUPERFICIE}; border-radius: {estilo.RADIO_PESTANA_ACTIVA}px;")
         disp_logo = QVBoxLayout(pastilla_logo)
         disp_logo.setContentsMargins(4, 4, 4, 4)
         disp_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -150,7 +151,7 @@ class PantallaAcerca(QWidget):
 
         lbl_upc = QLabel("UNIVERSIDAD POPULAR DEL CESAR", tarjeta_institucional)
         lbl_upc.setStyleSheet(
-            f"font-size: 14pt; font-weight: 800; color: {TEXTO_SOBRE_OSCURO}; letter-spacing: 0.5px;"
+            f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: 800; color: {TEXTO_SOBRE_OSCURO}; letter-spacing: 0.5px;"
         )
         disp_textos_upc.addWidget(lbl_upc)
 
@@ -180,7 +181,7 @@ class PantallaAcerca(QWidget):
         # -------------------------------------------------------------------
         self.tarjeta_software = Tarjeta(titulo="Software PEA-i", parent=contenedor)
         lbl_titulo_soft = QLabel(f"{NOMBRE_COMPLETO} (v{APP_VERSION})", self.tarjeta_software)
-        lbl_titulo_soft.setStyleSheet(f"font-size: 13pt; font-weight: bold; color: {PRIMARIO};")
+        lbl_titulo_soft.setStyleSheet(f"font-size: {estilo.TAMANO_SUBTITULO}pt; font-weight: bold; color: {PRIMARIO};")
         self.tarjeta_software.agregar_widget(lbl_titulo_soft)
 
         lbl_eslogan = QLabel(f"{ESLOGAN_LINEA_1} — {ESLOGAN_LINEA_2}", self.tarjeta_software)

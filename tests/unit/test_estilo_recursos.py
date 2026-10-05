@@ -220,12 +220,8 @@ def test_variantes_css_desconocidas_fallan_explicitamente() -> None:
         css_boton("inexistente")
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="migración en curso: las pantallas aún contienen estilos literales",
-)
 def test_guardian_estilos_sin_literales_en_gui() -> None:
-    """Prepara la migración completa de colores y tamaños a estilo.py."""
+    """Verifica que la GUI no mantenga literales de color o tamaño."""
     raiz = Path(__file__).parents[2] / "src" / "pea" / "gui"
     patrones = (
         re.compile(r"#[0-9A-Fa-f]{6}"),

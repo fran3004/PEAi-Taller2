@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from pea.gui import estilo
 from pea.gui.componentes.animacion import animaciones_habilitadas, animar_desvanecimiento
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.estado_vacio import EstadoVacio
@@ -212,7 +213,7 @@ class BotonPestanaSuperior(QPushButton):
 
             # 4. Etiqueta de texto
             fuente = QFont()
-            fuente.setPointSize(10)
+            fuente.setPointSize(estilo.TAMANO_AUXILIAR)
             fuente.setBold(es_activo)
             painter.setFont(fuente)
 
@@ -253,10 +254,10 @@ class BotonDeshacerSuperior(QWidget):
         self.btn_accion.setIcon(cargar_icono("deshacer.svg", 18))
         self.btn_accion.setIconSize(QSize(18, 18))
         self.btn_accion.setStyleSheet(
-            "QPushButton { background-color: rgba(255, 255, 255, 0.12); "
-            "border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 20px; }"
-            "QPushButton:hover { background-color: rgba(255, 255, 255, 0.22); }"
-            "QPushButton:disabled { background-color: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }"
+            "QPushButton { background-color: {estilo.SUPERPOSICION_CLARA_12}; "
+            "border: 1px solid {estilo.SUPERPOSICION_CLARA_25}; border-radius: {estilo.RADIO_TARJETA}px; }"
+            "QPushButton:hover { background-color: {estilo.SUPERPOSICION_CLARA_22}; }"
+            "QPushButton:disabled { background-color: {estilo.SUPERPOSICION_CLARA_5}; border-color: {estilo.SUPERPOSICION_CLARA_10}; }"
         )
         self.btn_accion.clicked.connect(self.deshacer_pulsado.emit)
         layout.addWidget(self.btn_accion)
@@ -268,8 +269,8 @@ class BotonDeshacerSuperior(QWidget):
         self.btn_chevron.setAccessibleName("Abrir historial de operaciones")
         self.btn_chevron.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
-            f"font-size: 11pt; border: none; border-radius: 8px; }}"
-            f"QPushButton:hover {{ background-color: rgba(255, 255, 255, 0.12); color: #FFFFFF; }}"
+            f"font-size: {estilo.TAMANO_CUERPO}pt; border: none; border-radius: {estilo.RADIO_BOTON}px; }}"
+            f"QPushButton:hover {{ background-color: {estilo.SUPERPOSICION_CLARA_12}; color: {estilo.SUPERFICIE}; }}"
         )
         self.btn_chevron.clicked.connect(self.popover_solicitado.emit)
         layout.addWidget(self.btn_chevron)
@@ -322,7 +323,7 @@ class MarcadorPantalla(QWidget):
         barra_contexto = QFrame(self)
         barra_contexto.setFixedHeight(56)
         barra_contexto.setStyleSheet(
-            f"QFrame {{ background-color: #FFFFFF; border: 1px solid {LINEA}; "
+            f"QFrame {{ background-color: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; "
             f"border-radius: {RADIO_BOTON}px; }}"
         )
         layout_ctx = QHBoxLayout(barra_contexto)
@@ -330,7 +331,7 @@ class MarcadorPantalla(QWidget):
         layout_ctx.setSpacing(12)
 
         lbl_tit = QLabel(titulo, barra_contexto)
-        lbl_tit.setStyleSheet(f"font-size: 14pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
         layout_ctx.addWidget(lbl_tit)
         layout_ctx.addStretch()
 
@@ -499,12 +500,12 @@ class VentanaPrincipal(QMainWindow):
         caja_textos_marca.setSpacing(1)
 
         lbl_marca = QLabel("PEA-i", self._zona_marca)
-        lbl_marca.setStyleSheet("font-size: 16pt; font-weight: 800; color: #FFFFFF;")
+        lbl_marca.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {estilo.SUPERFICIE};")
         caja_textos_marca.addWidget(lbl_marca)
 
         self._lbl_eslogan = QLabel(f"{ESLOGAN_LINEA_1}\n{ESLOGAN_LINEA_2}", self._zona_marca)
         self._lbl_eslogan.setStyleSheet(
-            f"font-size: 8.5pt; color: {TEXTO_SOBRE_OSCURO_SUAVE}; line-height: 1.1;"
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SOBRE_OSCURO_SUAVE}; line-height: 1.1;"
         )
         caja_textos_marca.addWidget(self._lbl_eslogan)
         layout_marca.addLayout(caja_textos_marca)
@@ -574,9 +575,9 @@ class VentanaPrincipal(QMainWindow):
         self.btn_cerrar_sesion.setIcon(cargar_icono("cerrar_sesion.svg", 14))
         self.btn_cerrar_sesion.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cerrar_sesion.setStyleSheet(
-            "QPushButton { background-color: transparent; color: #FFFFFF; font-size: 9.5pt; "
-            "border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 8px; padding: 4px 10px; }"
-            "QPushButton:hover { background-color: rgba(255, 255, 255, 0.12); }"
+            "QPushButton { background-color: transparent; color: {estilo.SUPERFICIE}; font-size: {estilo.TAMANO_AUXILIAR}pt; "
+            "border: 1px solid {estilo.SUPERPOSICION_CLARA_40}; border-radius: {estilo.RADIO_BOTON}px; padding: 4px 10px; }"
+            "QPushButton:hover { background-color: {estilo.SUPERPOSICION_CLARA_12}; }"
         )
         self.btn_cerrar_sesion.clicked.connect(self._al_clic_cerrar_sesion)
         col_sesion.addWidget(self.btn_cerrar_sesion)
@@ -585,8 +586,8 @@ class VentanaPrincipal(QMainWindow):
         self.btn_acerca.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_acerca.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
-            f"font-size: 8.5pt; border: none; padding: 0; text-align: center; }}"
-            f"QPushButton:hover {{ color: #FFFFFF; text-decoration: underline; }}"
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; border: none; padding: 0; text-align: center; }}"
+            f"QPushButton:hover {{ color: {estilo.SUPERFICIE}; text-decoration: underline; }}"
         )
         self.btn_acerca.clicked.connect(lambda: self.seleccionar_pantalla(Pantalla.ACERCA))
         col_sesion.addWidget(self.btn_acerca)
@@ -617,15 +618,15 @@ class VentanaPrincipal(QMainWindow):
         self._lbl_texto_banner = QLabel(
             "La base de datos cambió en el servidor. Existen modificaciones externas.", banner
         )
-        self._lbl_texto_banner.setStyleSheet(f"color: {AVISO}; font-weight: bold; font-size: 10.5pt;")
+        self._lbl_texto_banner.setStyleSheet(f"color: {AVISO}; font-weight: bold; font-size: {estilo.TAMANO_CUERPO}pt;")
         layout.addWidget(self._lbl_texto_banner, 1)
 
         btn_recargar = QPushButton("Recargar ahora", banner)
         btn_recargar.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_recargar.setStyleSheet(
-            f"QPushButton {{ background-color: {AVISO}; color: #FFFFFF; padding: 5px 14px; "
-            f"border-radius: {RADIO_BOTON}px; font-weight: bold; border: none; font-size: 10pt; }}"
-            f"QPushButton:hover {{ background-color: #703D00; }}"
+            f"QPushButton {{ background-color: {AVISO}; color: {estilo.SUPERFICIE}; padding: 5px 14px; "
+            f"border-radius: {RADIO_BOTON}px; font-weight: bold; border: none; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"QPushButton:hover {{ background-color: {estilo.AVISO}; }}"
         )
         btn_recargar.clicked.connect(self._al_clic_recargar_revision)
         layout.addWidget(btn_recargar)
@@ -650,7 +651,7 @@ class VentanaPrincipal(QMainWindow):
             "Sin conexión con Supabase. Los datos en pantalla pueden no ser actuales y las escrituras están bloqueadas.",
             franja,
         )
-        lbl_txt.setStyleSheet(f"color: {ERROR}; font-weight: 600; font-size: 10.5pt;")
+        lbl_txt.setStyleSheet(f"color: {ERROR}; font-weight: 600; font-size: {estilo.TAMANO_CUERPO}pt;")
         layout.addWidget(lbl_txt, 1)
 
         return franja
@@ -770,7 +771,7 @@ class VentanaPrincipal(QMainWindow):
         self._pastilla_logo = QFrame(pie)
         self._pastilla_logo.setFixedSize(52, 52)
         self._pastilla_logo.setStyleSheet(
-            "QFrame { background-color: #FFFFFF; border-radius: 12px; }"
+            "QFrame { background-color: {estilo.SUPERFICIE}; border-radius: {estilo.RADIO_PESTANA_ACTIVA}px; }"
         )
         layout_logo = QHBoxLayout(self._pastilla_logo)
         layout_logo.setContentsMargins(4, 4, 4, 4)
@@ -782,7 +783,7 @@ class VentanaPrincipal(QMainWindow):
         layout.addWidget(self._pastilla_logo)
 
         lbl_pea_pie = QLabel("PEA-i", pie)
-        lbl_pea_pie.setStyleSheet(f"font-size: 11pt; font-weight: bold; color: {TEXTO};")
+        lbl_pea_pie.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout.addWidget(lbl_pea_pie)
 
         # Centro: Texto institucional en 2 líneas
@@ -795,12 +796,12 @@ class VentanaPrincipal(QMainWindow):
             "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas",
             self._caja_texto_pie,
         )
-        l1.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO};")
+        l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         l2 = QLabel(
             "Taller 2 de Estructura de Datos · Datos de SCIENTI (Minciencias) · Modelo de Medición 2024 (M601PR04G01)",
             self._caja_texto_pie,
         )
-        l2.setStyleSheet(f"font-size: 8.5pt; color: {TEXTO_SECUNDARIO};")
+        l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         layout_txt_pie.addWidget(l1)
         layout_txt_pie.addWidget(l2)
         layout.addWidget(self._caja_texto_pie)
@@ -814,27 +815,27 @@ class VentanaPrincipal(QMainWindow):
         layout_vivo.setSpacing(10)
 
         self._lbl_estado_conexion = QLabel("● Conectando…", zona_vivo)
-        self._lbl_estado_conexion.setStyleSheet(f"font-size: 9.5pt; font-weight: 600; color: {TEXTO};")
+        self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO};")
         layout_vivo.addWidget(self._lbl_estado_conexion)
 
         self._chip_revision = QLabel("Revisión: -", zona_vivo)
         self._chip_revision.setStyleSheet(
-            f"font-size: 9pt; color: {TEXTO_SECUNDARIO}; background: #FFFFFF; "
-            f"border: 1px solid {LINEA}; border-radius: 6px; padding: 3px 8px;"
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; background: {estilo.SUPERFICIE}; "
+            f"border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; padding: 3px 8px;"
         )
         layout_vivo.addWidget(self._chip_revision)
 
         self._chip_deshacer = QLabel("Deshacer: 0", zona_vivo)
         self._chip_deshacer.setStyleSheet(
-            f"font-size: 9pt; color: {TEXTO_SECUNDARIO}; background: #FFFFFF; "
-            f"border: 1px solid {LINEA}; border-radius: 6px; padding: 3px 8px;"
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; background: {estilo.SUPERFICIE}; "
+            f"border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; padding: 3px 8px;"
         )
         layout_vivo.addWidget(self._chip_deshacer)
 
         self._chip_cola = QLabel("Cola: 0", zona_vivo)
         self._chip_cola.setStyleSheet(
-            f"font-size: 9pt; color: {TEXTO_SECUNDARIO}; background: #FFFFFF; "
-            f"border: 1px solid {LINEA}; border-radius: 6px; padding: 3px 8px;"
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; background: {estilo.SUPERFICIE}; "
+            f"border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; padding: 3px 8px;"
         )
         layout_vivo.addWidget(self._chip_cola)
 
@@ -1094,17 +1095,17 @@ class VentanaPrincipal(QMainWindow):
         if estado.modo == ModoConexion.SUPABASE:
             if estado.sin_conexion:
                 self._lbl_estado_conexion.setText("● Sin conexión")
-                self._lbl_estado_conexion.setStyleSheet(f"font-size: 9.5pt; font-weight: bold; color: {ERROR};")
+                self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {ERROR};")
             else:
                 rev = estado.revision_local or 0
                 self._lbl_estado_conexion.setText(f"● Conectado a Supabase · Revisión {rev}")
-                self._lbl_estado_conexion.setStyleSheet(f"font-size: 9.5pt; font-weight: bold; color: {EXITO};")
+                self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {EXITO};")
         elif es_demo:
             self._lbl_estado_conexion.setText("● Datos de demostración")
-            self._lbl_estado_conexion.setStyleSheet(f"font-size: 9.5pt; font-weight: bold; color: {AVISO};")
+            self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {AVISO};")
         else:
             self._lbl_estado_conexion.setText("● Desconectado")
-            self._lbl_estado_conexion.setStyleSheet(f"font-size: 9.5pt; font-weight: bold; color: {TEXTO_SECUNDARIO};")
+            self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {TEXTO_SECUNDARIO};")
 
         rev_txt = f"Revisión: {estado.revision_local}" if estado.revision_local is not None else "Revisión: N/A"
         self._chip_revision.setText(rev_txt)
