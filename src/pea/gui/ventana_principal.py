@@ -37,6 +37,7 @@ from PySide6.QtGui import (
     QPen,
 )
 from PySide6.QtWidgets import (
+    QAbstractScrollArea,
     QApplication,
     QButtonGroup,
     QFrame,
@@ -1142,7 +1143,7 @@ class VentanaPrincipal(QMainWindow):
 
 
 def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
-    """Ejecuta el recorrido de verificación y genera capturas en los 3 tamaños oficiales."""
+    """Ejecuta el recorrido visual, valida geometrías y genera capturas oficiales."""
     import os
 
     os.environ["PEA_SIN_ANIMACIONES"] = "1"
@@ -1150,7 +1151,7 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         print("[AUTOPRUEBA] ERROR: la fuente Inter no está cargada; no se generan capturas.")
         return 2
     print("[AUTOPRUEBA] Iniciando autoprueba de ventana principal PEA-i (PEA_SIN_ANIMACIONES=1)...")
-    salida_dir = Path("datos/capturas")
+    salida_dir = Path("datos/capturas/oficiales")
     salida_dir.mkdir(parents=True, exist_ok=True)
 
     # Cargar demostración
@@ -1179,6 +1180,9 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         (Pantalla.ACERCA, "07_acerca"),
     ]
 
+    resumen: list[tuple[str, str, int, int, str]] = []
+    errores_barras = 0
+
     for p_enum, nombre_pantalla in pantallas_recorrido:
         ventana.seleccionar_pantalla(p_enum)
         app.processEvents()
@@ -1190,14 +1194,55 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         for ancho, alto, etiqueta in tamanos:
             ventana.resize(ancho, alto)
             app.processEvents()
+            app.processEvents()
+
+            barras = [
+                widget.objectName() or widget.metaObject().className()
+                for widget in ventana.findChildren(QAbstractScrollArea)
+                if widget.isVisible() and widget.horizontalScrollBar().isVisible()
+            ]
+            fuera = []
+            rect_ventana = ventana.rect()
+            for widget in ventana.findChildren(QWidget):
+                if not widget.isVisibleTo(ventana):
+                    continue
+                top_left = widget.mapTo(ventana, widget.rect().topLeft())
+                recto = widget.rect().translated(top_left)
+                if not rect_ventana.contains(recto):
+                    fuera.append(widget.objectName() or widget.metaObject().className())
+
             pix = ventana.grab()
             ruta = salida_dir / f"pantalla_{nombre_pantalla}_{etiqueta}.png"
             pix.save(str(ruta), "PNG")
             print(f"[AUTOPRUEBA] Captura guardada en {ruta}")
+            if barras:
+                errores_barras += len(barras)
+                print(
+                    f"[AUTOPRUEBA] ERROR {nombre_pantalla} {etiqueta}: "
+                    f"barras horizontales visibles: {', '.join(barras)}"
+                )
+            if fuera:
+                print(
+                    f"[AUTOPRUEBA] ADVERTENCIA {nombre_pantalla} {etiqueta}: "
+                    f"{len(fuera)} widgets fuera de la ventana: {', '.join(fuera)}"
+                )
+            resumen.append((nombre_pantalla, etiqueta, len(barras), len(fuera), str(ruta)))
 
     # Restaurar a Inicio
     ventana.seleccionar_pantalla(Pantalla.INICIO)
     app.processEvents()
 
+    print("\n[AUTOPRUEBA] Resumen")
+    print(f"{'Pantalla':<22} {'Tamano':<10} {'Barras':>7} {'Fuera':>7}  Captura")
+    print("-" * 100)
+    for nombre, etiqueta, barras, fuera, ruta in resumen:
+        print(f"{nombre:<22} {etiqueta:<10} {barras:>7} {fuera:>7}  {ruta}")
+
+    if errores_barras:
+        print(
+            f"[AUTOPRUEBA] FALLA: se detectaron {errores_barras} "
+            "barras horizontales visibles."
+        )
+        return 3
     print("[AUTOPRUEBA] Autoprueba completada exitosamente.")
     return 0

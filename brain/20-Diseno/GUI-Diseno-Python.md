@@ -491,7 +491,7 @@ src/pea/gui/
 - [ ] Con 1100×700, 1366×768 y 1920×1080 no hay recortes ni desbordes.
 - [ ] La ventana nunca se congela (importar, conectar y la red usan hilos).
 - [ ] `ruff check` sin errores y `pytest tests/unit` en verde (con las pruebas de interfaz actualizadas a esta estructura).
-- [ ] La autoprueba (`python -m pea.gui --autoprueba`) guarda capturas `datos/capturas/pantalla_<nn>_<nombre>_<ancho>x<alto>.png` de cada pantalla en los tres tamaños.
+- [ ] La autoprueba (`python -m pea.gui --autoprueba`) guarda capturas `datos/capturas/oficiales/pantalla_<nn>_<nombre>_<ancho>x<alto>.png` de cada pantalla en los tres tamaños.
 - [ ] Comparación lado a lado con las referencias hecha y anotada en la bitácora.
 
 ## 16. Pendiente para C++ (no se toca aquí)
