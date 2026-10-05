@@ -277,6 +277,7 @@ class FichaLateral(QFrame):
             item = self._layout_pildoras.takeAt(0)
             widget = item.widget()
             if widget is not None:
+                widget.setParent(None)
                 widget.deleteLater()
 
         if pildoras:

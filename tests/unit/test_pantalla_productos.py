@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame
 
 from pea.gui.componentes.tabla import ROL_ACTIVO
 from pea.gui.pantallas.productos import (
@@ -283,3 +283,103 @@ def test_cambio_filtro_anios_en_productos(
 
     assert pantalla._filtro_actual.modo == ModoFiltroAnios.ULTIMOS
     assert pantalla.chip_ventana.filtro.modo == ModoFiltroAnios.ULTIMOS
+
+
+def test_ficha_producto_sin_widgets_huerfanos(qapp: QApplication) -> None:
+    """Verifica que la ficha no cree widgets huérfanos fuera de sus layouts."""
+    ficha = FichaProducto()
+    qapp.processEvents()
+
+    # Comprobar que _lbl_anio pertenece al layout de metadatos
+    assert ficha._lbl_anio.parent() is not None
+    assert ficha._layout_meta.indexOf(ficha._lbl_anio) != -1
+
+    # Comprobar que las píldoras pertenezcan al layout de cabecera
+    assert ficha._pildora_tipologia is not None
+    assert ficha._layout_pildoras.indexOf(ficha._pildora_tipologia) != -1
+    assert ficha._pildora_validacion is not None
+    assert ficha._layout_pildoras.indexOf(ficha._pildora_validacion) != -1
+
+    # Comprobar que ningún widget hijo directo de FichaProducto esté huérfano (sin layout)
+    for hijo in ficha.findChildren(QFrame):
+        if hijo.parent() is ficha:
+            assert ficha.layout().indexOf(hijo) != -1
+
+
+def test_ficha_producto_actualizar_no_solapa_ni_acumula(qapp: QApplication) -> None:
+    """Verifica que llamadas repetidas a actualizar no acumulen widgets ni dejen restos huérfanos."""
+    ficha = FichaProducto()
+    qapp.processEvents()
+
+    datos_1 = {
+        "titulo": "Producto 1",
+        "codigo": "P-01",
+        "tipo_mayor": "GNC",
+        "validacion": "Avalado",
+        "activo": True,
+        "ano": 2023,
+        "subtipo": "Artículo",
+        "grupo": "Grupo A",
+        "en_ventana_modelo_2024": True,
+        "autores_lista": [{"nombre": "Autor 1", "codigo_rh": "RH-1"}, {"nombre": "Autor 2", "codigo_rh": "RH-2"}],
+    }
+    ficha.actualizar(datos_1)
+    qapp.processEvents()
+    assert ficha._caja_lista_autores.count() == 2
+    assert len(ficha._filas_autores) == 2
+
+    # Actualizar con lista distinta de autores
+    datos_2 = {
+        "titulo": "Producto 2",
+        "codigo": "P-02",
+        "tipo_mayor": "DA",
+        "validacion": "Con soporte",
+        "activo": False,
+        "ano": 2021,
+        "subtipo": "Software",
+        "grupo": "Grupo B",
+        "en_ventana_modelo_2024": False,
+        "autores_lista": [{"nombre": "Autor Único", "codigo_rh": "RH-3"}],
+    }
+    ficha.actualizar(datos_2)
+    qapp.processEvents()
+    assert ficha._caja_lista_autores.count() == 1
+    assert len(ficha._filas_autores) == 1
+
+    # Actualizar sin autores
+    datos_3 = {
+        "titulo": "Producto 3",
+        "codigo": "P-03",
+        "tipo_mayor": "FRH",
+        "validacion": "No avalado",
+        "activo": True,
+        "ano": 2020,
+        "subtipo": "Tesis",
+        "grupo": "Grupo C",
+        "en_ventana_modelo_2024": False,
+        "autores_lista": [],
+    }
+    ficha.actualizar(datos_3)
+    qapp.processEvents()
+    assert ficha._caja_lista_autores.count() == 1  # Mensaje de sin autores
+    assert len(ficha._filas_autores) == 0
+
+
+@pytest.mark.parametrize("resolucion", [(1100, 700), (1366, 768), (1920, 1080)])
+def test_tabla_productos_titulo_ancho_legible(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion, resolucion: tuple[int, int]
+) -> None:
+    """Verifica que en distintas resoluciones Título mantenga un ancho legible (>= 200 px) sin scroll horizontal."""
+    ancho, alto = resolucion
+    pantalla = PantallaProductos(servicio=servicio_con_datos)
+    pantalla.resize(ancho, alto)
+    pantalla.show()
+    qapp.processEvents()
+
+    vista = pantalla.tabla.vista
+    assert not vista.horizontalScrollBar().isVisible()
+    # Título (columna 1) debe ser visible
+    assert not vista.isColumnHidden(1)
+    ancho_titulo = vista.columnWidth(1)
+    assert ancho_titulo >= 200, f"Título tiene ancho {ancho_titulo} px en resolución {resolucion}, menor a 200 px"
+

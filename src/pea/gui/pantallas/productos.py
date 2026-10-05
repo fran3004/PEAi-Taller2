@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QMenu,
@@ -382,16 +383,23 @@ class FichaProducto(FichaLateral):
         super().__init__(parent=parent, diametro_avatar=64)
         self.setObjectName("fichaProducto")
 
-        # Ocultar avatar de persona ya que es un producto
+        # Ocultar avatar de persona ya que la entidad es un producto científico
         self._avatar.setVisible(False)
 
-        # Configurar nombre a alineación izquierda y tamaño adaptable
+        # Configurar nombre a alineación izquierda y tamaño adaptable con ajuste de línea
         self._lbl_nombre.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self._lbl_nombre.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
+        self._lbl_nombre.setWordWrap(True)
+        self._lbl_nombre.setStyleSheet(
+            f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};"
+        )
 
         self._lbl_subtitulo.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._lbl_subtitulo.setWordWrap(True)
 
-        # Ocultar botones de ficha amplia y catálogo de productos (no aplican en productos)
+        # Alinear píldoras de cabecera a la izquierda
+        self._layout_pildoras.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        # Ocultar botones no aplicables a un producto
         self.btn_ver_completa.setVisible(False)
         self.btn_ver_productos.setVisible(False)
 
@@ -399,20 +407,57 @@ class FichaProducto(FichaLateral):
         # Contenido Específico de Producto
         # -------------------------------------------------------------------
 
-        # 1. Metadatos generales (Año, Grupo, Subtipo)
-        self._cuadro_meta = QFrame(self._cuerpo)
+        # 1. Metadatos generales (Año, Subtipo, Grupo de investigación)
+        self._cuadro_meta = QFrame(self._contenedor_contenido)
+        self._cuadro_meta.setObjectName("cuadroMetaProducto")
         self._cuadro_meta.setStyleSheet(
-            f"QFrame {{ background-color: {FICHA}; border-radius: {estilo.RADIO_BOTON}px; padding: 6px; }}"
+            f"QFrame#cuadroMetaProducto {{ "
+            f"  background-color: {FICHA}; "
+            f"  border: 1px solid {LINEA}; "
+            f"  border-radius: {estilo.RADIO_BOTON}px; "
+            f"}}"
         )
-        self._layout_meta = QVBoxLayout(self._cuadro_meta)
-        self._layout_meta.setContentsMargins(10, 8, 10, 8)
-        self._layout_meta.setSpacing(5)
+        self._layout_meta = QGridLayout(self._cuadro_meta)
+        self._layout_meta.setContentsMargins(12, 10, 12, 10)
+        self._layout_meta.setHorizontalSpacing(10)
+        self._layout_meta.setVerticalSpacing(8)
+
+        # Fila 0: Año de publicación
+        lbl_tit_anio = QLabel("Año de publicación:", self._cuadro_meta)
+        lbl_tit_anio.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+        self._lbl_valor_anio = QLabel("—", self._cuadro_meta)
+        self._lbl_valor_anio.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO}; font-weight: 600;")
+        self._lbl_valor_anio.setWordWrap(True)
+        self._layout_meta.addWidget(lbl_tit_anio, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._layout_meta.addWidget(self._lbl_valor_anio, 0, 1, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        # Fila 1: Subtipo
+        lbl_tit_subtipo = QLabel("Subtipo:", self._cuadro_meta)
+        lbl_tit_subtipo.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+        self._lbl_valor_subtipo = QLabel("—", self._cuadro_meta)
+        self._lbl_valor_subtipo.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
+        self._lbl_valor_subtipo.setWordWrap(True)
+        self._layout_meta.addWidget(lbl_tit_subtipo, 1, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._layout_meta.addWidget(self._lbl_valor_subtipo, 1, 1, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        # Fila 2: Grupo de investigación
+        lbl_tit_grupo = QLabel("Grupo de investigación:", self._cuadro_meta)
+        lbl_tit_grupo.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
+        self._lbl_valor_grupo = QLabel("—", self._cuadro_meta)
+        self._lbl_valor_grupo.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
+        self._lbl_valor_grupo.setWordWrap(True)
+        self._layout_meta.addWidget(lbl_tit_grupo, 2, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self._layout_meta.addWidget(self._lbl_valor_grupo, 2, 1, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        self._layout_meta.setColumnStretch(0, 0)
+        self._layout_meta.setColumnStretch(1, 1)
+
         self.agregar_contenido(self._cuadro_meta)
 
         # 2. Insignia de la ventana del Modelo 2024
-        self.insignia_ventana = QFrame(self._cuerpo)
+        self.insignia_ventana = QFrame(self._contenedor_contenido)
         layout_ins = QHBoxLayout(self.insignia_ventana)
-        layout_ins.setContentsMargins(10, 8, 10, 8)
+        layout_ins.setContentsMargins(12, 8, 12, 8)
         layout_ins.setSpacing(8)
 
         self.lbl_insignia_ventana = QLabel("✔ Dentro de la ventana del Modelo 2024", self.insignia_ventana)
@@ -423,30 +468,57 @@ class FichaProducto(FichaLateral):
         self.agregar_contenido(self.insignia_ventana)
 
         # 3. Sección de Coautores y Colaboradores
-        self._contenedor_autores = QWidget(self._cuerpo)
+        self._contenedor_autores = QWidget(self._contenedor_contenido)
         self._layout_autores = QVBoxLayout(self._contenedor_autores)
         self._layout_autores.setContentsMargins(0, 4, 0, 0)
         self._layout_autores.setSpacing(6)
 
         lbl_tit_autores = QLabel("Autores y colaboradores vinculados", self._contenedor_autores)
         lbl_tit_autores.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
+        lbl_tit_autores.setWordWrap(True)
         self._layout_autores.addWidget(lbl_tit_autores)
 
         self._caja_lista_autores = QVBoxLayout()
         self._caja_lista_autores.setSpacing(6)
         self._layout_autores.addLayout(self._caja_lista_autores)
 
+        self.agregar_contenido(self._contenedor_autores)
+
+        # Atributos de compatibilidad con pantallas y suites de pruebas
         self._lbl_titulo = self._lbl_nombre
         self._lbl_codigo = self._lbl_subtitulo
         self._insignia_ventana = self.insignia_ventana
         self._contenedor_coautores = self._contenedor_autores
         self._filas_autores: list[QFrame] = []
         self._filas_coautores = self._filas_autores
-        self._lbl_anio = QLabel("", self)
-        self._pildora_tipologia = Pildora("GNC", parent=self)
-        self._pildora_validacion = Pildora("Avalado", parent=self)
+        self._lbl_anio = self._lbl_valor_anio
 
-        self.agregar_contenido(self._contenedor_autores)
+        # Configurar cabecera inicial con píldoras estándar en layout
+        self.establecer_cabecera(
+            nombre="Producto",
+            subtitulo="",
+            pildoras=[("GNC", None), ("Avalado", None)],
+        )
+        self._avatar.setVisible(False)
+        self.mostrar_vacio()
+
+    @property
+    def _pildora_tipologia(self) -> Pildora | None:
+        """Píldora de tipología obtenida directamente de la cabecera."""
+        if self._layout_pildoras.count() > 0:
+            item = self._layout_pildoras.itemAt(0)
+            if item and item.widget() and isinstance(item.widget(), Pildora):
+                return item.widget()
+        return None
+
+    @property
+    def _pildora_validacion(self) -> Pildora | None:
+        """Píldora de validación obtenida directamente de la cabecera."""
+        if self._layout_pildoras.count() > 1:
+            item = self._layout_pildoras.itemAt(1)
+            if item and item.widget() and isinstance(item.widget(), Pildora):
+                return item.widget()
+        return None
 
     def actualizar(self, detalle: dict[str, Any]) -> None:
         self.mostrar_contenido()
@@ -476,35 +548,11 @@ class FichaProducto(FichaLateral):
         self._avatar.setVisible(False)
         self._lbl_titulo = self._lbl_nombre
         self._lbl_codigo = self._lbl_subtitulo
-        self._lbl_anio.setText(str(ano))
 
-        # Metadatos del cuadro
-        while self._layout_meta.count():
-            item = self._layout_meta.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                while item.layout().count():
-                    sub = item.layout().takeAt(0)
-                    if sub.widget():
-                        sub.widget().deleteLater()
-
-        items_meta = [
-            ("Año de publicación:", str(ano)),
-            ("Subtipo:", str(subtipo)),
-            ("Grupo de investigación:", str(grupo)),
-        ]
-        for k, v in items_meta:
-            fila = QHBoxLayout()
-            fila.setContentsMargins(0, 0, 0, 0)
-            l1 = QLabel(k, self._cuadro_meta)
-            l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
-            l2 = QLabel(v, self._cuadro_meta)
-            l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
-            fila.addWidget(l1)
-            fila.addWidget(l2)
-            fila.addStretch()
-            self._layout_meta.addLayout(fila)
+        # Actualizar metadatos en la rejilla persistente (sin recreación de widgets)
+        self._lbl_valor_anio.setText(str(ano))
+        self._lbl_valor_subtipo.setText(str(subtipo))
+        self._lbl_valor_grupo.setText(str(grupo))
 
         # Insignia de la ventana del Modelo 2024
         if en_ventana:
@@ -513,7 +561,9 @@ class FichaProducto(FichaLateral):
                 f"border-radius: {estilo.RADIO_BOTON}px; }}"
             )
             self.lbl_insignia_ventana.setText("✔ Dentro de la ventana del Modelo 2024")
-            self.lbl_insignia_ventana.setStyleSheet(f"color: {EXITO}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
+            self.lbl_insignia_ventana.setStyleSheet(
+                f"color: {EXITO}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;"
+            )
             self.insignia_ventana.setToolTip(
                 "Cumple con la ventana de observación del Modelo Minciencias 2024\n"
                 "(5 años para artículos, software, ASC y FRH; 10 años para libros y patentes)."
@@ -523,27 +573,35 @@ class FichaProducto(FichaLateral):
                 f"QFrame {{ background-color: {estilo.ERROR_FONDO}; border: 1px solid {estilo.ERROR_DESHABILITADO}; border-radius: {estilo.RADIO_BOTON}px; }}"
             )
             self.lbl_insignia_ventana.setText("✖ Fuera de la ventana del Modelo 2024")
-            self.lbl_insignia_ventana.setStyleSheet(f"color: {ERROR}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;")
+            self.lbl_insignia_ventana.setStyleSheet(
+                f"color: {ERROR}; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt;"
+            )
             self.insignia_ventana.setToolTip(
                 "No se encuentra dentro de la ventana de observación del Modelo Minciencias 2024\n"
                 "(5 años para artículos, software, ASC y FRH; 10 años para libros y patentes)."
             )
 
-        # Lista de autores interactiva
+        # Limpiar lista de autores retirándolos de inmediato del layout y de la jerarquía visual
         while self._caja_lista_autores.count():
             item = self._caja_lista_autores.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                while item.layout().count():
-                    sub = item.layout().takeAt(0)
-                    if sub.widget():
-                        sub.widget().deleteLater()
+            if item is None:
+                continue
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+            elif item.layout() is not None:
+                sub_lay = item.layout()
+                while sub_lay.count():
+                    sub_item = sub_lay.takeAt(0)
+                    if sub_item and sub_item.widget():
+                        sub_item.widget().setParent(None)
+                        sub_item.widget().deleteLater()
+                sub_lay.deleteLater()
 
         self._filas_autores.clear()
         autores_lista = detalle.get("autores_lista", ())
         if not autores_lista and detalle.get("autores"):
-            # Si solo vino la tupla de strings
             autores_lista = [{"nombre": a, "codigo_rh": ""} for a in detalle["autores"]]
 
         if autores_lista:
@@ -554,11 +612,12 @@ class FichaProducto(FichaLateral):
                 fila_aut = QFrame(self._contenedor_autores)
                 fila_aut.setCursor(Qt.CursorShape.PointingHandCursor)
                 fila_aut.setStyleSheet(
-                    "QFrame { background: transparent; border-radius: {estilo.RADIO_BOTON}px; padding: 2px 4px; }"
-                    "QFrame:hover { background-color: {estilo.FONDO_APP}; }"
+                    f"QFrame {{ background-color: {FICHA}; border: 1px solid {LINEA}; "
+                    f"border-radius: {estilo.RADIO_BOTON}px; padding: 4px 8px; }}"
+                    f"QFrame:hover {{ background-color: {estilo.SUPERFICIE_GRAFICO}; }}"
                 )
                 lay_aut = QHBoxLayout(fila_aut)
-                lay_aut.setContentsMargins(4, 2, 4, 2)
+                lay_aut.setContentsMargins(6, 4, 6, 4)
                 lay_aut.setSpacing(8)
 
                 av_aut = Avatar(diametro=28, nombre=nombre_aut, parent=fila_aut)
@@ -569,7 +628,6 @@ class FichaProducto(FichaLateral):
                 lbl_aut.setWordWrap(True)
                 lay_aut.addWidget(lbl_aut, 1)
 
-                # Conectar clic a apertura de su ficha en Investigadores
                 destino = cod_rh or nombre_aut
                 fila_aut._identificador = destino
                 fila_aut.mousePressEvent = lambda _, d=destino: self.autor_clicado.emit(d)
@@ -579,9 +637,9 @@ class FichaProducto(FichaLateral):
         else:
             lbl_sin = QLabel("Sin autores registrados para este producto", self._contenedor_autores)
             lbl_sin.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; padding: 4px;")
+            lbl_sin.setWordWrap(True)
             self._caja_lista_autores.addWidget(lbl_sin)
 
-        # Estado del botón Activar / Desactivar
         self.configurar_estado_activo(activo)
 
 
@@ -806,17 +864,19 @@ class PantallaProductos(QWidget):
         # Señales de selección
         self.tabla.clave_seleccionada.connect(self._al_seleccionar_clave)
 
-        # Anchos preferidos de columnas
+        # Anchos preferidos de columnas según especificación 6.4 y diseño responsive:
+        # Título tiene prioridad 1 y modo estirar (nunca se sacrifica).
+        # Columnas secundarias tienen anchos fijos y prioridades 2 o 3 para ocultación progresiva.
         self.tabla.configurar_columnas([
-            ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("estirar", 200, 1),
-            ColumnSpecification("contenido", 100, 2),
-            ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("fijo", 65, 3),
-            ColumnSpecification("contenido", 95, 2),
-            ColumnSpecification("contenido", 120, 2),
-            ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("contenido", 90, 2),
+            ColumnSpecification("fijo", 85, 2),     # 0: Código
+            ColumnSpecification("estirar", 200, 1), # 1: Título (prioridad 1, siempre visible)
+            ColumnSpecification("fijo", 85, 2),     # 2: Tipología
+            ColumnSpecification("fijo", 115, 3),    # 3: Subtipo (ocultable)
+            ColumnSpecification("fijo", 70, 2),     # 4: Año
+            ColumnSpecification("fijo", 95, 2),     # 5: Validación
+            ColumnSpecification("fijo", 140, 3),    # 6: Grupo (ocultable)
+            ColumnSpecification("fijo", 125, 3),    # 7: Autores (ocultable)
+            ColumnSpecification("fijo", 80, 2),     # 8: Estado
         ])
 
         tarjeta.agregar_widget(self.tabla)

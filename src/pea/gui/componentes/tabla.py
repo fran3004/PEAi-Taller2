@@ -350,7 +350,7 @@ class NumeroDelegate(QStyledItemDelegate):
         painter.setFont(fuente)
         painter.setPen(QPen(QColor(TEXTO)))
 
-        rect_txt = option.rect.adjusted(12, 0, -16, 0)
+        rect_txt = option.rect.adjusted(6, 0, -8, 0)
         painter.drawText(rect_txt, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, texto_formateado)
 
         painter.restore()
@@ -453,7 +453,9 @@ class _VistaTablaEstilizada(QTableView):
                     "fijo": self.horizontalHeader().ResizeMode.Fixed,
                 }[spec.modo]
                 self.horizontalHeader().setSectionResizeMode(indice, modo)
-                if spec.modo != "estirar":
+                if spec.modo == "fijo":
+                    self.setColumnWidth(indice, spec.ancho_minimo)
+                elif spec.modo != "estirar":
                     self.setColumnWidth(indice, max(spec.ancho_minimo, self.columnWidth(indice)))
 
 
