@@ -58,8 +58,7 @@ class FichaKPI(QFrame):
         fila_valor.setSpacing(8)
 
         self.lbl_valor = QLabel(str(valor_inicial), self)
-        self.lbl_valor.setMinimumWidth(0)
-        self.lbl_valor.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.lbl_valor.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.lbl_valor.setObjectName("tarjetaValor")
         self.lbl_valor.setStyleSheet(
             f"font-size: {TAMANO_KPI}pt; font-weight: bold; color: {PRIMARIO};"

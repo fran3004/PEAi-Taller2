@@ -6,7 +6,7 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from pea.gui.componentes import (
     Avatar,
@@ -90,6 +90,38 @@ def test_ficha_kpi_actualizacion_y_retrocompatibilidad(qapp: Any) -> None:
     assert "4.500,50" in kpi.lbl_valor.text()
     assert kpi.lbl_subtitulo.text() == "Histórico"
     assert len(kpi.minigrafico._datos) == 4
+    contenedor.deleteLater() if (contenedor := getattr(kpi, "_test_parent", None)) else None
+
+
+def test_ficha_kpi_ancho_util_y_visibilidad_lbl_valor(qapp: Any) -> None:
+    """Regresión: comprueba que lbl_valor conserva ancho útil y texto tras actualizar()."""
+    contenedor = QWidget()
+    layout = QHBoxLayout(contenedor)
+    kpi = FichaKPI(titulo="Investigadores", valor_inicial=42, subtitulo="Activos", con_minigrafico=True)
+    layout.addWidget(kpi)
+    contenedor.resize(220, 100)
+    contenedor.show()
+    qapp.processEvents()
+
+    # Comprueba visibilidad y ancho útil inicial
+    assert kpi.lbl_valor.isVisible()
+    assert kpi.lbl_valor.text() == "42"
+    assert kpi.lbl_valor.width() > 0
+    assert kpi.lbl_valor.width() >= 15
+
+    # Posición relativa con minigráfico a la derecha
+    assert kpi.minigrafico is not None
+    assert kpi.minigrafico.geometry().left() > kpi.lbl_valor.geometry().right()
+
+    # Actualizar con valor formateado y comprobar persistencia de ancho útil y texto
+    kpi.actualizar(valor=1250, subtitulo="Registrados", tendencia=[10, 20, 30])
+    qapp.processEvents()
+
+    assert kpi.lbl_valor.text() == "1.250"
+    assert kpi.lbl_valor.width() > 0
+    assert kpi.lbl_subtitulo.text() == "Registrados"
+    assert kpi.minigrafico.geometry().left() > kpi.lbl_valor.geometry().right()
+    contenedor.deleteLater()
 
 
 # ===========================================================================
