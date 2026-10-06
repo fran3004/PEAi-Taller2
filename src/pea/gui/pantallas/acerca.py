@@ -18,10 +18,12 @@ from typing import TYPE_CHECKING
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -40,7 +42,6 @@ from pea.gui.estilo import (
     TEXTO,
     TEXTO_SECUNDARIO,
     TEXTO_SOBRE_OSCURO,
-    TEXTO_SOBRE_OSCURO_SUAVE,
 )
 from pea.gui.recursos.cargador import cargar_pixmap
 from pea.servicios.vistas import FiltroAnios
@@ -123,24 +124,33 @@ class PantallaAcerca(QWidget):
         tarjeta_institucional.setStyleSheet(
             f"QFrame#tarjetaInstitucional {{"
             f"  background-color: {ENCABEZADO_INICIO};"
+            f"  border: none;"
             f"  border-radius: {estilo.RADIO_TARJETA}px;"
-            f"  padding: 24px;"
+            f"}}"
+            f"QFrame#tarjetaInstitucional QLabel {{"
+            f"  background-color: transparent;"
+            f"  border: none;"
             f"}}"
         )
         disp_inst = QHBoxLayout(tarjeta_institucional)
-        disp_inst.setContentsMargins(18, 16, 18, 16)
+        disp_inst.setContentsMargins(20, 18, 20, 18)
         disp_inst.setSpacing(20)
 
         # Pastilla blanca con logo de la UPC
         pastilla_logo = QFrame(tarjeta_institucional)
         pastilla_logo.setFixedSize(72, 72)
-        pastilla_logo.setStyleSheet(f"background-color: {estilo.SUPERFICIE}; border-radius: {estilo.RADIO_PESTANA_ACTIVA}px;")
+        pastilla_logo.setStyleSheet(
+            f"background-color: {estilo.SUPERFICIE}; "
+            f"border: none; "
+            f"border-radius: {estilo.RADIO_PESTANA_ACTIVA}px;"
+        )
         disp_logo = QVBoxLayout(pastilla_logo)
         disp_logo.setContentsMargins(4, 4, 4, 4)
         disp_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         pix_upc = cargar_pixmap("logo_upc.png", 64, 64)
         lbl_img_upc = QLabel(pastilla_logo)
+        lbl_img_upc.setStyleSheet("background-color: transparent; border: none;")
         lbl_img_upc.setPixmap(pix_upc)
         lbl_img_upc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         disp_logo.addWidget(lbl_img_upc)
@@ -154,6 +164,7 @@ class PantallaAcerca(QWidget):
         lbl_upc = QLabel("UNIVERSIDAD POPULAR DEL CESAR", tarjeta_institucional)
         self.lbl_institucion = lbl_upc
         lbl_upc.setStyleSheet(
+            f"background-color: transparent; border: none; "
             f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: 800; color: {TEXTO_SOBRE_OSCURO}; letter-spacing: 0.5px;"
         )
         disp_textos_upc.addWidget(lbl_upc)
@@ -162,8 +173,10 @@ class PantallaAcerca(QWidget):
             "Facultad de Ingenierías y Tecnológicas — Programa de Ingeniería de Sistemas",
             tarjeta_institucional,
         )
+        lbl_facultad.setWordWrap(True)
         lbl_facultad.setStyleSheet(
-            f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SOBRE_OSCURO_SUAVE};"
+            f"background-color: transparent; border: none; "
+            f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SOBRE_OSCURO};"
         )
         disp_textos_upc.addWidget(lbl_facultad)
 
@@ -171,7 +184,9 @@ class PantallaAcerca(QWidget):
             "Asignatura: Estructuras de Datos · Taller 2 (PEA-i)",
             tarjeta_institucional,
         )
+        lbl_materia.setWordWrap(True)
         lbl_materia.setStyleSheet(
+            f"background-color: transparent; border: none; "
             f"font-size: {TAMANO_AUXILIAR}pt; font-weight: bold; color: {ACENTO};"
         )
         disp_textos_upc.addWidget(lbl_materia)
@@ -241,18 +256,31 @@ class PantallaAcerca(QWidget):
             ),
         ]
 
-        for clave, valor in items_ficha:
-            fila = QHBoxLayout()
-            fila.setSpacing(10)
-            lbl_c = QLabel(f"• <b>{clave}:</b>")
-            lbl_c.setFixedWidth(240)
+        disp_ficha = QGridLayout()
+        disp_ficha.setContentsMargins(0, 4, 0, 4)
+        disp_ficha.setHorizontalSpacing(16)
+        disp_ficha.setVerticalSpacing(10)
+        disp_ficha.setColumnMinimumWidth(0, 220)
+        disp_ficha.setColumnStretch(0, 1)
+        disp_ficha.setColumnStretch(1, 3)
+
+        for i, (clave, valor) in enumerate(items_ficha):
+            lbl_c = QLabel(f"• <b>{clave}:</b>", self.tarjeta_tecnica)
+            lbl_c.setWordWrap(True)
+            lbl_c.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+            lbl_c.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
             lbl_c.setStyleSheet(f"color: {TEXTO}; font-size: {TAMANO_CUERPO}pt;")
-            lbl_v = QLabel(valor)
+
+            lbl_v = QLabel(valor, self.tarjeta_tecnica)
             lbl_v.setWordWrap(True)
+            lbl_v.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            lbl_v.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
             lbl_v.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {TAMANO_CUERPO}pt;")
-            fila.addWidget(lbl_c)
-            fila.addWidget(lbl_v, 1)
-            self.tarjeta_tecnica.layout_contenido.addLayout(fila)
+
+            disp_ficha.addWidget(lbl_c, i, 0)
+            disp_ficha.addWidget(lbl_v, i, 1)
+
+        self.tarjeta_tecnica.layout_contenido.addLayout(disp_ficha)
 
         layout.addWidget(self.tarjeta_tecnica)
 

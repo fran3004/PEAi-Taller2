@@ -13,8 +13,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from PySide6.QtWidgets import QApplication, QSizePolicy
+from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QLabel, QSizePolicy
 
+from pea.gui import estilo
 from pea.gui.pantallas.acerca import PantallaAcerca
 from pea.gui.pantallas.configuracion import PantallaConfiguracion
 from pea.gui.pantallas.importar import PantallaImportar, ZonaSoltarArchivo
@@ -291,3 +292,58 @@ def test_pantalla_acerca_contenido_y_volver(
     pantalla.refrescar()
     assert "Modo de conexión:" in pantalla._lbl_estado_rev.text()
     assert "demostraci" in pantalla._lbl_estado_rev.text().lower()
+
+
+def test_pantalla_acerca_tarjeta_institucional_y_ficha_tecnica_responsive(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
+) -> None:
+    """Verifica tarjeta institucional sin bordes residuales, contraste alto y ficha técnica responsive."""
+    pantalla = PantallaAcerca(servicio=servicio_demo)
+    qtbot.addWidget(pantalla)
+
+    # 1. Tarjeta institucional y ausencia de bordes en QLabel
+    tarj_inst = pantalla.findChild(QFrame, "tarjetaInstitucional")
+    assert tarj_inst is not None
+    assert "border: none" in tarj_inst.styleSheet()
+
+    etiquetas_inst = tarj_inst.findChildren(QLabel)
+    assert len(etiquetas_inst) >= 4
+    for lbl in etiquetas_inst:
+        css = lbl.styleSheet()
+        assert "background-color: transparent" in css
+        assert "border: none" in css
+
+    # 2. Contraste de texto institucional sobre ENCABEZADO_INICIO
+    ratio = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO, estilo.ENCABEZADO_INICIO)
+    assert ratio >= 4.5
+
+    # 3. Ficha técnica: distribución en QGridLayout responsive y wordWrap
+    grid_ficha = pantalla.tarjeta_tecnica.findChild(QGridLayout)
+    assert grid_ficha is not None
+    assert grid_ficha.columnMinimumWidth(0) >= 220
+    assert grid_ficha.columnStretch(0) >= 1
+    assert grid_ficha.columnStretch(1) >= 2
+
+    etiquetas_tecnica = pantalla.tarjeta_tecnica.findChildren(QLabel)
+    claves_ficha = [lbl for lbl in etiquetas_tecnica if "•" in lbl.text()]
+    assert len(claves_ficha) == 6
+    for lbl in claves_ficha:
+        assert lbl.wordWrap()
+        # No debe estar restringido rígidamente con setFixedWidth(240)
+        assert lbl.maximumWidth() > 240
+
+    # Verificar que en 1100x700, 1366x768 y 1920x1080 la etiqueta larga se adapta responsive
+    lbl_estructuras = next(lbl for lbl in claves_ficha if "Estructuras de datos en memoria" in lbl.text())
+    anchos_observados: list[int] = []
+    for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
+        pantalla.resize(ancho, alto)
+        pantalla.show()
+        qapp.processEvents()
+        assert lbl_estructuras.width() >= 220
+        assert lbl_estructuras.height() > 0
+        assert "Estructuras de datos en memoria" in lbl_estructuras.text()
+        anchos_observados.append(lbl_estructuras.width())
+
+    # La distribución responsive debe expandir el ancho de la columna en pantallas más anchas
+    assert anchos_observados[2] >= anchos_observados[1] >= anchos_observados[0]
+
