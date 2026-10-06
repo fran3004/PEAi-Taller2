@@ -31,6 +31,7 @@ from PySide6.QtGui import (
     QAction,
     QColor,
     QFont,
+    QFontMetrics,
     QKeySequence,
     QLinearGradient,
     QPainter,
@@ -154,7 +155,8 @@ class BotonPestanaSuperior(QPushButton):
 
         self.setCheckable(True)
         self.setFixedHeight(64)
-        self.setMinimumWidth(80)
+        ancho_inicial = self._calcular_ancho_completo()
+        self.setMinimumWidth(ancho_inicial)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAccessibleName(f"Pestaña {texto}")
@@ -162,16 +164,39 @@ class BotonPestanaSuperior(QPushButton):
 
         self._pixmap_normal = cargar_pixmap(nombre_icono, 24, 24)
 
+    def _calcular_ancho_completo(self) -> int:
+        """Calcula el ancho necesario para el texto completo con QFontMetrics y margen de respiración."""
+        fuente = QFont(self.font())
+        fuente.setPointSize(estilo.TAMANO_AUXILIAR)
+        fuente.setBold(True)  # Se calcula sobre negrita (cuando la pestaña está activa/seleccionada)
+        fm = QFontMetrics(fuente)
+        ancho_texto = fm.horizontalAdvance(self._texto)
+        # Margen horizontal simétrico (14 px por lado) para que el texto nunca roce los bordes
+        margen_horizontal = 28
+        return max(76, ancho_texto + margen_horizontal)
+
+    def sizeHint(self) -> QSize:
+        """Devuelve el tamaño preferido del botón según el modo activo."""
+        if self._modo_compacto:
+            return QSize(54, 64)
+        return QSize(self._calcular_ancho_completo(), 64)
+
+    def minimumSizeHint(self) -> QSize:
+        """Garantiza que la barra no colapse el ancho requerido por el texto."""
+        return self.sizeHint()
+
     def establecer_modo_compacto(self, compacto: bool) -> None:
-        """Alterna entre mostrar solo ícono con tooltip o ícono con etiqueta."""
+        """Alterna entre mostrar solo ícono con tooltip o ícono con etiqueta completa."""
         self._modo_compacto = compacto
         if compacto:
             self.setToolTip(self._texto)
             self.setFixedWidth(54)
         else:
             self.setToolTip("")
-            self.setMinimumWidth(80)
-            self.setMaximumWidth(130)
+            self.setMaximumWidth(16777215)
+            ancho_completo = self._calcular_ancho_completo()
+            self.setMinimumWidth(ancho_completo)
+        self.updateGeometry()
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:
@@ -186,18 +211,30 @@ class BotonPestanaSuperior(QPushButton):
         if es_activo:
             painter.setBrush(QColor(255, 255, 255, 36))  # 14%
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(rect.adjusted(2, 2, -2, -2), 12, 12)
+            painter.drawRoundedRect(
+                rect.adjusted(2, 2, -2, -2),
+                estilo.RADIO_PESTANA_ACTIVA,
+                estilo.RADIO_PESTANA_ACTIVA,
+            )
         elif es_hover:
             painter.setBrush(QColor(255, 255, 255, 20))  # 8%
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(rect.adjusted(2, 2, -2, -2), 12, 12)
+            painter.drawRoundedRect(
+                rect.adjusted(2, 2, -2, -2),
+                estilo.RADIO_PESTANA_ACTIVA,
+                estilo.RADIO_PESTANA_ACTIVA,
+            )
 
         # 2. Anillo de foco accesible
         if self.hasFocus():
             pen_foco = QPen(QColor(ACENTO), 2)
             painter.setPen(pen_foco)
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(rect.adjusted(2, 2, -2, -2), 12, 12)
+            painter.drawRoundedRect(
+                rect.adjusted(2, 2, -2, -2),
+                estilo.RADIO_PESTANA_ACTIVA,
+                estilo.RADIO_PESTANA_ACTIVA,
+            )
 
         # 3. Ícono
         ancho_icono = self._pixmap_normal.width()
@@ -212,8 +249,8 @@ class BotonPestanaSuperior(QPushButton):
             y_ico = 10.0
             painter.drawPixmap(int(x_ico), int(y_ico), self._pixmap_normal)
 
-            # 4. Etiqueta de texto
-            fuente = QFont()
+            # 4. Etiqueta de texto completa
+            fuente = QFont(self.font())
             fuente.setPointSize(estilo.TAMANO_AUXILIAR)
             fuente.setBold(es_activo)
             painter.setFont(fuente)
@@ -221,7 +258,7 @@ class BotonPestanaSuperior(QPushButton):
             color_txt = QColor(TEXTO_SOBRE_OSCURO if es_activo else TEXTO_SOBRE_OSCURO_SUAVE)
             painter.setPen(color_txt)
 
-            rect_txt = QRectF(4, 38, rect.width() - 8, 20)
+            rect_txt = QRectF(0, 38, float(rect.width()), 20)
             painter.drawText(rect_txt, Qt.AlignmentFlag.AlignCenter, self._texto)
 
         # 5. Barra inferior de acento (40% del ancho, centrado)
@@ -500,11 +537,23 @@ class VentanaPrincipal(QMainWindow):
         # Textos de marca
         caja_textos_marca = QVBoxLayout()
         caja_textos_marca.setContentsMargins(0, 0, 0, 0)
-        caja_textos_marca.setSpacing(1)
+        caja_textos_marca.setSpacing(2)
+
+        fila_marca = QHBoxLayout()
+        fila_marca.setContentsMargins(0, 0, 0, 0)
+        fila_marca.setSpacing(8)
 
         lbl_marca = QLabel("PEA-i", self._zona_marca)
         lbl_marca.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {estilo.SUPERFICIE};")
-        caja_textos_marca.addWidget(lbl_marca)
+        fila_marca.addWidget(lbl_marca)
+
+        # Píldora de datos de demostración compacta junto al logo
+        self._pildora_demo = Pildora("Datos de demostración", variante="aviso", parent=self._zona_marca)
+        self._pildora_demo.setVisible(False)
+        fila_marca.addWidget(self._pildora_demo)
+        fila_marca.addStretch()
+
+        caja_textos_marca.addLayout(fila_marca)
 
         self._lbl_eslogan = QLabel(f"{ESLOGAN_LINEA_1}\n{ESLOGAN_LINEA_2}", self._zona_marca)
         self._lbl_eslogan.setStyleSheet(
@@ -512,11 +561,6 @@ class VentanaPrincipal(QMainWindow):
         )
         caja_textos_marca.addWidget(self._lbl_eslogan)
         layout_marca.addLayout(caja_textos_marca)
-
-        # Píldora de datos de demostración
-        self._pildora_demo = Pildora("Datos de demostración", variante="aviso", parent=self._zona_marca)
-        self._pildora_demo.setVisible(False)
-        layout_marca.addWidget(self._pildora_demo)
 
         layout.addWidget(self._zona_marca)
         layout.addStretch(1)

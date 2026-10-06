@@ -407,3 +407,66 @@ def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) 
         assert btn_acerca.width() >= 60
         assert btn_acerca.height() >= 18
 
+
+def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> None:
+    """Verifica el cálculo de ancho real de las pestañas superiores con QFontMetrics y modo compacto."""
+    from PySide6.QtGui import QFont, QFontMetrics
+
+    from pea.gui import estilo
+
+    fuente = QFont()
+    fuente.setPointSize(estilo.TAMANO_AUXILIAR)
+    fuente.setBold(True)
+    fm = QFontMetrics(fuente)
+
+    # 1. En resoluciones estándar (1366x768 y 1920x1080): texto completo sin truncamiento
+    for ancho, alto in [(1366, 768), (1920, 1080)]:
+        ventana.resize(ancho, alto)
+        QApplication.processEvents()
+
+        for btn in ventana._botones_pestanas:
+            assert not btn._modo_compacto
+            assert btn.toolTip() == ""
+            # No debe estar restringido por el tope rígido obsoleto de 130 px
+            assert btn.maximumWidth() > 130
+
+            # El ancho del botón debe ser suficiente para el texto completo con margen
+            ancho_esperado_texto = fm.horizontalAdvance(btn._texto)
+            assert btn.width() >= ancho_esperado_texto + 20
+            assert btn.minimumWidth() >= ancho_esperado_texto + 20
+
+        # Verificaciones específicas de las pestañas que antes se truncaban
+        btn_inv = ventana._botones_pestanas[1]
+        assert btn_inv._texto == "Investigadores"
+        assert btn_inv.width() >= 110
+
+        btn_red = ventana._botones_pestanas[4]
+        assert btn_red._texto == "Análisis de redes"
+        assert btn_red.width() >= 128
+
+        btn_cfg = ventana._botones_pestanas[6]
+        assert btn_cfg._texto == "Configuración"
+        assert btn_cfg.width() >= 110
+
+    # 2. En resolución compacta (1100x700): pestañas en modo solo ícono con tooltip
+    ventana.resize(1100, 700)
+    QApplication.processEvents()
+
+    for btn in ventana._botones_pestanas:
+        assert btn._modo_compacto
+        assert btn.width() == 54
+        assert btn.toolTip() == btn._texto
+
+    # 3. SizeHints dinámicos
+    btn_ejemplo = ventana._botones_pestanas[4]
+    btn_ejemplo.establecer_modo_compacto(False)
+    hint_normal = btn_ejemplo.sizeHint()
+    assert hint_normal.width() >= 128
+    assert hint_normal.height() == 64
+
+    btn_ejemplo.establecer_modo_compacto(True)
+    hint_compacto = btn_ejemplo.sizeHint()
+    assert hint_compacto.width() == 54
+    assert hint_compacto.height() == 64
+
+
