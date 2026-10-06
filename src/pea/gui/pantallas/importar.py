@@ -81,30 +81,38 @@ class ZonaSoltarArchivo(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 10, 14, 10)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(8)
 
         # Ícono decorativo
         self._lbl_icono = QLabel("📁", self)
         self._lbl_icono.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt;")
+        self._lbl_icono.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         layout.addWidget(self._lbl_icono)
 
         # Columna de texto (nombre de archivo o ayuda)
         col_textos = QVBoxLayout()
         col_textos.setContentsMargins(0, 0, 0, 0)
         col_textos.setSpacing(2)
+        col_textos.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         self._lbl_principal = QLabel(self._placeholder, self)
         self._lbl_principal.setStyleSheet(
             f"font-size: {TAMANO_CUERPO}pt; font-weight: 500; color: {TEXTO};"
         )
         self._lbl_principal.setWordWrap(True)
+        self._lbl_principal.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._lbl_principal.setMinimumWidth(0)
         col_textos.addWidget(self._lbl_principal)
 
         self._lbl_subtexto = QLabel(f"Formatos aceptados: {', '.join(self._extensiones).upper()}", self)
+        self._lbl_subtexto.setObjectName("ayuda")
         self._lbl_subtexto.setStyleSheet(
             f"font-size: {TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};"
         )
+        self._lbl_subtexto.setWordWrap(True)
+        self._lbl_subtexto.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self._lbl_subtexto.setMinimumWidth(0)
         col_textos.addWidget(self._lbl_subtexto)
 
         layout.addLayout(col_textos, 1)
@@ -112,6 +120,7 @@ class ZonaSoltarArchivo(QFrame):
         # Botón examinar
         self.btn_examinar = QPushButton("Examinar...", self)
         self.btn_examinar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_examinar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.btn_examinar.clicked.connect(self._al_examinar)
         layout.addWidget(self.btn_examinar)
 
@@ -127,7 +136,7 @@ class ZonaSoltarArchivo(QFrame):
     def _establecer_estilo(self, arrastrando: bool) -> None:
         if arrastrando:
             borde = f"2px dashed {ACENTO}"
-            fondo = "{estilo.INFO_FONDO}"
+            fondo = estilo.INFO_FONDO
         else:
             borde = f"2px dashed {LINEA_FUERTE}"
             fondo = FICHA
@@ -207,7 +216,10 @@ class ZonaSoltarArchivo(QFrame):
     def _actualizar_nombre_visible(self) -> None:
         if not self._nombre_archivo:
             return
-        ancho = max(0, self._lbl_principal.width())
+        ancho = self._lbl_principal.width()
+        if ancho <= 0:
+            self._lbl_principal.setText(self._nombre_archivo)
+            return
         self._lbl_principal.setText(
             QFontMetrics(self._lbl_principal.font()).elidedText(
                 self._nombre_archivo,

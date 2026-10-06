@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QSizePolicy
 
 from pea.gui.pantallas.acerca import PantallaAcerca
 from pea.gui.pantallas.configuracion import PantallaConfiguracion
@@ -110,6 +110,65 @@ def test_pantalla_importar_estructura_y_encolamiento(
     # Verificar que la API pública responde
     pantalla.establecer_filtro(FiltroAnios(modo=ModoFiltroAnios.TODOS))
     pantalla.refrescar()
+
+
+def test_zona_soltar_archivo_formatos_aceptados_adaptable(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
+) -> None:
+    """Verifica que «Formatos aceptados: ...» tenga ancho adaptable y wordWrap sin cortar texto."""
+    pantalla = PantallaImportar(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+
+    # 1. Verificar propiedades de las zonas de arrastrar y soltar
+    for nombre_zona, zona in [("CSV", pantalla.zona_csv), ("PDF", pantalla.zona_pdf)]:
+        assert zona.acceptDrops(), f"La zona {nombre_zona} debe aceptar Drag & Drop"
+        assert zona.height() == 88, f"La zona {nombre_zona} debe conservar altura de 88 px"
+        assert zona._lbl_subtexto.wordWrap(), f"El subtexto de {nombre_zona} debe tener wordWrap activo"
+        assert zona._lbl_subtexto.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+        assert zona._lbl_subtexto.minimumWidth() == 0, f"El ancho de {nombre_zona} debe ser adaptable (minWidth=0)"
+        assert zona._lbl_principal.wordWrap()
+        assert not zona.btn_examinar.isHidden()
+        assert zona.btn_examinar.text() == "Examinar..."
+
+    # 2. Verificar en las tres resoluciones oficiales: 1100x700, 1366x768, 1920x1080
+    for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
+        pantalla.resize(ancho, alto)
+        pantalla.show()
+        qapp.processEvents()
+
+        # Verificar presencia de las tres tarjetas de fuente
+        assert pantalla.tarjeta_csv.isVisible()
+        assert pantalla.tarjeta_pdf.isVisible()
+        assert pantalla.tarjeta_url.isVisible()
+        assert pantalla.txt_url.isVisible()
+        assert pantalla.btn_encolar_url.isVisible()
+
+        for nombre_zona, zona in [("CSV", pantalla.zona_csv), ("PDF", pantalla.zona_pdf)]:
+            sub = zona._lbl_subtexto
+            btn = zona.btn_examinar
+
+            # La tarjeta conserva altura de 88 px
+            assert zona.height() == 88
+
+            # El subtexto tiene geometría útil y cabe íntegramente dentro de los 88 px de la tarjeta
+            assert sub.width() > 80, f"Ancho insuficiente para {nombre_zona} en {ancho}x{alto}: {sub.width()}"
+            if ancho <= 1100:
+                assert sub.height() >= 24, (
+                    f"Altura insuficiente para {nombre_zona} en {ancho}x{alto}: {sub.height()} "
+                    "(debe expandirse a múltiples líneas)"
+                )
+            else:
+                assert sub.height() >= 12, (
+                    f"Altura insuficiente para {nombre_zona} en {ancho}x{alto}: {sub.height()}"
+                )
+            assert sub.geometry().bottom() < zona.height(), (
+                f"El subtexto de {nombre_zona} desborda la tarjeta en {ancho}x{alto}: "
+                f"bottom={sub.geometry().bottom()} vs max={zona.height()}"
+            )
+
+            # Botón Examinar visible y dentro de la zona
+            assert btn.isVisible()
+            assert btn.geometry().right() <= zona.width()
 
 
 # ===========================================================================
