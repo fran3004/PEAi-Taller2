@@ -582,9 +582,12 @@ class FichaGrupo(FichaLateral):
             l1 = QLabel(k, self._panel_detalles)
             l1.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; font-weight: 600;")
             l2 = QLabel(str(v), self._panel_detalles)
+            l2.setMinimumWidth(0)
+            l2.setWordWrap(True)
+            l2.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
             fila.addWidget(l1)
-            fila.addWidget(l2)
+            fila.addWidget(l2, 1)
             fila.addStretch()
             self._layout_detalles.addLayout(fila)
 

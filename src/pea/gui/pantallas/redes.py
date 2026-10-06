@@ -421,6 +421,8 @@ class PantallaRedes(QWidget):
         self._scroll_panel.setStyleSheet("background: transparent;")
 
         self._cuerpo_panel = QWidget(self._scroll_panel)
+        self._cuerpo_panel.setMinimumWidth(0)
+        self._cuerpo_panel.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._layout_cuerpo_panel = QVBoxLayout(self._cuerpo_panel)
         self._layout_cuerpo_panel.setContentsMargins(0, 0, 4, 0)
         self._layout_cuerpo_panel.setSpacing(12)
@@ -471,12 +473,17 @@ class PantallaRedes(QWidget):
         col_tit_sel.setSpacing(1)
 
         self._lbl_nom_sel = QLabel("", self._caja_con_seleccion)
+        self._lbl_nom_sel.setMinimumWidth(0)
+        self._lbl_nom_sel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._lbl_nom_sel.setWordWrap(True)
         self._lbl_nom_sel.setStyleSheet(f"font-size: {estilo.TAMANO_SUBTITULO}pt; font-weight: bold; color: {TEXTO};")
         self.lbl_nombre_inv = self._lbl_nom_sel
         col_tit_sel.addWidget(self._lbl_nom_sel)
 
         self._lbl_sub_sel = QLabel("", self._caja_con_seleccion)
+        self._lbl_sub_sel.setMinimumWidth(0)
+        self._lbl_sub_sel.setWordWrap(True)
+        self._lbl_sub_sel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._lbl_sub_sel.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         self.lbl_cvlac_inv = self._lbl_sub_sel
         col_tit_sel.addWidget(self._lbl_sub_sel)

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -78,9 +79,12 @@ class FichaLateral(QFrame):
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet("background: transparent;")
+        self._scroll.viewport().installEventFilter(self)
 
         self._cuerpo = QWidget(self._scroll)
         self._cuerpo.setStyleSheet("background: transparent;")
+        self._cuerpo.setMinimumWidth(0)
+        self._cuerpo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._layout_cuerpo = QVBoxLayout(self._cuerpo)
         self._layout_cuerpo.setContentsMargins(0, 0, 0, 0)
         self._layout_cuerpo.setSpacing(14)
@@ -97,6 +101,8 @@ class FichaLateral(QFrame):
 
         self._lbl_nombre = QLabel("Nombre de entidad", self._contenedor_cabecera)
         self._lbl_nombre.setObjectName("fichaLateralNombre")
+        self._lbl_nombre.setMinimumWidth(0)
+        self._lbl_nombre.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._lbl_nombre.setWordWrap(True)
         self._lbl_nombre.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._lbl_nombre.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: bold; color: {TEXTO};")
@@ -104,6 +110,8 @@ class FichaLateral(QFrame):
 
         self._lbl_subtitulo = QLabel("", self._contenedor_cabecera)
         self._lbl_subtitulo.setObjectName("fichaLateralSubtitulo")
+        self._lbl_subtitulo.setMinimumWidth(0)
+        self._lbl_subtitulo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._lbl_subtitulo.setWordWrap(True)
         self._lbl_subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._lbl_subtitulo.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
@@ -220,8 +228,19 @@ class FichaLateral(QFrame):
 
     def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
+        self._ajustar_ancho_cuerpo()
         if self.parent() is None and self.window() is not self:
             self.ajustar_ancho_ficha(self.window().width())
+
+    def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
+        if watched is self._scroll.viewport() and event.type() == QEvent.Type.Resize:
+            self._ajustar_ancho_cuerpo()
+        return super().eventFilter(watched, event)
+
+    def _ajustar_ancho_cuerpo(self) -> None:
+        ancho = self._scroll.viewport().width()
+        if ancho > 0:
+            self._cuerpo.setFixedWidth(ancho)
 
     def ajustar_ancho_ficha(self, ancho_ventana: int) -> None:
         """Ajusta el ancho lateral a la ventana sin habilitar desplazamiento horizontal."""
@@ -252,6 +271,7 @@ class FichaLateral(QFrame):
 
     def mostrar_contenido(self) -> None:
         """Activa las zonas de cabecera, KPI, contenido y acciones."""
+        self._ajustar_ancho_cuerpo()
         self._lbl_vacio.setVisible(False)
         self._scroll.setVisible(True)
         self._contenedor_acciones.setVisible(True)
@@ -268,6 +288,8 @@ class FichaLateral(QFrame):
         self._lbl_nombre.setText(nombre)
         self._lbl_subtitulo.setText(subtitulo)
         self._lbl_subtitulo.setVisible(bool(subtitulo))
+        self._lbl_nombre.updateGeometry()
+        self._lbl_subtitulo.updateGeometry()
 
         # Recrear avatar
         self._avatar.establecer_nombre(nombre)

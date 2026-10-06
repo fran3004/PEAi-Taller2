@@ -13,8 +13,9 @@ rama: "master"
 # Correccion de barras de contexto
 
 ## Objetivo
-Evitar el truncamiento horizontal de titulos y subtitulos institucionales sin
-alterar la distribucion funcional de las pantallas.
+Evitar el truncamiento, la superposicion y la salida del espacio disponible de
+titulos y nombres en las barras y fichas laterales, sin alterar la
+distribucion funcional de las pantallas.
 
 ## Que se hizo
 - Se reemplazo `QSizePolicy.Ignored` en los subtitulos de Investigadores,
@@ -30,6 +31,14 @@ alterar la distribucion funcional de las pantallas.
   el ajuste de texto lo necesita.
 - Se conservaron los controles ChipVentana y Exportar fuera de la columna
   flexible.
+- Se fijo el cuerpo de `FichaLateral` al ancho real del viewport de su
+  `QScrollArea`, manteniendo desactivado el desplazamiento horizontal.
+- Los nombres y subtitulos de las fichas laterales ahora tienen ancho minimo
+  cero, politica expansiva y altura preferida para envolver nombres extensos.
+- Los valores largos del panel de detalles de Grupos se envuelven dentro de
+  su columna flexible.
+- La ficha seleccionada de Redes recibe las mismas restricciones de ancho y
+  ajuste de texto.
 
 ## Comandos y resultados
 - `python -m ruff check src tests`: aprobado.
@@ -37,14 +46,19 @@ alterar la distribucion funcional de las pantallas.
 - `python -m pea.gui --autoprueba` con Qt offscreen: completada exitosamente.
 - Comprobacion geometrica en 1100x700, 1366x768 y 1920x1080: cuatro
   subtitulos completos, cero problemas de altura.
-- `python tools\brain\verificar_brain.py`: 120 notas, cero errores y cero
+- Auditoria de scrolls y etiquetas laterales en las 8 pantallas y 3
+  resoluciones: cero desbordes horizontales y cero etiquetas recortadas.
+- Prueba visual con nombres extensos en fichas de Producto y Grupo: texto
+  envuelto dentro del viewport.
+- `python tools\brain\verificar_brain.py`: 121 notas, cero errores y cero
   advertencias.
 
 ## Decisiones
 Se mantuvo el cambio instantaneo de las barras y no se introdujeron barras
-horizontales ni truncamiento visual. Configuracion ya contaba con stretch y
-ajuste de texto; Inicio y Acerca de no presentan una barra institucional
-equivalente.
+horizontales ni truncamiento visual. El ancho del cuerpo lateral se sincroniza
+con el viewport mediante el filtro de redimensionamiento del area desplazable.
+Configuracion ya contaba con stretch y ajuste de texto; Inicio y Acerca de no
+presentan una barra institucional equivalente.
 
 ## Pendientes y siguiente paso
 Ninguno dentro del alcance de esta correccion.
