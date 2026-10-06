@@ -1137,6 +1137,13 @@ class VentanaPrincipal(QMainWindow):
         dialogo.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        dialogo.setStyleSheet(
+            f"QMessageBox {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; }}"
+            f"QMessageBox QLabel {{ color: {TEXTO}; background-color: transparent; }}"
+            f"QMessageBox QPushButton {{ background-color: {estilo.FICHA}; color: {TEXTO}; "
+            f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 6px 16px; }}"
+            f"QMessageBox QPushButton:hover {{ background-color: {estilo.SUPERFICIE_SELECCIONADA}; }}"
+        )
         dialogo.button(QMessageBox.StandardButton.Yes).setText("Sí")
         dialogo.button(QMessageBox.StandardButton.No).setText("No")
         dialogo.setDefaultButton(QMessageBox.StandardButton.No)

@@ -189,3 +189,7 @@ def test_pantalla_inicio_sin_desborde_horizontal(
     assert not pantalla._scroll_contenido.horizontalScrollBar().isVisible()
     assert pantalla._es_cuatro_columnas is cuatro_columnas
     assert pantalla._combo_grupos.minimumWidth() == minimo_combo
+    assert pantalla._grafico_dona.height() >= 260
+    assert pantalla._mini_red.height() >= 260
+    assert pantalla._grafico_dona._segmentos
+    assert pantalla._mini_red._nodos_geom

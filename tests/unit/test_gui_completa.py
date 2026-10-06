@@ -291,6 +291,8 @@ def test_pantalla_importar_conserva_fondo_y_superficies_legibles(ventana: Ventan
 
 def test_dialogo_cerrar_sesion_muestra_botones_en_espanol(ventana: VentanaPrincipal) -> None:
     """Comprueba los textos y el valor predeterminado del diálogo nativo."""
+    from pea.gui import estilo
+
     observaciones: dict[str, Any] = {}
 
     def verificar_dialogo() -> None:
@@ -298,6 +300,7 @@ def test_dialogo_cerrar_sesion_muestra_botones_en_espanol(ventana: VentanaPrinci
         assert isinstance(dialogo, QMessageBox)
         observaciones["si"] = dialogo.button(QMessageBox.StandardButton.Yes).text()
         observaciones["no"] = dialogo.button(QMessageBox.StandardButton.No).text()
+        observaciones["estilo"] = dialogo.styleSheet()
         boton_predeterminado = dialogo.defaultButton()
         observaciones["predeterminado"] = boton_predeterminado.text() if boton_predeterminado else None
         dialogo.button(QMessageBox.StandardButton.No).click()
@@ -308,6 +311,9 @@ def test_dialogo_cerrar_sesion_muestra_botones_en_espanol(ventana: VentanaPrinci
     assert observaciones["si"] == "Sí"
     assert observaciones["no"] == "No"
     assert observaciones["predeterminado"] == "No"
+    assert estilo.SUPERFICIE in observaciones["estilo"]
+    assert estilo.TEXTO in observaciones["estilo"]
+    assert estilo.calcular_radio_contraste(estilo.TEXTO, estilo.SUPERFICIE) >= 7.0
 
 
 def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:

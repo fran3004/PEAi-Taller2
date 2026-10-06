@@ -430,6 +430,7 @@ class PantallaInicio(QWidget):
             subtitulo="Distribución por tipología y validación",
             parent=self._tarjeta_dona,
         )
+        self._grafico_dona.setMinimumHeight(260)
         self._tarjeta_dona.agregar_widget(self._grafico_dona)
 
     # -----------------------------------------------------------------------
@@ -461,6 +462,7 @@ class PantallaInicio(QWidget):
             subtitulo="Principales coautorías entre investigadores",
             parent=self._tarjeta_red,
         )
+        self._mini_red.setMinimumHeight(260)
         self._mini_red.abrir_analisis_completo.connect(self._al_abrir_red_completa)
         self._mini_red.nodo_pulsado.connect(self._al_pulsar_nodo_mini_red)
         self._tarjeta_red.agregar_widget(self._mini_red)
