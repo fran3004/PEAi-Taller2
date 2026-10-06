@@ -868,6 +868,8 @@ class VentanaPrincipal(QMainWindow):
         layout = QHBoxLayout(pie)
         layout.setContentsMargins(20, 8, 20, 8)
         layout.setSpacing(16)
+        layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._layout_pie = layout
 
         # Izquierda: Logo UPC en pastilla blanca + marca
         self._pastilla_logo = QFrame(pie)
@@ -882,17 +884,19 @@ class VentanaPrincipal(QMainWindow):
         lbl_upc.setPixmap(cargar_pixmap("logo_upc.png", 42, 42))
         lbl_upc.setScaledContents(True)
         layout_logo.addWidget(lbl_upc)
+        self._lbl_upc = lbl_upc
         layout.addWidget(self._pastilla_logo)
 
         lbl_pea_pie = QLabel("PEA-i", pie)
         lbl_pea_pie.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout.addWidget(lbl_pea_pie)
 
-        # Centro: Texto institucional en 2 líneas
+        # Centro: Texto institucional en 2 líneas (adaptable según resolución)
         self._caja_texto_pie = QWidget(pie)
         layout_txt_pie = QVBoxLayout(self._caja_texto_pie)
         layout_txt_pie.setContentsMargins(10, 0, 10, 0)
         layout_txt_pie.setSpacing(1)
+        layout_txt_pie.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         l1 = QLabel(
             "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas",
@@ -906,15 +910,24 @@ class VentanaPrincipal(QMainWindow):
         l2.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         layout_txt_pie.addWidget(l1)
         layout_txt_pie.addWidget(l2)
+        self._lbl_pie_l1 = l1
+        self._lbl_pie_l2 = l2
+        self._caja_texto_pie.setToolTip(
+            "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas\n"
+            "Taller 2 de Estructura de Datos · Datos de SCIENTI (Minciencias) · Modelo de Medición 2024 (M601PR04G01)"
+        )
         layout.addWidget(self._caja_texto_pie)
 
         layout.addStretch(1)
 
         # Derecha: Estado vivo (conexión, revisión, deshacer, cola)
         zona_vivo = QWidget(pie)
+        self._zona_vivo_pie = zona_vivo
         layout_vivo = QHBoxLayout(zona_vivo)
         layout_vivo.setContentsMargins(0, 0, 0, 0)
         layout_vivo.setSpacing(10)
+        layout_vivo.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._zona_vivo_layout = layout_vivo
 
         self._lbl_estado_conexion = QLabel("● Conectando…", zona_vivo)
         self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO};")
@@ -1232,10 +1245,35 @@ class VentanaPrincipal(QMainWindow):
         for btn in self._botones_pestanas:
             btn.establecer_modo_compacto(modo_solo_icono)
 
-        # Pie institucional según alto
-        modo_pie_compacto = alto < 760
-        self._caja_texto_pie.setVisible(not modo_pie_compacto)
-        self._pie.setFixedHeight(44 if modo_pie_compacto else 72)
+        # Pie institucional responsivo (conserva texto institucional y estado vivo)
+        modo_pie_compacto = alto < 760 or ancho < 1240
+        if getattr(self, "_modo_pie_compacto_actual", None) != modo_pie_compacto:
+            self._modo_pie_compacto_actual = modo_pie_compacto
+            self._pie.setFixedHeight(44 if modo_pie_compacto else 72)
+            if modo_pie_compacto:
+                self._pastilla_logo.setFixedSize(34, 34)
+                self._lbl_upc.setPixmap(cargar_pixmap("logo_upc.png", 26, 26))
+                self._layout_pie.setContentsMargins(16, 4, 16, 4)
+                self._layout_pie.setSpacing(10)
+                self._zona_vivo_layout.setSpacing(6)
+            else:
+                self._pastilla_logo.setFixedSize(52, 52)
+                self._lbl_upc.setPixmap(cargar_pixmap("logo_upc.png", 42, 42))
+                self._layout_pie.setContentsMargins(20, 8, 20, 8)
+                self._layout_pie.setSpacing(16)
+                self._zona_vivo_layout.setSpacing(10)
+            self._lbl_pie_l2.setVisible(not modo_pie_compacto)
+
+        self._caja_texto_pie.setVisible(True)
+        self._lbl_pie_l1.setVisible(True)
+
+        texto_l1 = (
+            "Universidad Popular del Cesar · Ingeniería de Sistemas"
+            if ancho < 1240
+            else "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas"
+        )
+        if self._lbl_pie_l1.text() != texto_l1:
+            self._lbl_pie_l1.setText(texto_l1)
 
 
 # ---------------------------------------------------------------------------

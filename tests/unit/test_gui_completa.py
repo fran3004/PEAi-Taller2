@@ -349,9 +349,70 @@ def test_responsividad_adaptativa_ventana(ventana: VentanaPrincipal) -> None:
     assert not ventana._lbl_eslogan.isVisible()
     assert ventana._botones_pestanas[0]._modo_compacto
 
-    # 4. Alto reducido (< 760): pie compacto (44 px)
+    # 4. Alto reducido (< 760): pie compacto (44 px) conservando línea institucional
     assert ventana._pie.height() == 44
-    assert not ventana._caja_texto_pie.isVisible()
+    assert ventana._caja_texto_pie.isVisible()
+    assert ventana._lbl_pie_l1.isVisible()
+    assert "Universidad Popular del Cesar" in ventana._lbl_pie_l1.text()
+    assert not ventana._lbl_pie_l2.isVisible()
+    assert ventana._lbl_estado_conexion.isVisible()
+    assert ventana._chip_revision.isVisible()
+    assert ventana._chip_deshacer.isVisible()
+    assert ventana._chip_cola.isVisible()
+
+
+def test_responsividad_pie_institucional_resoluciones_oficiales(ventana: VentanaPrincipal) -> None:
+    """Verifica el pie institucional en las tres resoluciones oficiales (1100x700, 1366x768, 1920x1080)."""
+    # 1. Resolución 1100x700: modo compacto
+    ventana.resize(1100, 700)
+    QApplication.processEvents()
+    assert ventana._pie.height() == 44
+    assert ventana._caja_texto_pie.isVisible()
+    assert ventana._lbl_pie_l1.isVisible()
+    assert ventana._lbl_pie_l1.text() == "Universidad Popular del Cesar · Ingeniería de Sistemas"
+    assert not ventana._lbl_pie_l2.isVisible()
+    assert ventana._pastilla_logo.width() == 34
+    assert ventana._pastilla_logo.height() == 34
+    assert ventana._lbl_estado_conexion.isVisible()
+    assert ventana._chip_revision.isVisible()
+    assert ventana._chip_deshacer.isVisible()
+    assert ventana._chip_cola.isVisible()
+
+    # 2. Resolución 1366x768: modo completo
+    ventana.resize(1366, 768)
+    QApplication.processEvents()
+    assert ventana._pie.height() == 72
+    assert ventana._caja_texto_pie.isVisible()
+    assert ventana._lbl_pie_l1.isVisible()
+    assert (
+        ventana._lbl_pie_l1.text()
+        == "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas"
+    )
+    assert ventana._lbl_pie_l2.isVisible()
+    assert ventana._pastilla_logo.width() == 52
+    assert ventana._pastilla_logo.height() == 52
+    assert ventana._lbl_estado_conexion.isVisible()
+    assert ventana._chip_revision.isVisible()
+    assert ventana._chip_deshacer.isVisible()
+    assert ventana._chip_cola.isVisible()
+
+    # 3. Resolución 1920x1080: modo completo
+    ventana.resize(1920, 1080)
+    QApplication.processEvents()
+    assert ventana._pie.height() == 72
+    assert ventana._caja_texto_pie.isVisible()
+    assert ventana._lbl_pie_l1.isVisible()
+    assert (
+        ventana._lbl_pie_l1.text()
+        == "Universidad Popular del Cesar · Facultad de Ingenierías y Tecnológicas · Ingeniería de Sistemas"
+    )
+    assert ventana._lbl_pie_l2.isVisible()
+    assert ventana._pastilla_logo.width() == 52
+    assert ventana._pastilla_logo.height() == 52
+    assert ventana._lbl_estado_conexion.isVisible()
+    assert ventana._chip_revision.isVisible()
+    assert ventana._chip_deshacer.isVisible()
+    assert ventana._chip_cola.isVisible()
 
 
 def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) -> None:
