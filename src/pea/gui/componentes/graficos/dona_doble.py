@@ -466,7 +466,7 @@ class GraficoDonaDoble(GraficoBase):
                 color.setAlpha(60)
 
             painter.setBrush(QBrush(color))
-            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
+            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
             painter.drawRoundedRect(QRectF(x_col1, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)
@@ -494,7 +494,7 @@ class GraficoDonaDoble(GraficoBase):
                 color.setAlpha(60)
 
             painter.setBrush(QBrush(color))
-            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
+            painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
             painter.drawRoundedRect(QRectF(x_col2, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)

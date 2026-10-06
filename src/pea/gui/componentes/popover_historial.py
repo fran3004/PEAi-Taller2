@@ -139,8 +139,9 @@ class PopoverHistorial(QFrame):
 
         for idx, op_texto in enumerate(operaciones):
             fila_w = QWidget(self._cuerpo_lista)
+            fondo_fila = estilo.SUPERFICIE_ALTERNADA if idx == 0 else estilo.SUPERFICIE
             fila_w.setStyleSheet(
-                f"QWidget {{ background-color: {'{estilo.SUPERFICIE_ALTERNADA}' if idx == 0 else '{estilo.SUPERFICIE}'}; "
+                f"QWidget {{ background-color: {fondo_fila}; "
                 f"border: 1px solid {LINEA}; border-radius: 6px; padding: 4px; }}"
             )
             layout_f = QHBoxLayout(fila_w)
@@ -173,4 +174,3 @@ class PopoverHistorial(QFrame):
     def _al_pulsar_deshacer(self) -> None:
         self.deshacer_solicitado.emit()
         self.close()
-

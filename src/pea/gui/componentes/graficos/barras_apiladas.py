@@ -390,7 +390,7 @@ class _LienzoBarrasApiladas(GraficoBase):
                     color_cuadro.setAlpha(60)
 
                 painter.setBrush(QBrush(color_cuadro))
-                painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else "{estilo.SUPERFICIE}"), 1))
+                painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
                 painter.drawRoundedRect(QRectF(x_col, y_item + 2.0, 11.0, 11.0), 3.0, 3.0)
 
                 # Texto
@@ -426,7 +426,9 @@ class GraficoBarrasApiladas(QWidget):
         barra_controles.setContentsMargins(12, 8, 12, 0)
 
         self._lbl_titulo = QLabel(titulo)
-        self._lbl_titulo.setStyleSheet("font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {estilo.TEXTO};")
+        self._lbl_titulo.setStyleSheet(
+            f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {estilo.TEXTO};"
+        )
         barra_controles.addWidget(self._lbl_titulo)
         barra_controles.addStretch()
 
@@ -435,9 +437,9 @@ class GraficoBarrasApiladas(QWidget):
         self._btn_alternar.setAccessibleName("Alternar entre visualización gráfica y tabla de datos")
         self._btn_alternar.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_alternar.setStyleSheet(
-            "QPushButton { font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; padding: 4px 10px; "
-            "border: 1px solid {estilo.LINEA}; border-radius: 6px; background-color: {estilo.SUPERFICIE}; color: {estilo.PRIMARIO}; }"
-            "QPushButton:hover { background-color: {estilo.FONDO_APP}; border-color: {estilo.ACENTO}; }"
+            f"QPushButton {{ font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: 600; padding: 4px 10px; "
+            f"border: 1px solid {estilo.LINEA}; border-radius: 6px; background-color: {estilo.SUPERFICIE}; color: {estilo.PRIMARIO}; }}"
+            f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {estilo.ACENTO}; }}"
         )
         self._btn_alternar.clicked.connect(self.alternar_vista_tabla)
         barra_controles.addWidget(self._btn_alternar)

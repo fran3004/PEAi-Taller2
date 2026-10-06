@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 from typing import Any
@@ -213,6 +214,32 @@ def test_generadores_css_aceptados_por_qt() -> None:
     finally:
         qInstallMessageHandler(anterior)
     assert not avisos, "\n".join(avisos)
+
+
+def test_no_hay_tokens_de_estilo_sin_interpolar_en_qss() -> None:
+    """Detecta tokens estilo.X que llegaron literalmente a estilos o colores Qt."""
+    raiz = Path(__file__).parents[2] / "src" / "pea" / "gui"
+    hallazgos: list[str] = []
+
+    class Visitante(ast.NodeVisitor):
+        def visit_Call(self, nodo: ast.Call) -> None:
+            nombre = ""
+            if isinstance(nodo.func, ast.Attribute):
+                nombre = nodo.func.attr
+            if nombre in {"setStyleSheet", "QColor"}:
+                for argumento in nodo.args:
+                    for subnodo in ast.walk(argumento):
+                        if isinstance(subnodo, ast.Constant) and isinstance(subnodo.value, str):
+                            if re.search(r"\{estilo\.[A-Z][A-Z0-9_]*\}", subnodo.value):
+                                hallazgos.append(
+                                    f"{ruta.relative_to(raiz)}:{subnodo.lineno}: {subnodo.value}"
+                                )
+            self.generic_visit(nodo)
+
+    for ruta in sorted(raiz.rglob("*.py")):
+        arbol = ast.parse(ruta.read_text(encoding="utf-8"), filename=str(ruta))
+        Visitante().visit(arbol)
+    assert not hallazgos, "Tokens de estilo sin interpolar:\n" + "\n".join(hallazgos)
 
 
 def test_variantes_css_desconocidas_fallan_explicitamente() -> None:
