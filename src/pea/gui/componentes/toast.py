@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
 )
 
 from pea.gui import estilo
-from pea.gui.componentes.animacion import animar_desvanecimiento
 from pea.gui.estilo import (
     AVISO,
     AVISO_FONDO,
@@ -135,9 +134,6 @@ class Toast(QFrame):
         self._timer.setInterval(duracion_ms)
         self._timer.timeout.connect(self.cerrar)
         self._timer.start()
-
-        # Animación inicial suave
-        animar_desvanecimiento(self, inicio=0.0, fin=1.0, duracion_ms=180)
 
     def _obtener_estilo_tipo(self, tipo: str) -> tuple[str, str, str]:
         if tipo == "exito":

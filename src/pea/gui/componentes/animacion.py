@@ -37,16 +37,21 @@ def animar_desvanecimiento(
     fin: float = 1.0,
     duracion_ms: int = DURACION_TRANSICION_PANTALLA_MS,
 ) -> QPropertyAnimation | None:
-    """Anima widgets sencillos sin cambiar la política de navegación de páginas."""
+    """Anima la opacidad sin reemplazar efectos gráficos existentes."""
     efecto = widget.graphicsEffect()
-    if not isinstance(efecto, QGraphicsOpacityEffect):
+    dur = duracion_efectiva(duracion_ms)
+
+    if efecto is not None and not isinstance(efecto, QGraphicsOpacityEffect):
+        return None
+
+    if dur == 0:
+        if isinstance(efecto, QGraphicsOpacityEffect):
+            efecto.setOpacity(fin)
+        return None
+
+    if efecto is None:
         efecto = QGraphicsOpacityEffect(widget)
         widget.setGraphicsEffect(efecto)
-
-    dur = duracion_efectiva(duracion_ms)
-    if dur == 0:
-        efecto.setOpacity(fin)
-        return None
 
     efecto.setOpacity(inicio)
     anim = QPropertyAnimation(efecto, b"opacity", widget)

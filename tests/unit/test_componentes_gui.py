@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import (
+    QGraphicsDropShadowEffect,
+    QGraphicsOpacityEffect,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QStackedWidget,
+    QWidget,
+)
 
 from pea.gui.componentes import (
     Avatar,
@@ -26,7 +34,7 @@ from pea.gui.componentes import (
     animaciones_habilitadas,
     duracion_efectiva,
 )
-from pea.gui.componentes.animacion import VARIABLE_SIN_ANIMACIONES
+from pea.gui.componentes.animacion import VARIABLE_SIN_ANIMACIONES, animar_desvanecimiento
 from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios
 
 # ===========================================================================
@@ -43,6 +51,64 @@ def test_animacion_respeta_variable_entorno(monkeypatch: Any) -> None:
     monkeypatch.setenv(VARIABLE_SIN_ANIMACIONES, "0")
     assert animaciones_habilitadas()
     assert duracion_efectiva(350) == 350
+
+
+def test_animacion_no_reemplaza_un_efecto_grafico_existente(qapp: Any, monkeypatch: Any) -> None:
+    """Una sombra existente debe permanecer intacta y cancelar el desvanecimiento."""
+    monkeypatch.delenv(VARIABLE_SIN_ANIMACIONES, raising=False)
+    widget = QWidget()
+    sombra = QGraphicsDropShadowEffect(widget)
+    widget.setGraphicsEffect(sombra)
+
+    assert animar_desvanecimiento(widget, duracion_ms=180) is None
+    assert widget.graphicsEffect() is sombra
+    assert isinstance(widget.graphicsEffect(), QGraphicsDropShadowEffect)
+    widget.deleteLater()
+
+
+def test_animacion_reutiliza_efecto_de_opacidad(qapp: Any, monkeypatch: Any) -> None:
+    """La animación reutiliza una opacidad existente en lugar de apilar efectos."""
+    monkeypatch.setenv(VARIABLE_SIN_ANIMACIONES, "1")
+    widget = QWidget()
+    opacidad = QGraphicsOpacityEffect(widget)
+    widget.setGraphicsEffect(opacidad)
+
+    assert animar_desvanecimiento(widget, inicio=0.0, fin=1.0, duracion_ms=180) is None
+    assert widget.graphicsEffect() is opacidad
+    assert opacidad.opacity() == 1.0
+    widget.deleteLater()
+
+
+def test_animacion_aplica_opacidad_solo_si_no_hay_efecto(qapp: Any, monkeypatch: Any, qtbot: Any) -> None:
+    """Los widgets sin efecto conservan la animación de opacidad prevista."""
+    monkeypatch.delenv(VARIABLE_SIN_ANIMACIONES, raising=False)
+    widget = QWidget()
+
+    animacion = animar_desvanecimiento(widget, inicio=0.0, fin=1.0, duracion_ms=30)
+
+    assert animacion is not None
+    efecto = widget.graphicsEffect()
+    assert isinstance(efecto, QGraphicsOpacityEffect)
+    qtbot.wait(60)
+    assert efecto.opacity() == 1.0
+    widget.deleteLater()
+
+
+def test_animacion_conserva_la_sombra_del_toast(qapp: Any, monkeypatch: Any, qtbot: Any) -> None:
+    """Los Toast se muestran de inmediato cuando su sombra impide animar opacidad."""
+    monkeypatch.delenv(VARIABLE_SIN_ANIMACIONES, raising=False)
+    toast = Toast("Mensaje consecutivo", titulo="Éxito", duracion_ms=2000)
+    qtbot.addWidget(toast)
+    sombra = toast.graphicsEffect()
+
+    toast.show()
+    qapp.processEvents()
+
+    assert isinstance(sombra, QGraphicsDropShadowEffect)
+    assert toast.graphicsEffect() is sombra
+    assert toast.isVisible()
+    assert toast.windowOpacity() == 1.0
+    toast.cerrar()
 
 
 # ===========================================================================
@@ -316,6 +382,9 @@ def test_toast_y_gestor_avisos(qapp: Any, qtbot: Any) -> None:
     gestor.limpiar_todos()
     assert len(gestor._toasts) == 0
 
+    toast_temporal = gestor.mostrar_info("Cierre automático", duracion_ms=30)
+    qtbot.waitUntil(lambda: toast_temporal not in gestor._toasts, timeout=500)
+
 
 def test_gestor_avisos_resuelve_el_gestor_de_la_ventana(qapp: Any, qtbot: Any) -> None:
     """Todas las variantes de aviso deben usar el gestor compartido de la ventana."""
@@ -337,3 +406,50 @@ def test_gestor_avisos_resuelve_el_gestor_de_la_ventana(qapp: Any, qtbot: Any) -
     assert GestorAvisos.mostrar_desde(QWidget(), "Sin ventana") is None
     assert len(ventana._gestor_toasts._toasts) == len(tipos)
     ventana._gestor_toasts.limpiar_todos()
+
+
+def test_toasts_consecutivos_se_conservan_al_interactuar_y_cambiar_pantalla(
+    qapp: Any,
+    qtbot: Any,
+) -> None:
+    """Verifica sombra, hover, resize y visibilidad sobre cambios de pantalla."""
+    ventana = QWidget()
+    ventana.resize(800, 600)
+    qtbot.addWidget(ventana)
+
+    pila = QStackedWidget(ventana)
+    pila.setGeometry(0, 0, 800, 600)
+    pila.addWidget(QWidget())
+    pila.addWidget(QWidget())
+    pila.show()
+    ventana.show()
+    gestor = GestorAvisos(ventana)
+
+    toast_exito = gestor.mostrar_exito("Guardado", duracion_ms=5000)
+    toast_error = gestor.mostrar_error("No se pudo guardar", duracion_ms=5000)
+    sombra_exito = toast_exito.graphicsEffect()
+    sombra_error = toast_error.graphicsEffect()
+    qapp.processEvents()
+
+    qtbot.mouseMove(toast_error)
+    qapp.processEvents()
+    assert not toast_error._timer.isActive()
+
+    ventana.resize(900, 650)
+    pila.setCurrentIndex(1)
+    qapp.processEvents()
+
+    assert toast_exito.isVisible()
+    assert toast_error.isVisible()
+    assert toast_exito.graphicsEffect() is sombra_exito
+    assert toast_error.graphicsEffect() is sombra_error
+    assert isinstance(sombra_exito, QGraphicsDropShadowEffect)
+    assert isinstance(sombra_error, QGraphicsDropShadowEffect)
+    assert pila.currentIndex() == 1
+    assert not toast_error._timer.isActive()
+
+    qtbot.mouseMove(ventana, pos=QPoint(0, 0))
+    qapp.processEvents()
+    assert toast_error._timer.isActive()
+
+    gestor.limpiar_todos()
