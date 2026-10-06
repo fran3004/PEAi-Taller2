@@ -22,7 +22,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QScrollArea
 
 from pea.gui.componentes.filtro_anios import texto_resumen_filtro
 from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
@@ -269,6 +269,24 @@ def test_pantalla_importar_cola_ingesta(ventana: VentanaPrincipal, tmp_path: Pat
     modelo_cola = pantalla.tabla_cola.model()
     assert modelo_cola is not None
     assert modelo_cola.rowCount() > 0
+
+
+def test_pantalla_importar_conserva_fondo_y_superficies_legibles(ventana: VentanaPrincipal) -> None:
+    """Verifica el fondo claro de Importar y que sus tarjetas sigan blancas."""
+    from pea.gui import estilo
+
+    ventana.resize(1366, 768)
+    ventana.seleccionar_pantalla(Pantalla.IMPORTAR)
+    QApplication.processEvents()
+
+    pantalla = ventana._pantalla_importar
+    assert pantalla is not None
+    area = pantalla.findChild(QScrollArea, "areaDesplazableImportar")
+    assert area is not None
+    assert area.viewport().palette().color(area.viewport().backgroundRole()).name().lower() == estilo.FONDO_APP.lower()
+
+    for tarjeta in (pantalla.tarjeta_csv, pantalla.tarjeta_pdf, pantalla.tarjeta_url, pantalla.tarjeta_cola):
+        assert tarjeta.palette().color(tarjeta.backgroundRole()).name().lower() == estilo.SUPERFICIE.lower()
 
 
 def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:

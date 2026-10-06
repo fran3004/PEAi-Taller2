@@ -62,3 +62,17 @@ presentan una barra institucional equivalente.
 
 ## Pendientes y siguiente paso
 Ninguno dentro del alcance de esta correccion.
+
+## Ajuste adicional de Importar
+- Se identifico que el fondo oscuro provenia de superficies transparentes del
+  `QScrollArea` y su contenido.
+- Se asigno la paleta clara `FONDO_APP` al area, viewport y contenedor, sin
+  agregar hojas QSS locales que interfieran con las tarjetas o estilos
+  globales.
+- Se confirmo por captura y muestreo de pixeles el fondo `#F1F5F9` y las
+  tarjetas blancas `#FFFFFF`.
+- Se agrego una prueba de regresion de esas superficies.
+- Ruff: aprobado.
+- `pytest tests\unit`: 218 pasaron, 1 deseleccionada.
+- Autoprueba GUI: completada.
+- `tools\brain\verificar_brain.py`: 121 notas, cero errores y advertencias.

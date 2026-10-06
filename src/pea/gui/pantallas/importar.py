@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFontMetrics, QResizeEvent
+from PySide6.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFontMetrics, QPalette, QResizeEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -252,10 +252,24 @@ class PantallaImportar(QWidget):
 
     def _construir_ui(self) -> None:
         area_desplazable = QScrollArea(self)
+        area_desplazable.setObjectName("areaDesplazableImportar")
         area_desplazable.setWidgetResizable(True)
         area_desplazable.setFrameShape(QFrame.Shape.NoFrame)
         area_desplazable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        paleta_area = area_desplazable.palette()
+        paleta_area.setColor(QPalette.ColorRole.Window, estilo.FONDO_APP)
+        area_desplazable.setPalette(paleta_area)
+        area_desplazable.setAutoFillBackground(True)
+        paleta_viewport = area_desplazable.viewport().palette()
+        paleta_viewport.setColor(QPalette.ColorRole.Window, estilo.FONDO_APP)
+        area_desplazable.viewport().setPalette(paleta_viewport)
+        area_desplazable.viewport().setAutoFillBackground(True)
         contenedor = QWidget()
+        contenedor.setObjectName("contenedorImportar")
+        paleta_contenedor = contenedor.palette()
+        paleta_contenedor.setColor(QPalette.ColorRole.Window, estilo.FONDO_APP)
+        contenedor.setPalette(paleta_contenedor)
+        contenedor.setAutoFillBackground(True)
         layout_principal = QVBoxLayout(contenedor)
         layout_principal.setContentsMargins(24, 20, 24, 20)
         layout_principal.setSpacing(18)
