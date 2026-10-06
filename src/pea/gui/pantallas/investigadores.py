@@ -304,23 +304,26 @@ class _BarraProgresoMini(QWidget):
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        ancho = float(self.width())
-        alto = float(self.height())
-        rect_total = QRectF(0, 0, ancho, alto)
+            ancho = float(self.width())
+            alto = float(self.height())
+            rect_total = QRectF(0, 0, ancho, alto)
 
-        # Fondo tenue
-        painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_GRAFICO_GUIA)))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawRoundedRect(rect_total, 4.0, 4.0)
+            # Fondo tenue
+            painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_GRAFICO_GUIA)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(rect_total, 4.0, 4.0)
 
-        # Barra activa
-        if self._fraccion > 0:
-            ancho_activo = max(6.0, ancho * self._fraccion)
-            rect_activo = QRectF(0, 0, ancho_activo, alto)
-            painter.setBrush(QBrush(QColor(self._color_hex)))
-            painter.drawRoundedRect(rect_activo, 4.0, 4.0)
+            # Barra activa
+            if self._fraccion > 0:
+                ancho_activo = max(6.0, ancho * self._fraccion)
+                rect_activo = QRectF(0, 0, ancho_activo, alto)
+                painter.setBrush(QBrush(QColor(self._color_hex)))
+                painter.drawRoundedRect(rect_activo, 4.0, 4.0)
+        finally:
+            painter.end()
 
 
 class BarrasTipologia(QWidget):

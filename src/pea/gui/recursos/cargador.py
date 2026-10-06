@@ -115,9 +115,8 @@ def cargar_pixmap(nombre: str | Path, ancho: int | None = None, alto: int | None
 
         pixmap = QPixmap(w, h)
         pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
+        with QPainter(pixmap) as painter:
+            renderer.render(painter)
     else:
         pixmap = QPixmap(str(ruta))
         if ancho is not None and alto is not None:

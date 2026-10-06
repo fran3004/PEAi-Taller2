@@ -180,25 +180,26 @@ class Esqueleto(QWidget):
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        color_base = QColor(FICHA)
-        color_base.setAlphaF(self._opacidad)
-        painter.setBrush(QBrush(color_base))
-        painter.setPen(Qt.PenStyle.NoPen)
+            color_base = QColor(FICHA)
+            color_base.setAlphaF(self._opacidad)
+            painter.setBrush(QBrush(color_base))
+            painter.setPen(Qt.PenStyle.NoPen)
 
-        w = float(self.width() - 8)
-        y = 4.0
+            w = float(self.width() - 8)
+            y = 4.0
 
-        for i in range(self._filas):
-            # Anchos variables para simular líneas naturales de texto
-            factor_ancho = 1.0 if i == 0 else (0.85 if i % 2 == 1 else 0.65)
-            ancho_bloque = w * factor_ancho
-            rect = QRectF(4.0, y, ancho_bloque, float(self._altura_fila))
-            painter.drawRoundedRect(rect, RADIO_CAMPO, RADIO_CAMPO)
-            y += float(self._altura_fila + self._espaciado)
-
-        painter.end()
+            for i in range(self._filas):
+                # Anchos variables para simular líneas naturales de texto
+                factor_ancho = 1.0 if i == 0 else (0.85 if i % 2 == 1 else 0.65)
+                ancho_bloque = w * factor_ancho
+                rect = QRectF(4.0, y, ancho_bloque, float(self._altura_fila))
+                painter.drawRoundedRect(rect, RADIO_CAMPO, RADIO_CAMPO)
+                y += float(self._altura_fila + self._espaciado)
+        finally:
+            painter.end()
 
 
 __all__ = ["Esqueleto", "EstadoVacio"]

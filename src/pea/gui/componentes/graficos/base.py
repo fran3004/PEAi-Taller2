@@ -117,23 +117,20 @@ class GraficoBase(QWidget):
         imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32)
         imagen.fill(QColor(estilo.SUPERFICIE))
 
-        painter = QPainter(imagen)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        painter.scale(escala, escala)
-
-        # Para exportación, animaciones al 100% y sin tooltip activo
         progreso_prev = self._progreso_animacion
         tooltip_prev = self._tooltip_visible
         self._progreso_animacion = 1.0
         self._tooltip_visible = False
-
-        rect_export = QRectF(0, 0, float(ancho), float(alto))
-        self._dibujar(painter, rect_export)
-
-        self._progreso_animacion = progreso_prev
-        self._tooltip_visible = tooltip_prev
-        painter.end()
+        try:
+            with QPainter(imagen) as painter:
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+                painter.scale(escala, escala)
+                rect_export = QRectF(0, 0, float(ancho), float(alto))
+                self._dibujar(painter, rect_export)
+        finally:
+            self._progreso_animacion = progreso_prev
+            self._tooltip_visible = tooltip_prev
 
         destino = Path(ruta)
         if destino.suffix.lower() != ".png":
@@ -142,12 +139,11 @@ class GraficoBase(QWidget):
         return imagen.save(str(destino), "PNG")
 
     def paintEvent(self, event: QPaintEvent) -> None:
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-        rect = QRectF(self.rect())
-        self._dibujar(painter, rect)
-        painter.end()
+        with QPainter(self) as painter:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+            rect = QRectF(self.rect())
+            self._dibujar(painter, rect)
 
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
         """Método de dibujo base; por defecto dibuja fondo, encabezado y estado vacío si aplica."""

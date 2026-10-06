@@ -897,13 +897,11 @@ class PantallaRedes(QWidget):
             imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32_Premultiplied)
             imagen.fill(QColor(estilo.SUPERFICIE))
 
-            painter = QPainter(imagen)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-
-            self.vista_red._escena.render(painter, QRectF(0, 0, ancho_px, alto_px), rect_escena)
-            painter.end()
+            with QPainter(imagen) as painter:
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+                self.vista_red._escena.render(painter, QRectF(0, 0, ancho_px, alto_px), rect_escena)
 
             imagen.save(ruta, "PNG")
             GestorAvisos.instancia().mostrar(f"Red exportada exitosamente a {Path(ruta).name}", tipo="exito")

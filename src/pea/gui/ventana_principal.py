@@ -127,15 +127,18 @@ class FileteInstitucionalUPC(QWidget):
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
-        w = float(self.width())
-        h = float(self.height())
-        w1 = round(w / 3.0)
-        w2 = round(w / 3.0)
-        w3 = w - w1 - w2
+        try:
+            w = float(self.width())
+            h = float(self.height())
+            w1 = round(w / 3.0)
+            w2 = round(w / 3.0)
+            w3 = w - w1 - w2
 
-        painter.fillRect(QRectF(0, 0, w1, h), QColor(UPC_VERDE_OSCURO))
-        painter.fillRect(QRectF(w1, 0, w2, h), QColor(UPC_VERDE))
-        painter.fillRect(QRectF(w1 + w2, 0, w3, h), QColor(UPC_VERDE_CLARO))
+            painter.fillRect(QRectF(0, 0, w1, h), QColor(UPC_VERDE_OSCURO))
+            painter.fillRect(QRectF(w1, 0, w2, h), QColor(UPC_VERDE))
+            painter.fillRect(QRectF(w1 + w2, 0, w3, h), QColor(UPC_VERDE_CLARO))
+        finally:
+            painter.end()
 
 
 class BotonPestanaSuperior(QPushButton):
@@ -267,6 +270,7 @@ class BotonPestanaSuperior(QPushButton):
             y_barra = rect.height() - 4.0
             rect_barra = QRectF(x_barra, y_barra, ancho_barra, 3.0)
             painter.fillRect(rect_barra, QColor(ACENTO))
+        painter.end()
 
 
 class BotonDeshacerSuperior(QWidget):
@@ -509,11 +513,14 @@ class VentanaPrincipal(QMainWindow):
         # Degradado horizontal institucional
         def pintar_barra(event: QPaintEvent) -> None:
             painter = QPainter(barra)
-            grad = QLinearGradient(0, 0, barra.width(), 0)
-            grad.setColorAt(0.0, QColor(ENCABEZADO_INICIO))
-            grad.setColorAt(0.5, QColor(ENCABEZADO_MEDIO))
-            grad.setColorAt(1.0, QColor(ENCABEZADO_FIN))
-            painter.fillRect(barra.rect(), grad)
+            try:
+                grad = QLinearGradient(0, 0, barra.width(), 0)
+                grad.setColorAt(0.0, QColor(ENCABEZADO_INICIO))
+                grad.setColorAt(0.5, QColor(ENCABEZADO_MEDIO))
+                grad.setColorAt(1.0, QColor(ENCABEZADO_FIN))
+                painter.fillRect(barra.rect(), grad)
+            finally:
+                painter.end()
 
         barra.paintEvent = pintar_barra  # type: ignore[assignment]
 
