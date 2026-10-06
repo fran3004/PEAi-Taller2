@@ -181,6 +181,11 @@ PARES_CONTRASTE_TABLA_4_1: Final[list[tuple[str, str, str]]] = [
     (COLOR_CAT_SIN_CATEGORIA_TEXTO, COLOR_CAT_SIN_CATEGORIA_FONDO, "Texto sobre fondo sin categoría"),
     (TEXTO_DESHABILITADO, SUPERFICIE, "Texto deshabilitado sobre superficie"),
     (
+        TEXTO_DESHABILITADO,
+        SUPERFICIE_DESHABILITADA,
+        "Texto deshabilitado sobre superficie deshabilitada",
+    ),
+    (
         TEXTO_DESHABILITADO_SOBRE_PRIMARIO,
         PRIMARIO_DESHABILITADO,
         "Texto deshabilitado sobre primario",
@@ -308,6 +313,9 @@ def css_boton(variante: str) -> str:
             "bold",
             PRIMARIO_HOVER,
             PRIMARIO_PULSADO,
+            PRIMARIO_DESHABILITADO,
+            TEXTO_DESHABILITADO_SOBRE_PRIMARIO,
+            "none",
         ),
         "secundario": (
             SUPERFICIE,
@@ -316,6 +324,9 @@ def css_boton(variante: str) -> str:
             "500",
             SUPERFICIE_HOVER,
             SUPERFICIE_PULSADA,
+            SUPERFICIE_DESHABILITADA,
+            TEXTO_DESHABILITADO,
+            f"1px solid {LINEA}",
         ),
         "peligro": (
             ERROR,
@@ -324,6 +335,9 @@ def css_boton(variante: str) -> str:
             "bold",
             ERROR_HOVER,
             ERROR,
+            ERROR_DESHABILITADO,
+            TEXTO_SOBRE_OSCURO,
+            "none",
         ),
         "icono": (
             SUPERFICIE,
@@ -332,10 +346,13 @@ def css_boton(variante: str) -> str:
             "500",
             SUPERFICIE_HOVER,
             SUPERFICIE_PULSADA,
+            SUPERFICIE_DESHABILITADA,
+            TEXTO_DESHABILITADO,
+            f"1px solid {LINEA}",
         ),
     }
     try:
-        fondo, texto, borde, peso, hover, pulsado = variantes[variante]
+        fondo, texto, borde, peso, hover, pulsado, fondo_dis, texto_dis, borde_dis = variantes[variante]
     except KeyError as exc:
         raise ValueError(f"Variante de botón desconocida: {variante}") from exc
     return (
@@ -344,6 +361,7 @@ def css_boton(variante: str) -> str:
         f"font-size: {TAMANO_CUERPO}pt; font-weight: {peso}; }}"
         f" QPushButton:hover {{ background-color: {hover}; }}"
         f" QPushButton:pressed {{ background-color: {pulsado}; }}"
+        f" QPushButton:disabled {{ background-color: {fondo_dis}; color: {texto_dis}; border: {borde_dis}; }}"
     )
 
 
@@ -544,6 +562,7 @@ def generar_hoja_estilos() -> str:
     QPushButton#primario:disabled {{
         background-color: {PRIMARIO_DESHABILITADO};
         color: {TEXTO_DESHABILITADO_SOBRE_PRIMARIO};
+        border: none;
     }}
 
     QPushButton#peligro {{

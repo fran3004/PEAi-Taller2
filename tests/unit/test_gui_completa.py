@@ -470,3 +470,121 @@ def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> N
     assert hint_compacto.height() == 64
 
 
+def test_botones_deshabilitados_importar_y_configuracion(ventana: VentanaPrincipal) -> None:
+    """Verifica auditoría, contraste WCAG y legibilidad en 3 resoluciones de botones deshabilitados."""
+    from PySide6.QtGui import QFontMetrics
+
+    from pea.gui import estilo
+
+    # 1. Verificación de reglas QSS globales y tokens de estilo
+    qss = estilo.HOJA_ESTILOS_GLOBAL
+    assert "QPushButton:disabled" in qss
+    assert "QPushButton#primario:disabled" in qss
+    assert estilo.PRIMARIO_DESHABILITADO in qss
+    assert estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO in qss
+    assert estilo.TEXTO_DESHABILITADO in qss
+    assert estilo.SUPERFICIE_DESHABILITADA in qss
+
+    # 2. Verificación de ratio de contraste WCAG >= 4.5:1
+    ratio_primario_dis = estilo.calcular_radio_contraste(
+        estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO, estilo.PRIMARIO_DESHABILITADO
+    )
+    assert ratio_primario_dis >= 4.5
+    assert ratio_primario_dis >= 7.0  # Nivel AAA
+
+    ratio_secundario_dis = estilo.calcular_radio_contraste(
+        estilo.TEXTO_DESHABILITADO, estilo.SUPERFICIE_DESHABILITADA
+    )
+    assert ratio_secundario_dis >= 4.5
+
+    # 3. Inspección en las tres resoluciones oficiales (1100x700, 1366x768, 1920x1080)
+    for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
+        ventana.resize(ancho, alto)
+        QApplication.processEvents()
+
+        # Pantalla Importar
+        ventana.seleccionar_pantalla(5)
+        QApplication.processEvents()
+        p_imp = ventana._pantalla_importar
+
+        botones_importar = [
+            ("Encolar CSV", p_imp.btn_encolar_csv, True),
+            ("Encolar PDF", p_imp.btn_encolar_pdf, True),
+            ("Encolar URL SCIENTI", p_imp.btn_encolar_url, True),
+            ("Procesar siguiente", p_imp.btn_procesar_siguiente, True),
+            ("Procesar todas", p_imp.btn_procesar_todas, False),
+        ]
+
+        for rotulo, btn, es_primario in botones_importar:
+            # No debe tener QSS inline que anule los estilos centralizados
+            assert btn.styleSheet() == ""
+            if es_primario:
+                assert btn.objectName() == "primario"
+
+            btn.setEnabled(False)
+            QApplication.processEvents()
+            assert not btn.isEnabled()
+            assert btn.isVisible()
+
+            # El ancho real debe superar el avance horizontal del texto
+            fm = QFontMetrics(btn.font())
+            avance_texto = fm.horizontalAdvance(btn.text())
+            assert btn.width() >= avance_texto, (
+                f"[{ancho}x{alto}] {rotulo} tiene ancho {btn.width()} px < texto {avance_texto} px"
+            )
+
+            # Comprobar renderizado de píxeles: sin colapso a tamaño 0
+            img = btn.grab().toImage()
+            assert img.width() >= 100
+            assert img.height() >= 24
+            colores = set(
+                img.pixelColor(x, y).name()
+                for x in range(img.width())
+                for y in range(img.height())
+            )
+            if es_primario:
+                # Fondo primario oscuro y texto claro
+                assert estilo.PRIMARIO_DESHABILITADO.lower() in colores
+                assert estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO.lower() in colores
+
+        # Pantalla Configuración
+        ventana.seleccionar_pantalla(6)
+        QApplication.processEvents()
+        p_cfg = ventana._pantalla_configuracion_modulo
+
+        botones_configuracion = [
+            ("Conectar con Supabase", p_cfg.btn_conectar, True),
+            ("Cargar datos de demostración", p_cfg.btn_demo, False),
+            ("Cerrar sesión / Desconectar", p_cfg.btn_desconectar, False),
+        ]
+
+        for rotulo, btn, es_primario in botones_configuracion:
+            assert btn.styleSheet() == ""
+            if es_primario:
+                assert btn.objectName() == "primario"
+
+            btn.setEnabled(False)
+            QApplication.processEvents()
+            assert not btn.isEnabled()
+            assert btn.isVisible()
+
+            fm = QFontMetrics(btn.font())
+            avance_texto = fm.horizontalAdvance(btn.text())
+            assert btn.width() >= avance_texto, (
+                f"[{ancho}x{alto}] {rotulo} tiene ancho {btn.width()} px < texto {avance_texto} px"
+            )
+
+            img = btn.grab().toImage()
+            assert img.width() >= 100
+            assert img.height() >= 24
+            colores = set(
+                img.pixelColor(x, y).name()
+                for x in range(img.width())
+                for y in range(img.height())
+            )
+            if es_primario:
+                assert estilo.PRIMARIO_DESHABILITADO.lower() in colores
+                assert estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO.lower() in colores
+
+
+

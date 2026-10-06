@@ -11,6 +11,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.7).
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QCheckBox,
     QFormLayout,
@@ -275,16 +276,25 @@ class PantallaConfiguracion(QWidget):
         self.btn_conectar = QPushButton("Conectar con Supabase", self.tarjeta_form)
         self.btn_conectar.setObjectName("primario")
         self.btn_conectar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_conectar.ensurePolished()
+        fm_con = QFontMetrics(self.btn_conectar.font())
+        self.btn_conectar.setMinimumWidth(fm_con.horizontalAdvance(self.btn_conectar.text()) + 32)
         self.btn_conectar.clicked.connect(self._al_conectar)
         fila_botones.addWidget(self.btn_conectar)
 
         self.btn_demo = QPushButton("Cargar datos de demostración", self.tarjeta_form)
         self.btn_demo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_demo.ensurePolished()
+        fm_demo = QFontMetrics(self.btn_demo.font())
+        self.btn_demo.setMinimumWidth(fm_demo.horizontalAdvance(self.btn_demo.text()) + 32)
         self.btn_demo.clicked.connect(self._al_cargar_demostracion)
         fila_botones.addWidget(self.btn_demo)
 
         self.btn_desconectar = QPushButton("Cerrar sesión / Desconectar", self.tarjeta_form)
         self.btn_desconectar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_desconectar.ensurePolished()
+        fm_desc = QFontMetrics(self.btn_desconectar.font())
+        self.btn_desconectar.setMinimumWidth(fm_desc.horizontalAdvance(self.btn_desconectar.text()) + 32)
         self.btn_desconectar.clicked.connect(self._al_desconectar)
         fila_botones.addWidget(self.btn_desconectar)
 

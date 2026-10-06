@@ -303,12 +303,12 @@ class PantallaImportar(QWidget):
         self.txt_ruta_csv.setVisible(False)
         self.zona_csv.archivo_seleccionado.connect(self.txt_ruta_csv.setText)
 
-        fila_csv_opts = QHBoxLayout()
-        fila_csv_opts.setSpacing(8)
+        fila_tipo = QHBoxLayout()
+        fila_tipo.setSpacing(8)
 
         lbl_tipo = QLabel("Tipo:", self.tarjeta_csv)
         lbl_tipo.setStyleSheet(f"font-size: {TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
-        fila_csv_opts.addWidget(lbl_tipo)
+        fila_tipo.addWidget(lbl_tipo)
 
         self.combo_tipo_csv = QComboBox(self.tarjeta_csv)
         self.combo_tipo_csv.addItem("Detección automática", None)
@@ -316,11 +316,18 @@ class PantallaImportar(QWidget):
         self.combo_tipo_csv.addItem("Investigadores", "investigadores")
         self.combo_tipo_csv.addItem("Productos", "productos")
         self.combo_tipo_csv.addItem("Autores / Relaciones", "autores")
-        fila_csv_opts.addWidget(self.combo_tipo_csv, 1)
+        fila_tipo.addWidget(self.combo_tipo_csv, 1)
+        self.tarjeta_csv.layout_contenido.addLayout(fila_tipo)
+
+        fila_csv_opts = QHBoxLayout()
+        fila_csv_opts.addStretch()
 
         self.btn_encolar_csv = QPushButton("Encolar CSV", self.tarjeta_csv)
         self.btn_encolar_csv.setObjectName("primario")
         self.btn_encolar_csv.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_encolar_csv.ensurePolished()
+        fm_csv = QFontMetrics(self.btn_encolar_csv.font())
+        self.btn_encolar_csv.setMinimumWidth(fm_csv.horizontalAdvance(self.btn_encolar_csv.text()) + 32)
         self.btn_encolar_csv.clicked.connect(self._al_encolar_csv)
         fila_csv_opts.addWidget(self.btn_encolar_csv)
 
@@ -356,6 +363,9 @@ class PantallaImportar(QWidget):
         self.btn_encolar_pdf = QPushButton("Encolar PDF", self.tarjeta_pdf)
         self.btn_encolar_pdf.setObjectName("primario")
         self.btn_encolar_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_encolar_pdf.ensurePolished()
+        fm_pdf = QFontMetrics(self.btn_encolar_pdf.font())
+        self.btn_encolar_pdf.setMinimumWidth(fm_pdf.horizontalAdvance(self.btn_encolar_pdf.text()) + 32)
         self.btn_encolar_pdf.clicked.connect(self._al_encolar_pdf)
         fila_pdf_opts.addWidget(self.btn_encolar_pdf)
 
@@ -381,6 +391,9 @@ class PantallaImportar(QWidget):
         self.btn_encolar_url = QPushButton("Encolar URL SCIENTI", self.tarjeta_url)
         self.btn_encolar_url.setObjectName("primario")
         self.btn_encolar_url.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_encolar_url.ensurePolished()
+        fm_url = QFontMetrics(self.btn_encolar_url.font())
+        self.btn_encolar_url.setMinimumWidth(fm_url.horizontalAdvance(self.btn_encolar_url.text()) + 32)
         self.btn_encolar_url.clicked.connect(self._al_encolar_url)
         fila_url_opts.addWidget(self.btn_encolar_url)
 
@@ -402,12 +415,19 @@ class PantallaImportar(QWidget):
         self.btn_procesar_siguiente = QPushButton("Procesar siguiente", self.tarjeta_cola)
         self.btn_procesar_siguiente.setObjectName("primario")
         self.btn_procesar_siguiente.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_procesar_siguiente.ensurePolished()
+        fm_sig = QFontMetrics(self.btn_procesar_siguiente.font())
+        self.btn_procesar_siguiente.setMinimumWidth(fm_sig.horizontalAdvance(self.btn_procesar_siguiente.text()) + 32)
         self.btn_procesar_siguiente.clicked.connect(self._al_procesar_siguiente)
         self.tarjeta_cola.agregar_accion(self.btn_procesar_siguiente)
 
         self.btn_procesar_todas = QPushButton("Procesar todas", self.tarjeta_cola)
         self.btn_procesar_todas.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_procesar_todas.ensurePolished()
+        fm_todas = QFontMetrics(self.btn_procesar_todas.font())
+        self.btn_procesar_todas.setMinimumWidth(fm_todas.horizontalAdvance(self.btn_procesar_todas.text()) + 32)
         self.btn_procesar_todas.clicked.connect(self._al_procesar_todas)
+        self.tarjeta_cola.agregar_accion(self.btn_procesar_todas)
         self.tarjeta_cola.agregar_accion(self.btn_procesar_todas)
 
         # Barra de progreso indeterminada durante procesamiento
