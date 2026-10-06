@@ -43,7 +43,7 @@ from pea.gui.estilo import (
     TEXTO_SECUNDARIO,
     TEXTO_SOBRE_OSCURO,
 )
-from pea.gui.recursos.cargador import cargar_pixmap
+from pea.gui.recursos.cargador import cargar_icono, cargar_pixmap
 from pea.servicios.vistas import FiltroAnios
 from pea.version import APP_VERSION, ESLOGAN_LINEA_1, ESLOGAN_LINEA_2, NOMBRE_COMPLETO
 
@@ -92,9 +92,12 @@ class PantallaAcerca(QWidget):
         fila_volver.setContentsMargins(0, 0, 0, 0)
         fila_volver.setSpacing(12)
 
-        self.btn_volver = QPushButton("← Volver al inicio", contenedor)
+        self.btn_volver = QPushButton("Volver al inicio", contenedor)
         self.btn_volver.setObjectName("btnVolverAcerca")
+        self.btn_volver.setIcon(cargar_icono("inicio.svg", 16))
         self.btn_volver.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_volver.setToolTip("Regresar al panel de Inicio")
+        self.btn_volver.setAccessibleName("Volver al inicio")
         self.btn_volver.setStyleSheet(
             f"QPushButton#btnVolverAcerca {{"
             f"  background-color: {FICHA};"

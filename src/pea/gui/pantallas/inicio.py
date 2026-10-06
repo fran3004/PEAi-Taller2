@@ -70,7 +70,7 @@ from pea.gui.formato import (
     formatear_entero,
     formatear_porcentaje,
 )
-from pea.gui.recursos import cargar_pixmap
+from pea.gui.recursos import cargar_icono, cargar_pixmap
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios
 
@@ -289,9 +289,11 @@ class PantallaInicio(QWidget):
         self._chip_ventana.filtro_cambiado.connect(self._al_cambiar_filtro)
         layout.addWidget(self._chip_ventana)
 
-        self._btn_exportar = QPushButton("Exportar ▾", barra)
+        self._btn_exportar = QPushButton("Exportar", barra)
         self._btn_exportar.setObjectName("btnExportarInicio")
         self._btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_exportar.setToolTip("Exportar datos a CSV o gráficos a PNG")
+        self._btn_exportar.setAccessibleName("Exportar datos o gráficos")
         self._btn_exportar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; border: 1px solid {LINEA}; "
             f"border-radius: {RADIO_BOTON}px; padding: 6px 14px; font-weight: 600; "
@@ -345,9 +347,11 @@ class PantallaInicio(QWidget):
         )
         layout_av.addWidget(self._lbl_lineas_ambito)
 
-        # Botón «Ver más detalles ⌄»
-        self._btn_detalles = QPushButton("Ver más detalles ⌄", zona_avatar)
+        # Botón «Ver más detalles v»
+        self._btn_detalles = QPushButton("Ver más detalles v", zona_avatar)
         self._btn_detalles.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_detalles.setToolTip("Ver más detalles institucionales o del grupo")
+        self._btn_detalles.setAccessibleName("Ver más detalles")
         self._btn_detalles.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
             f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 2px 8px; }}"
@@ -392,7 +396,9 @@ class PantallaInicio(QWidget):
     def _alternar_detalles(self) -> None:
         visible = not self._panel_detalles.isVisible()
         self._panel_detalles.setVisible(visible)
-        self._btn_detalles.setText("Ocultar detalles ⌃" if visible else "Ver más detalles ⌄")
+        self._btn_detalles.setText("Ocultar detalles ^" if visible else "Ver más detalles v")
+        self._btn_detalles.setToolTip("Ocultar detalles institucionales o del grupo" if visible else "Ver más detalles")
+        self._btn_detalles.setAccessibleName("Ocultar detalles" if visible else "Ver más detalles")
 
     # -----------------------------------------------------------------------
     # Tarjeta 2: Producción por Año y Tipología (Barras Apiladas)
@@ -439,8 +445,11 @@ class PantallaInicio(QWidget):
             parent=self._widget_rejilla,
         )
 
-        btn_abrir = QPushButton("Abrir análisis completo →", self._tarjeta_red)
+        btn_abrir = QPushButton("Abrir análisis completo", self._tarjeta_red)
+        btn_abrir.setIcon(cargar_icono("redes.svg", 16))
         btn_abrir.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_abrir.setToolTip("Abrir la pantalla de análisis de redes de colaboración")
+        btn_abrir.setAccessibleName("Abrir análisis de redes completo")
         btn_abrir.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
             f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 0 4px; }}"

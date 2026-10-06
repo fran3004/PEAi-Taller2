@@ -319,7 +319,7 @@ class MiniRed(GraficoBase):
         painter.setFont(fuente_pie)
         painter.setPen(QPen(QColor(COLOR_DTI)))
         rect_pie = QRectF(rect.left() + margen, rect.bottom() - 20.0, rect.width() - 2 * margen, 16.0)
-        painter.drawText(rect_pie, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "Ver análisis completo →")
+        painter.drawText(rect_pie, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "Ver análisis completo")
 
         # 4. Tooltip al pasar sobre un nodo
         if self._tooltip_visible and self._nodo_hover is not None and self._pos_cursor is not None:

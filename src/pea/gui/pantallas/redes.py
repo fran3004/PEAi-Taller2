@@ -69,6 +69,7 @@ from pea.gui.estilo import (
     TEXTO_SECUNDARIO,
 )
 from pea.gui.formato import formatear_entero
+from pea.gui.recursos.cargador import cargar_icono
 from pea.gui.red.disposicion import calcular_disposicion_fuerzas
 from pea.gui.red.nodo import abreviar_nombre_investigador
 from pea.gui.red.vista_red import VistaRed
@@ -340,10 +341,10 @@ class PantallaRedes(QWidget):
         self.btn_zoom_mas.clicked.connect(lambda: self.vista_red.acercar())
         fila_zoom.addWidget(self.btn_zoom_mas)
 
-        self.btn_zoom_menos = QPushButton("−", contenedor_controles)
+        self.btn_zoom_menos = QPushButton("-", contenedor_controles)
         self.btn_zoom_menos.setFixedSize(30, 30)
         self.btn_zoom_menos.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_zoom_menos.setToolTip("Alejar lienzo (− / Rueda abajo)")
+        self.btn_zoom_menos.setToolTip("Alejar lienzo (- / Rueda abajo)")
         self.btn_zoom_menos.setAccessibleName("Alejar lienzo")
         self.btn_zoom_menos.setStyleSheet(estilo_zoom_btn)
         self.btn_zoom_menos.clicked.connect(lambda: self.vista_red.alejar())
@@ -504,9 +505,12 @@ class PantallaRedes(QWidget):
         fila_btn_sel = QHBoxLayout()
         fila_btn_sel.setSpacing(8)
 
-        self.btn_ver_investigador = QPushButton("Ver ficha →", self._caja_con_seleccion)
+        self.btn_ver_investigador = QPushButton("Ver ficha", self._caja_con_seleccion)
         self.btn_ver_ficha = self.btn_ver_investigador
+        self.btn_ver_investigador.setIcon(cargar_icono("investigadores.svg", 16))
         self.btn_ver_investigador.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ver_investigador.setToolTip("Abrir la ficha detallada del investigador seleccionado")
+        self.btn_ver_investigador.setAccessibleName("Ver ficha de investigador")
         self.btn_ver_investigador.setStyleSheet(
             f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: bold; "
             f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
@@ -516,7 +520,10 @@ class PantallaRedes(QWidget):
         fila_btn_sel.addWidget(self.btn_ver_investigador, 1)
 
         self.btn_deseleccionar = QPushButton("Deseleccionar", self._caja_con_seleccion)
+        self.btn_deseleccionar.setIcon(cargar_icono("limpiar.svg", 16))
         self.btn_deseleccionar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_deseleccionar.setToolTip("Quitar la selección actual del nodo")
+        self.btn_deseleccionar.setAccessibleName("Deseleccionar nodo")
         self.btn_deseleccionar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; font-weight: 600; "
             f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; padding: 7px 12px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"

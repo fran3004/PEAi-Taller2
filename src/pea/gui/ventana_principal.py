@@ -302,13 +302,14 @@ class BotonDeshacerSuperior(QWidget):
         layout.addWidget(self.btn_accion)
 
         # Chevron para desplegar historial
-        self.btn_chevron = QPushButton("▾", self)
+        self.btn_chevron = QPushButton("v", self)
         self.btn_chevron.setFixedSize(22, 40)
         self.btn_chevron.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_chevron.setToolTip("Abrir historial de operaciones")
         self.btn_chevron.setAccessibleName("Abrir historial de operaciones")
         self.btn_chevron.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {TEXTO_SOBRE_OSCURO_SUAVE}; "
-            f"font-size: {estilo.TAMANO_CUERPO}pt; border: none; border-radius: {estilo.RADIO_BOTON}px; }} "
+            f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; border: none; border-radius: {estilo.RADIO_BOTON}px; }} "
             f"QPushButton:hover {{ background-color: {estilo.SUPERPOSICION_CLARA_12}; color: {estilo.SUPERFICIE}; }} "
             f"QPushButton:focus {{ border: 1px solid {ACENTO}; outline: none; }}"
         )

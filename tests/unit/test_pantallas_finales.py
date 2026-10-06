@@ -347,3 +347,128 @@ def test_pantalla_acerca_tarjeta_institucional_y_ficha_tecnica_responsive(
     # La distribución responsive debe expandir el ancho de la columna en pantallas más anchas
     assert anchos_observados[2] >= anchos_observados[1] >= anchos_observados[0]
 
+
+def test_glifos_accesibilidad_y_tooltips_transversales(
+    qapp: QApplication, servicio_demo: ServicioAplicacion, qtbot: Any
+) -> None:
+    """Verifica que todos los controles utilicen caracteres ASCII seguros o iconos SVG, sin glifos cuadrados."""
+    from pea.gui.componentes.filtro_anios import ChipVentana
+    from pea.gui.pantallas.grupos import PantallaGrupos
+    from pea.gui.pantallas.inicio import PantallaInicio
+    from pea.gui.pantallas.investigadores import PantallaInvestigadores
+    from pea.gui.pantallas.productos import PantallaProductos
+    from pea.gui.pantallas.redes import PantallaRedes
+    from pea.gui.ventana_principal import VentanaPrincipal
+
+    # 1. ChipVentana: sin glifo ▾, con ASCII v y tooltip accesible
+    chip = ChipVentana(filtro_inicial=FiltroAnios(modo=ModoFiltroAnios.MODELO_2024))
+    assert "▾" not in chip.text()
+    assert "v" in chip.text()
+    assert chip.toolTip() != ""
+    assert chip.accessibleName() != ""
+
+    # 2. PantallaGrupos: Exportar limpio, btn_detalles con v / ^, tooltips
+    p_grupos = PantallaGrupos(servicio=servicio_demo)
+    qtbot.addWidget(p_grupos)
+    p_grupos.show()
+    qapp.processEvents()
+    assert p_grupos.btn_exportar.text() == "Exportar"
+    assert "▾" not in p_grupos.btn_exportar.text()
+    assert p_grupos.btn_exportar.toolTip() != ""
+    assert p_grupos.btn_exportar.accessibleName() != ""
+
+    btn_det_grp = p_grupos._ficha_lateral.btn_detalles
+    assert "⌄" not in btn_det_grp.text() and "⌃" not in btn_det_grp.text()
+    assert "v" in btn_det_grp.text()
+    assert btn_det_grp.toolTip() != ""
+    assert btn_det_grp.accessibleName() != ""
+    btn_det_grp.click()
+    qapp.processEvents()
+    assert "^" in btn_det_grp.text()
+    assert "⌃" not in btn_det_grp.text()
+    btn_det_grp.click()
+    qapp.processEvents()
+    assert "v" in btn_det_grp.text()
+
+    # 3. PantallaRedes: zoom menos ASCII "-", zoom mas "+", iconos y tooltips
+    p_redes = PantallaRedes(servicio=servicio_demo)
+    qtbot.addWidget(p_redes)
+    p_redes.show()
+    qapp.processEvents()
+    assert p_redes.btn_zoom_mas.text() == "+"
+    assert p_redes.btn_zoom_mas.toolTip() != ""
+    assert p_redes.btn_zoom_mas.accessibleName() == "Acercar lienzo"
+
+    assert p_redes.btn_zoom_menos.text() == "-"
+    assert p_redes.btn_zoom_menos.text() != "−"
+    assert p_redes.btn_zoom_menos.toolTip() == "Alejar lienzo (- / Rueda abajo)"
+    assert p_redes.btn_zoom_menos.accessibleName() == "Alejar lienzo"
+
+    assert p_redes.btn_ver_investigador.text() == "Ver ficha"
+    assert not p_redes.btn_ver_investigador.icon().isNull()
+    assert p_redes.btn_ver_investigador.toolTip() != ""
+    assert p_redes.btn_ver_investigador.accessibleName() != ""
+
+    assert not p_redes.btn_deseleccionar.icon().isNull()
+    assert p_redes.btn_deseleccionar.toolTip() != ""
+    assert p_redes.btn_deseleccionar.accessibleName() != ""
+
+    # 4. PantallaInicio: Exportar limpio, btn_detalles, btn_abrir con SVG
+    p_inicio = PantallaInicio(servicio=servicio_demo)
+    qtbot.addWidget(p_inicio)
+    p_inicio.show()
+    qapp.processEvents()
+    assert p_inicio._btn_exportar.text() == "Exportar"
+    assert "▾" not in p_inicio._btn_exportar.text()
+    assert p_inicio._btn_exportar.toolTip() != ""
+    assert p_inicio._btn_exportar.accessibleName() != ""
+
+    btn_det_ini = p_inicio._btn_detalles
+    assert "⌄" not in btn_det_ini.text() and "⌃" not in btn_det_ini.text()
+    assert "v" in btn_det_ini.text()
+    btn_det_ini.click()
+    qapp.processEvents()
+    assert "^" in btn_det_ini.text()
+    assert "⌃" not in btn_det_ini.text()
+    btn_det_ini.click()
+    qapp.processEvents()
+    assert "v" in btn_det_ini.text()
+
+    # 5. Pantallas Productos e Investigadores: Exportar uniforme
+    p_prod = PantallaProductos(servicio=servicio_demo)
+    qtbot.addWidget(p_prod)
+    assert p_prod.btn_exportar.text() == "Exportar"
+    assert "▾" not in p_prod.btn_exportar.text()
+    assert p_prod.btn_exportar.toolTip() != ""
+
+    p_inv = PantallaInvestigadores(servicio=servicio_demo)
+    qtbot.addWidget(p_inv)
+    assert p_inv._btn_exportar.text() == "Exportar"
+    assert "▾" not in p_inv._btn_exportar.text()
+    assert p_inv._btn_exportar.toolTip() != ""
+
+    # 6. Configuracion: Ejecutar Verificacion Cruzada sin glifo ▶
+    p_cfg = PantallaConfiguracion(servicio=servicio_demo)
+    qtbot.addWidget(p_cfg)
+    assert "▶" not in p_cfg.btn_ejecutar.text()
+    assert p_cfg.btn_ejecutar.text() == "Ejecutar Verificación Cruzada"
+    assert p_cfg.btn_ejecutar.toolTip() != ""
+    assert p_cfg.btn_ejecutar.accessibleName() != ""
+
+    # 7. Acerca: Volver con icono SVG de inicio
+    p_acerca = PantallaAcerca(servicio=servicio_demo)
+    qtbot.addWidget(p_acerca)
+    assert "←" not in p_acerca.btn_volver.text()
+    assert p_acerca.btn_volver.text() == "Volver al inicio"
+    assert not p_acerca.btn_volver.icon().isNull()
+    assert p_acerca.btn_volver.toolTip() != ""
+    assert p_acerca.btn_volver.accessibleName() != ""
+
+    # 8. VentanaPrincipal: BotonDeshacerSuperior btn_chevron con ASCII v y tooltip
+    ventana = VentanaPrincipal(servicio=servicio_demo)
+    qtbot.addWidget(ventana)
+    assert ventana._btn_deshacer.btn_chevron.text() == "v"
+    assert "▾" not in ventana._btn_deshacer.btn_chevron.text()
+    assert ventana._btn_deshacer.btn_chevron.toolTip() != ""
+    assert ventana._btn_deshacer.btn_chevron.accessibleName() != ""
+

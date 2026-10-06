@@ -277,7 +277,8 @@ class ChipVentana(QPushButton):
 
     def _actualizar_etiqueta(self) -> None:
         desc = texto_resumen_filtro(self._filtro)
-        self.setText(f"Ventana: {desc}  ▾")
+        self.setText(f"Ventana: {desc}  v")
+        self.setToolTip(f"Filtro de ventana temporal: {desc}. Clic para cambiar.")
         self.setAccessibleName(f"Filtro de ventana temporal: {desc}")
 
     def _abrir_popover(self) -> None:

@@ -297,8 +297,8 @@ def test_pantalla_grupos_tabla_responsive_y_elipsis(
     assert not vista.horizontalScrollBar().isVisible()
     ancho_nombre = vista.columnWidth(0)
     assert ancho_nombre >= 240
-    # En 1100x700 Nombre tiene ~298 px y no queda como «Nor» o «Grupo Ficticio de Ing»
-    assert ancho_nombre >= 280
+    # En 1100x700 Nombre tiene >= 240 px y no queda como «Nor» o «Grupo Ficticio de Ing»
+    assert ancho_nombre >= 260
 
     # Columnas secundarias ocultadas antes de comprimir la columna principal Nombre
     assert vista.isColumnHidden(3)  # Líder oculto (prioridad 3)

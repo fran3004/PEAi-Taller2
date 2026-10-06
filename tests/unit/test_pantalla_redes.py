@@ -114,9 +114,9 @@ def test_pantalla_redes_construccion_y_componentes(
     assert pantalla.btn_zoom_mas.toolTip() != ""
 
     assert pantalla.btn_zoom_menos is not None
-    assert pantalla.btn_zoom_menos.text() == "−"
+    assert pantalla.btn_zoom_menos.text() == "-"
     assert pantalla.btn_zoom_menos.height() == 30
-    assert pantalla.btn_zoom_menos.toolTip() != ""
+    assert pantalla.btn_zoom_menos.toolTip() == "Alejar lienzo (- / Rueda abajo)"
 
     assert pantalla.btn_zoom_ajustar is not None
     assert pantalla.btn_zoom_ajustar.text() == "Ajustar"
@@ -342,9 +342,9 @@ def test_pantalla_redes_filtro_inicial_y_demostracion(
     assert not hasattr(pantalla, "lbl_titulo_metricas")
     assert pantalla.panel_metricas._lbl_titulo.text() == "Métricas de centralidad"
 
-    # 4. Controles +, − y Ajustar
+    # 4. Controles +, - y Ajustar
     assert pantalla.btn_zoom_mas.text() == "+"
-    assert pantalla.btn_zoom_menos.text() == "−"
+    assert pantalla.btn_zoom_menos.text() == "-"
     assert pantalla.btn_zoom_ajustar.text() == "Ajustar"
     assert pantalla.btn_zoom_mas.height() == pantalla.btn_zoom_menos.height() == pantalla.btn_zoom_ajustar.height() == 30
     assert pantalla.btn_zoom_mas.accessibleName() == "Acercar lienzo"

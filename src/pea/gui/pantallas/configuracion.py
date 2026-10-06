@@ -333,9 +333,11 @@ class PantallaConfiguracion(QWidget):
         lbl_desc_cruzada.setStyleSheet(f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO};")
         self.tarjeta_cruzada.agregar_widget(lbl_desc_cruzada)
 
-        self.btn_ejecutar = QPushButton("▶ Ejecutar Verificación Cruzada", self.tarjeta_cruzada)
+        self.btn_ejecutar = QPushButton("Ejecutar Verificación Cruzada", self.tarjeta_cruzada)
         self.btn_ejecutar.setObjectName("primario")
         self.btn_ejecutar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ejecutar.setToolTip("Ejecuta la prueba de concordancia entre PostgreSQL y las estructuras en memoria")
+        self.btn_ejecutar.setAccessibleName("Ejecutar verificación cruzada")
         self.btn_ejecutar.clicked.connect(self._al_ejecutar_cruzada)
         self.tarjeta_cruzada.agregar_accion(self.btn_ejecutar)
 
@@ -352,7 +354,7 @@ class PantallaConfiguracion(QWidget):
         )
         layout_res = QVBoxLayout(self.frame_resultado)
         layout_res.setContentsMargins(10, 8, 10, 8)
-        self.lbl_estado = QLabel("Presione '▶ Ejecutar Verificación Cruzada' para iniciar la prueba.", self.frame_resultado)
+        self.lbl_estado = QLabel("Presione 'Ejecutar Verificación Cruzada' para iniciar la prueba.", self.frame_resultado)
         self.lbl_estado.setStyleSheet(f"font-weight: bold; font-size: {TAMANO_CUERPO}pt; color: {TEXTO};")
         layout_res.addWidget(self.lbl_estado)
         self.tarjeta_cruzada.agregar_widget(self.frame_resultado)

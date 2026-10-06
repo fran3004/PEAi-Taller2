@@ -691,9 +691,11 @@ class PantallaInvestigadores(QWidget):
         layout.addWidget(self._chip_ventana)
 
         # Menú Exportar
-        self._btn_exportar = QPushButton("Exportar ", barra)
+        self._btn_exportar = QPushButton("Exportar", barra)
         self._btn_exportar.setObjectName("btnExportarInvestigadores")
         self._btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_exportar.setToolTip("Exportar directorio visible a CSV")
+        self._btn_exportar.setAccessibleName("Exportar directorio")
         self._btn_exportar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {TEXTO}; border: 1px solid {LINEA}; "
             f"border-radius: {RADIO_BOTON}px; padding: 6px 14px; font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"

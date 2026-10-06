@@ -748,9 +748,11 @@ class PantallaProductos(QWidget):
         self._chip_ventana = self.chip_ventana
         layout.addWidget(self.chip_ventana)
 
-        # Menú desplegable «Exportar ▾»
-        self.btn_exportar = QPushButton("Exportar ▾", barra)
+        # Menú desplegable «Exportar»
+        self.btn_exportar = QPushButton("Exportar", barra)
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_exportar.setToolTip("Exportar catálogo visible a CSV")
+        self.btn_exportar.setAccessibleName("Exportar catálogo")
         self.btn_exportar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
             f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"

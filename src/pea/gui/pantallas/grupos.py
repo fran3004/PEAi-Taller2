@@ -483,9 +483,11 @@ class FichaGrupo(FichaLateral):
         super().__init__(parent=parent, diametro_avatar=96)
         self.setObjectName("fichaGrupo")
 
-        # Botón «Ver más detalles ⌄» y panel colapsable
-        self.btn_detalles = QPushButton("Ver más detalles ⌄", self._contenedor_cabecera)
+        # Botón «Ver más detalles v» y panel colapsable
+        self.btn_detalles = QPushButton("Ver más detalles v", self._contenedor_cabecera)
         self.btn_detalles.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_detalles.setToolTip("Ver más detalles del grupo")
+        self.btn_detalles.setAccessibleName("Ver más detalles del grupo")
         self.btn_detalles.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {COLOR_DTI}; "
             f"font-weight: 600; font-size: {estilo.TAMANO_AUXILIAR}pt; padding: 2px 8px; }}"
@@ -533,7 +535,9 @@ class FichaGrupo(FichaLateral):
     def _alternar_detalles(self) -> None:
         visible = not self._panel_detalles.isVisible()
         self._panel_detalles.setVisible(visible)
-        self.btn_detalles.setText("Ocultar detalles ⌃" if visible else "Ver más detalles ⌄")
+        self.btn_detalles.setText("Ocultar detalles ^" if visible else "Ver más detalles v")
+        self.btn_detalles.setToolTip("Ocultar detalles del grupo" if visible else "Ver más detalles del grupo")
+        self.btn_detalles.setAccessibleName("Ocultar detalles del grupo" if visible else "Ver más detalles del grupo")
 
     def actualizar(
         self,
@@ -722,9 +726,11 @@ class PantallaGrupos(QWidget):
         self._chip_ventana = self.chip_ventana
         layout.addWidget(self.chip_ventana)
 
-        # Menú desplegable «Exportar ▾»
-        self.btn_exportar = QPushButton("Exportar ▾", barra)
+        # Menú desplegable «Exportar»
+        self.btn_exportar = QPushButton("Exportar", barra)
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_exportar.setToolTip("Exportar directorio visible a CSV")
+        self.btn_exportar.setAccessibleName("Exportar directorio")
         self.btn_exportar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
             f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
