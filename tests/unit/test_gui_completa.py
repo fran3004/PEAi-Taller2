@@ -16,6 +16,7 @@ Cubre la suite completa de verificación para:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -88,10 +89,26 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
     # 4. Pie institucional
     assert ventana._pie is not None
     assert ventana._pie.height() in (44, 72)
+
     assert ventana._pastilla_logo is not None
     assert "Revisión:" in ventana._chip_revision.text()
     assert "Deshacer:" in ventana._chip_deshacer.text()
     assert "Cola:" in ventana._chip_cola.text()
+
+
+@pytest.mark.parametrize("ancho, alto", [(1100, 700), (1366, 768), (1920, 1080)])
+def test_resoluciones_oficiales_son_logicas_y_no_dependen_del_monitor(
+    ventana: VentanaPrincipal, ancho: int, alto: int
+) -> None:
+    """Valida tamaños solicitados sin consultar ni depender de la pantalla física."""
+    assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
+    assert os.environ["PEA_SIN_ANIMACIONES"] == "1"
+    assert QApplication.instance().platformName().lower() == "offscreen"
+    ventana.resize(ancho, alto)
+    ventana.show()
+    QApplication.processEvents()
+    assert ventana.size().width() == ancho
+    assert ventana.size().height() == alto
 
 
 def test_navegacion_entre_todas_las_pantallas(ventana: VentanaPrincipal) -> None:
@@ -646,6 +663,3 @@ def test_botones_deshabilitados_importar_y_configuracion(ventana: VentanaPrincip
             if es_primario:
                 assert estilo.PRIMARIO_DESHABILITADO.lower() in colores
                 assert estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO.lower() in colores
-
-
-
