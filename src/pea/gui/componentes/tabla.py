@@ -178,6 +178,13 @@ class PildoraDelegate(QStyledItemDelegate):
 
         painter.restore()
 
+    def helpEvent(self, event: QHelpEvent, view: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
+        texto = str(index.data(Qt.ItemDataRole.DisplayRole) or "").strip()
+        if texto and texto != "—":
+            QToolTip.showText(event.globalPos(), texto, view)
+            return True
+        return super().helpEvent(event, view, option, index)
+
 
 class AvatarNombreDelegate(QStyledItemDelegate):
     """Renderiza avatar circular de 28 px con iniciales junto al nombre en negrita."""
@@ -239,10 +246,20 @@ class AvatarNombreDelegate(QStyledItemDelegate):
         painter.setPen(QPen(QColor(TEXTO)))
 
         x_nom = rect_avatar.right() + 12.0
-        rect_nom = QRectF(x_nom, option.rect.top(), option.rect.right() - x_nom - 8.0, option.rect.height())
-        painter.drawText(rect_nom, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, nombre)
+        ancho_nom = max(0.0, option.rect.right() - x_nom - 8.0)
+        rect_nom = QRectF(x_nom, option.rect.top(), ancho_nom, option.rect.height())
+        fm = painter.fontMetrics()
+        nombre_visible = fm.elidedText(nombre, Qt.TextElideMode.ElideRight, int(ancho_nom))
+        painter.drawText(rect_nom, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, nombre_visible)
 
         painter.restore()
+
+    def helpEvent(self, event: QHelpEvent, view: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
+        texto = str(index.data(Qt.ItemDataRole.DisplayRole) or "").strip()
+        if texto:
+            QToolTip.showText(event.globalPos(), texto, view)
+            return True
+        return super().helpEvent(event, view, option, index)
 
 
 class EnlaceDelegate(QStyledItemDelegate):
@@ -355,6 +372,13 @@ class NumeroDelegate(QStyledItemDelegate):
 
         painter.restore()
 
+    def helpEvent(self, event: QHelpEvent, view: QWidget, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
+        val = index.data(Qt.ItemDataRole.DisplayRole)
+        if val is not None and val != "":
+            QToolTip.showText(event.globalPos(), str(val), view)
+            return True
+        return super().helpEvent(event, view, option, index)
+
 
 # ---------------------------------------------------------------------------
 # Vista y Contenedor Principal
@@ -441,7 +465,7 @@ class _VistaTablaEstilizada(QTableView):
             candidatos = [i for i in visibles if specs[i].prioridad > 1]
             if not candidatos:
                 break
-            visibles.remove(max(candidatos, key=lambda i: specs[i].prioridad))
+            visibles.remove(max(candidatos, key=lambda i: (specs[i].prioridad, i)))
         for indice in range(cantidad):
             visible = indice in visibles
             self.setColumnHidden(indice, not visible)

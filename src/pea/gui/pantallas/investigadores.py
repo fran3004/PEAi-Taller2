@@ -144,7 +144,7 @@ class ModeloDirectorioInvestigadores(QAbstractTableModel):
 
         reg = self._registros[fila]
 
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             if col == 0:
                 return reg["nombre_completo"]
             if col == 1:
@@ -180,7 +180,7 @@ class ModeloDirectorioInvestigadores(QAbstractTableModel):
         orientation: Qt.Orientation,
         role: int = Qt.ItemDataRole.DisplayRole,
     ) -> Any:
-        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole) and orientation == Qt.Orientation.Horizontal:
             if 0 <= section < len(self.COLUMNAS):
                 return self.COLUMNAS[section]
         return None
@@ -662,7 +662,9 @@ class PantallaInvestigadores(QWidget):
         alto_grafico = 120 if self.height() < 760 else 140
         self.grafico_serie.setMinimumHeight(alto_grafico)
         self.grafico_serie.setMaximumHeight(16777215)
-        self._splitter.setSizes([max(200, self._splitter.width() - self._ficha_lateral.width()), self._ficha_lateral.width()])
+        ancho_disp_splitter = max(200, self.width() - 48)
+        ancho_ficha = self._ficha_lateral.width()
+        self._splitter.setSizes([max(200, ancho_disp_splitter - ancho_ficha), ancho_ficha])
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
@@ -798,14 +800,16 @@ class PantallaInvestigadores(QWidget):
         self.tabla.clave_seleccionada.connect(self._al_seleccionar_clave)
         self.tabla.fila_doble_clic.connect(lambda _: self._al_pulsar_ver_ficha_completa())
 
-        # Anchos preferidos de columnas
+        # Anchos preferidos de columnas según especificación responsive:
+        # Col 0 (Nombre): estirar, min 240, prioridad 1 (siempre visible).
+        # Columnas secundarias: modo fijo con anchos delimitados y prioridades 2 o 3.
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 200, 1),
-            ColumnSpecification("contenido", 100, 2),
-            ColumnSpecification("contenido", 100, 2),
-            ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("contenido", 100, 3),
+            ColumnSpecification("estirar", 240, 1), # 0: Nombre (prioridad 1, siempre visible)
+            ColumnSpecification("fijo", 150, 3),    # 1: Grupo(s) (ocultable en pantallas compactas)
+            ColumnSpecification("fijo", 105, 2),    # 2: Categoría
+            ColumnSpecification("fijo", 110, 3),    # 3: Formación (ocultable en pantallas compactas)
+            ColumnSpecification("fijo", 80, 2),     # 4: Productos
+            ColumnSpecification("fijo", 110, 3),    # 5: Código CvLAC (ocultable en pantallas compactas)
         ])
 
         tarjeta.agregar_widget(self.tabla)

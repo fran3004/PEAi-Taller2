@@ -268,3 +268,49 @@ def test_cambio_filtro_anios_en_investigadores(
 
     assert pantalla._filtro_actual.modo == ModoFiltroAnios.ULTIMOS
     assert pantalla._chip_ventana.filtro.modo == ModoFiltroAnios.ULTIMOS
+
+
+def test_pantalla_investigadores_tabla_responsive_y_elipsis(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion, qtbot: Any
+) -> None:
+    """Verifica que en 1100x700 Nombre conserve un ancho útil >= 240 px, sin desborde ni recorte de cabecera."""
+    pantalla = PantallaInvestigadores(servicio=servicio_con_datos)
+    qtbot.addWidget(pantalla)
+
+    # 1. Modo compacto (1100x700)
+    pantalla.resize(1100, 700)
+    pantalla.show()
+    qapp.processEvents()
+
+    vista = pantalla.tabla.vista
+    assert not vista.horizontalScrollBar().isVisible()
+    ancho_nombre = vista.columnWidth(0)
+    assert ancho_nombre >= 240
+    # En 1100x700 Nombre tiene ~329 px y no queda como «Nor» o «Nomb-»
+    assert ancho_nombre >= 300
+
+    # Columnas secundarias ocultadas antes de comprimir la columna principal Nombre
+    assert vista.isColumnHidden(3)  # Formación oculta
+    assert vista.isColumnHidden(5)  # Código CvLAC oculto
+    assert not vista.isColumnHidden(0)  # Nombre visible
+    assert not vista.isColumnHidden(1)  # Grupo(s) visible
+    assert not vista.isColumnHidden(2)  # Categoría visible
+    assert not vista.isColumnHidden(4)  # Productos visible
+
+    # 2. Modos amplios (1366x768 y 1920x1080)
+    for ancho, alto in [(1366, 768), (1920, 1080)]:
+        pantalla.resize(ancho, alto)
+        qapp.processEvents()
+        assert not vista.horizontalScrollBar().isVisible()
+        # Todas las columnas visibles en resoluciones grandes
+        for col_idx in range(6):
+            assert not vista.isColumnHidden(col_idx)
+        assert vista.columnWidth(0) >= 300
+
+    # 3. Tooltips disponibles en modelo y cabeceras
+    idx_0 = vista.model().index(0, 0)
+    tooltip_nombre = vista.model().data(idx_0, Qt.ItemDataRole.ToolTipRole)
+    assert bool(tooltip_nombre)
+    assert tooltip_nombre == vista.model().data(idx_0, Qt.ItemDataRole.DisplayRole)
+    assert vista.model().headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole) == "Nombre"
+

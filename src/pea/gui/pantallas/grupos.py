@@ -146,7 +146,7 @@ class ModeloDirectorioGrupos(QAbstractTableModel):
 
         reg = self._registros[fila]
 
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             if col == 0:
                 return reg["nombre"]
             if col == 1:
@@ -183,7 +183,7 @@ class ModeloDirectorioGrupos(QAbstractTableModel):
         orientation: Qt.Orientation,
         role: int = Qt.ItemDataRole.DisplayRole,
     ) -> Any:
-        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
+        if orientation == Qt.Orientation.Horizontal and role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             if 0 <= section < len(self.COLUMNAS):
                 return self.COLUMNAS[section]
         return None
@@ -687,7 +687,9 @@ class PantallaGrupos(QWidget):
             alto_grafico = 150 if self.height() < 760 else 180
             self._ficha_lateral.grafico_barras.setMinimumHeight(alto_grafico)
             self._ficha_lateral.grafico_barras.setMaximumHeight(16777215)
-        self._splitter.setSizes([max(200, self._splitter.width() - self._ficha_lateral.width()), self._ficha_lateral.width()])
+        ancho_disp_splitter = max(200, self.width() - 48)
+        ancho_ficha = self._ficha_lateral.width()
+        self._splitter.setSizes([max(200, ancho_disp_splitter - ancho_ficha), ancho_ficha])
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
@@ -820,15 +822,17 @@ class PantallaGrupos(QWidget):
         self.tabla.clave_seleccionada.connect(self._al_seleccionar_clave)
         self.tabla.fila_doble_clic.connect(lambda _: self._al_pulsar_ver_ficha_completa())
 
-        # Anchos preferidos de columnas
+        # Anchos preferidos de columnas según especificación responsive:
+        # Col 0 (Nombre): estirar, min 240, prioridad 1 (siempre visible).
+        # Columnas secundarias: modo fijo con anchos delimitados y prioridades 2 o 3.
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 200, 1),
-            ColumnSpecification("contenido", 90, 3),
-            ColumnSpecification("contenido", 100, 2),
-            ColumnSpecification("contenido", 100, 3),
-            ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("fijo", 80, 3),
-            ColumnSpecification("contenido", 90, 2),
+            ColumnSpecification("estirar", 240, 1), # 0: Nombre (prioridad 1, siempre visible)
+            ColumnSpecification("fijo", 110, 3),    # 1: Código GrupLAC (ocultable en pantallas compactas)
+            ColumnSpecification("fijo", 95, 2),     # 2: Categoría
+            ColumnSpecification("fijo", 140, 3),    # 3: Líder (ocultable en pantallas compactas)
+            ColumnSpecification("fijo", 85, 2),     # 4: Integrantes
+            ColumnSpecification("fijo", 80, 2),     # 5: Productos
+            ColumnSpecification("fijo", 85, 2),     # 6: Estado
         ])
 
         tarjeta.agregar_widget(self.tabla)
