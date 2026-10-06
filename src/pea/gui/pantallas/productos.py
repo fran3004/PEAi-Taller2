@@ -719,7 +719,8 @@ class PantallaProductos(QWidget):
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
-        barra.setFixedHeight(56)
+        barra.setMinimumHeight(56)
+        barra.setMaximumHeight(68)
         layout = QHBoxLayout(barra)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
@@ -735,12 +736,13 @@ class PantallaProductos(QWidget):
 
         lbl_sub = QLabel("Producción científica clasificada en las 4 tipologías del Modelo Minciencias", barra)
         lbl_sub.setMinimumWidth(0)
-        lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        lbl_sub.setWordWrap(True)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
         col_tit.addWidget(lbl_sub)
-        layout.addLayout(col_tit)
+        layout.addLayout(col_tit, 1)
 
-        layout.addStretch()
+        layout.addStretch(0)
 
         # Chip de ventana global interactivo
         self.chip_ventana = ChipVentana(self._filtro_actual, parent=barra)

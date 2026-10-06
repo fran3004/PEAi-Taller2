@@ -671,22 +671,29 @@ class PantallaInvestigadores(QWidget):
 
     def _crear_barra_contexto(self) -> QWidget:
         barra = QWidget(self)
-        barra.setFixedHeight(56)
+        barra.setMinimumHeight(56)
+        barra.setMaximumHeight(68)
         layout = QHBoxLayout(barra)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
+        col_tit = QVBoxLayout()
+        col_tit.setContentsMargins(0, 4, 0, 4)
+        col_tit.setSpacing(2)
+
         lbl_tit = QLabel("Investigadores", barra)
         lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_TARJETA}pt; font-weight: bold; color: {TEXTO};")
-        layout.addWidget(lbl_tit)
+        col_tit.addWidget(lbl_tit)
 
         lbl_sub = QLabel("Directorio institucional clasificado según CvLAC y producción Minciencias", barra)
         lbl_sub.setMinimumWidth(0)
-        lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        lbl_sub.setWordWrap(True)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
-        layout.addWidget(lbl_sub)
+        col_tit.addWidget(lbl_sub)
+        layout.addLayout(col_tit, 1)
 
-        layout.addStretch(1)
+        layout.addStretch(0)
 
         # Chip de ventana global
         self._chip_ventana = ChipVentana(self._filtro_actual, parent=barra)
