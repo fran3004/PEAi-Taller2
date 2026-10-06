@@ -255,9 +255,11 @@ SEPARACION_TARJETAS: Final[int] = 16
 MARGEN_CONTENIDO: Final[int] = 24
 MARGEN_CONTENIDO_COMPACTO: Final[int] = 20
 
-# Radios de esquina
+# Radios de esquina y dimensiones de controles
 RADIO_BOTON: Final[int] = 8
 RADIO_CAMPO: Final[int] = 8
+ALTURA_CAMPO_MINIMA: Final[int] = 36
+ALTURA_CAMPO: Final[int] = ALTURA_CAMPO_MINIMA
 RADIO_FICHA_KPI: Final[int] = 12
 RADIO_PESTANA_ACTIVA: Final[int] = 12
 RADIO_TARJETA: Final[int] = 16

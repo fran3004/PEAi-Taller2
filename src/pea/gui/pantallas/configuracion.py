@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
@@ -36,6 +37,7 @@ from pea.gui.componentes.tabla import TablaEstilizada
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
+    ALTURA_CAMPO_MINIMA,
     AVISO,
     AVISO_FONDO,
     ERROR,
@@ -144,7 +146,18 @@ class PantallaConfiguracion(QWidget):
     # =======================================================================
 
     def _crear_seccion_conexion(self) -> QWidget:
-        contenedor = QWidget(self)
+        area_desplazable = QScrollArea(self)
+        area_desplazable.setObjectName("scrollConexion")
+        area_desplazable.setWidgetResizable(True)
+        area_desplazable.setFrameShape(QFrame.Shape.NoFrame)
+        area_desplazable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        area_desplazable.setStyleSheet(
+            "QScrollArea { background-color: transparent; border: none; } "
+            "QScrollArea > QWidget > QWidget { background-color: transparent; }"
+        )
+
+        contenedor = QWidget(area_desplazable)
+        contenedor.setObjectName("contenedorConexion")
         layout = QVBoxLayout(contenedor)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
@@ -219,22 +232,26 @@ class PantallaConfiguracion(QWidget):
 
         self.txt_url = QLineEdit(cfg.get("url", ""), self.tarjeta_form)
         self.txt_url.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.txt_url.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_url.setPlaceholderText("https://xxxxxxxxxxxx.supabase.co")
         layout_form.addRow("URL de Supabase (HTTPS):", self.txt_url)
 
         self.txt_clave = QLineEdit(cfg.get("clave_publicable", ""), self.tarjeta_form)
         self.txt_clave.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.txt_clave.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_clave.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_clave.setPlaceholderText("Clave publicable (sb_publishable_... o anon JWT)")
         layout_form.addRow("Clave publicable:", self.txt_clave)
 
         self.txt_correo = QLineEdit(cfg.get("correo", ""), self.tarjeta_form)
         self.txt_correo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.txt_correo.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_correo.setPlaceholderText("usuario@unicesar.edu.co (opcional para Auth)")
         layout_form.addRow("Correo de usuario:", self.txt_correo)
 
         self.txt_pass = QLineEdit(self.tarjeta_form)
         self.txt_pass.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.txt_pass.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_pass.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_pass.setPlaceholderText("Contraseña del usuario")
         layout_form.addRow("Contraseña:", self.txt_pass)
@@ -277,7 +294,8 @@ class PantallaConfiguracion(QWidget):
         layout.addWidget(self.tarjeta_form)
         layout.addStretch(1)
 
-        return contenedor
+        area_desplazable.setWidget(contenedor)
+        return area_desplazable
 
     # =======================================================================
     # SECCIÓN 2: VERIFICACIÓN CRUZADA

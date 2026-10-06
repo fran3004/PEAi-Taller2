@@ -157,6 +157,27 @@ def test_pantalla_configuracion_selector_y_conexion(
     assert "Demostración" in pantalla.pildora_modo.text()
 
 
+def test_pantalla_configuracion_altura_minima_campos(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
+) -> None:
+    """Verifica que los cuatro QLineEdit de Supabase tengan altura mínima reglamentaria (>= 36 px) y no corten texto."""
+    from pea.gui import estilo
+
+    qapp.setStyleSheet(estilo.HOJA_ESTILO)
+    pantalla = PantallaConfiguracion(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    pantalla.show()
+    qapp.processEvents()
+
+    campos = (pantalla.txt_url, pantalla.txt_clave, pantalla.txt_correo, pantalla.txt_pass)
+    for campo in campos:
+        assert campo.minimumHeight() >= 36
+        assert campo.minimumHeight() == estilo.ALTURA_CAMPO_MINIMA
+        assert campo.height() >= 36
+        # Tipografía de 11 pt
+        assert campo.font().pointSize() >= estilo.TAMANO_CUERPO
+
+
 def test_pantalla_configuracion_verificacion_cruzada(
     servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
 ) -> None:

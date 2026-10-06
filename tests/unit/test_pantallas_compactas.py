@@ -53,6 +53,14 @@ def test_configuracion_sin_desborde_y_splitter_separado(
     _sin_barras_horizontales(pantalla)
     assert pantalla.txt_url.sizePolicy().horizontalPolicy().name == "Expanding"
     assert pantalla.txt_clave.sizePolicy().horizontalPolicy().name == "Expanding"
+    assert pantalla.txt_url.minimumHeight() >= 36
+    assert pantalla.txt_clave.minimumHeight() >= 36
+    assert pantalla.txt_correo.minimumHeight() >= 36
+    assert pantalla.txt_pass.minimumHeight() >= 36
+    assert pantalla.txt_url.height() >= 36
+    assert pantalla.txt_clave.height() >= 36
+    assert pantalla.txt_correo.height() >= 36
+    assert pantalla.txt_pass.height() >= 36
     assert pantalla.splitter_verificacion.minimumHeight() >= 0
     pantalla.selector_seccion.seleccionar("cruzada")
     qapp.processEvents()
