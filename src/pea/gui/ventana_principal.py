@@ -1130,13 +1130,17 @@ class VentanaPrincipal(QMainWindow):
             self._gestor_toasts.mostrar_error(str(err), titulo="Deshacer")
 
     def _al_clic_cerrar_sesion(self) -> None:
-        resp = QMessageBox.question(
-            self,
-            "Cerrar sesión",
-            "¿Deseas cerrar la sesión activa y desconectar de la base de datos?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+        dialogo = QMessageBox(self)
+        dialogo.setIcon(QMessageBox.Icon.Question)
+        dialogo.setWindowTitle("Cerrar sesión")
+        dialogo.setText("¿Deseas cerrar la sesión activa y desconectar de la base de datos?")
+        dialogo.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        dialogo.button(QMessageBox.StandardButton.Yes).setText("Sí")
+        dialogo.button(QMessageBox.StandardButton.No).setText("No")
+        dialogo.setDefaultButton(QMessageBox.StandardButton.No)
+        resp = dialogo.exec()
         if resp == QMessageBox.StandardButton.Yes:
             self._servicio.desconectar()
             self._gestor_toasts.mostrar_info("Sesión cerrada correctamente", titulo="Sesión")
