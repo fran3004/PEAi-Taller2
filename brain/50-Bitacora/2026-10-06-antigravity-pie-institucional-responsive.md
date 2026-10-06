@@ -67,3 +67,4 @@ Corregir la responsividad del pie institucional (`_pie`) en `src/pea/gui/ventana
 ## Pendientes y siguiente paso
 - Ejecutar `tools/brain/verificar_brain.py` para certificar la bóveda.
 - Realizar el commit correspondiente.
+
