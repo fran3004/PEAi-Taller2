@@ -586,7 +586,7 @@ class DialogoFichaCompletaInvestigador(QDialog):
         r_prd = p_dir / f"investigador_{cod}_productos.csv"
         servicio.exportar_tabla_csv(vista["aportes"], r_ap)
         servicio.exportar_tabla_csv(vista["productos"], r_prd)
-        GestorAvisos.instancia().mostrar("Tablas exportadas a CSV con éxito.", tipo="exito")
+        GestorAvisos.mostrar_desde(self, "Tablas exportadas a CSV con éxito.", tipo="exito")
 
 
 # ---------------------------------------------------------------------------
@@ -798,7 +798,7 @@ class PantallaInvestigadores(QWidget):
 
         # Conectar copia de código CvLAC al gestor de avisos (toast)
         self.tabla.delegado_enlace.copiado.connect(
-            lambda cod: GestorAvisos.instancia().mostrar(f"Código CvLAC {cod} copiado al portapapeles.", tipo="info")
+            lambda cod: GestorAvisos.mostrar_desde(self, f"Código CvLAC {cod} copiado al portapapeles.", tipo="info")
         )
 
         # Señales de selección y apertura de ficha completa
@@ -1052,9 +1052,9 @@ class PantallaInvestigadores(QWidget):
                 self.datos_modificados.emit()
                 self._investigador_seleccionado_cod = datos["codigo_rh"]
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al crear investigador: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al crear investigador: {e}", tipo="error")
 
     def _al_pulsar_editar(self) -> None:
         if not self._investigador_seleccionado_cod:
@@ -1063,7 +1063,7 @@ class PantallaInvestigadores(QWidget):
         try:
             datos_prev = self._servicio.datos_investigador(cod)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"No se pudieron cargar datos: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"No se pudieron cargar datos: {e}", tipo="error")
             return
 
         dlg = DialogoInvestigador(datos_previos=datos_prev, parent=self)
@@ -1073,9 +1073,9 @@ class PantallaInvestigadores(QWidget):
                 msg = self._servicio.actualizar_investigador(cod, nuevos_datos)
                 self.datos_modificados.emit()
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al actualizar: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al actualizar: {e}", tipo="error")
 
     def _al_pulsar_cambiar_estado(self) -> None:
         if not self._investigador_seleccionado_cod:
@@ -1088,9 +1088,9 @@ class PantallaInvestigadores(QWidget):
             self.datos_modificados.emit()
             self.refrescar()
             tipo_toast = "exito" if nuevo_estado else "aviso"
-            GestorAvisos.instancia().mostrar(f"{msg} (Presiona Ctrl+Z para deshacer)", tipo=tipo_toast)
+            GestorAvisos.mostrar_desde(self, f"{msg} (Presiona Ctrl+Z para deshacer)", tipo=tipo_toast)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al cambiar estado: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al cambiar estado: {e}", tipo="error")
 
     def _al_pulsar_eliminar(self) -> None:
         if not self._investigador_seleccionado_cod:
@@ -1099,7 +1099,7 @@ class PantallaInvestigadores(QWidget):
         try:
             cascada = self._servicio.describir_cascada("investigador", cod)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al consultar cascada: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al consultar cascada: {e}", tipo="error")
             return
 
         dlg = DialogoConfirmarEliminar(
@@ -1113,9 +1113,9 @@ class PantallaInvestigadores(QWidget):
                 self._investigador_seleccionado_cod = None
                 self.datos_modificados.emit()
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(f"{msg} (Presiona Ctrl+Z para deshacer)", tipo="exito")
+                GestorAvisos.mostrar_desde(self, f"{msg} (Presiona Ctrl+Z para deshacer)", tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al eliminar: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al eliminar: {e}", tipo="error")
 
     def _al_pulsar_ver_ficha_completa(self) -> None:
         if not self._investigador_seleccionado_cod:
@@ -1124,7 +1124,7 @@ class PantallaInvestigadores(QWidget):
         try:
             vista = self._servicio.vista_investigador(cod, self._filtro_actual)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al abrir ficha completa: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al abrir ficha completa: {e}", tipo="error")
             return
 
         dlg = DialogoFichaCompletaInvestigador(vista, self._servicio, parent=self)
@@ -1164,4 +1164,4 @@ class PantallaInvestigadores(QWidget):
             claves=tuple(str(f[5]) for f in filas),
         )
         self._servicio.exportar_tabla_csv(tabla_exp, ruta)
-        GestorAvisos.instancia().mostrar(f"Directorio exportado a {ruta.name} con éxito.", tipo="exito")
+        GestorAvisos.mostrar_desde(self, f"Directorio exportado a {ruta.name} con éxito.", tipo="exito")

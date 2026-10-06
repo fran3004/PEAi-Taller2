@@ -653,7 +653,7 @@ class PantallaRedes(QWidget):
             self._al_grafo_cargado(datos_red)
 
         def fallo(err: Exception, _: str) -> None:
-            GestorAvisos.instancia().mostrar(f"Error al calcular la red: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al calcular la red: {err}", tipo="error")
 
         if self._ejecutor is not None:
             self._ejecutor.ejecutar(tarea, al_terminar=exito, al_fallar=fallo)
@@ -904,6 +904,6 @@ class PantallaRedes(QWidget):
                 self.vista_red._escena.render(painter, QRectF(0, 0, ancho_px, alto_px), rect_escena)
 
             imagen.save(ruta, "PNG")
-            GestorAvisos.instancia().mostrar(f"Red exportada exitosamente a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(self, f"Red exportada exitosamente a {Path(ruta).name}", tipo="exito")
         except Exception as err:
-            GestorAvisos.instancia().mostrar(f"Error al exportar imagen de red: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al exportar imagen de red: {err}", tipo="error")

@@ -468,7 +468,7 @@ class DialogoFichaCompletaGrupo(QDialog):
         r_prd = p_dir / f"grupo_{cod}_productos.csv"
         servicio.exportar_tabla_csv(vista["integrantes"], r_int)
         servicio.exportar_tabla_csv(vista["productos"], r_prd)
-        GestorAvisos.instancia().mostrar("Tablas de grupo exportadas a CSV con éxito.", tipo="exito")
+        GestorAvisos.mostrar_desde(self, "Tablas de grupo exportadas a CSV con éxito.", tipo="exito")
 
 
 # ---------------------------------------------------------------------------
@@ -821,7 +821,7 @@ class PantallaGrupos(QWidget):
 
         # Conectar copia de código GrupLAC al gestor de avisos (toast)
         self.tabla.delegado_enlace.copiado.connect(
-            lambda cod: GestorAvisos.instancia().mostrar(f"Código GrupLAC {cod} copiado al portapapeles.", tipo="info")
+            lambda cod: GestorAvisos.mostrar_desde(self, f"Código GrupLAC {cod} copiado al portapapeles.", tipo="info")
         )
 
         # Señales de selección y apertura de ficha completa
@@ -968,7 +968,7 @@ class PantallaGrupos(QWidget):
                 self._ficha_lateral.mostrar_vacio("No hay grupos registrados en el catálogo")
 
         except Exception as err:
-            GestorAvisos.instancia().mostrar(f"Error cargando directorio de grupos: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error cargando directorio de grupos: {err}", tipo="error")
 
     def _al_seleccionar_clave(self, codigo_gruplac: str) -> None:
         """Carga y visualiza los datos en la ficha lateral para el grupo seleccionado."""
@@ -995,9 +995,9 @@ class PantallaGrupos(QWidget):
                 self.datos_modificados.emit()
                 self._grupo_seleccionado_cod = datos["codigo_gruplac"]
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al crear grupo: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al crear grupo: {e}", tipo="error")
 
     def _al_pulsar_editar(self) -> None:
         if not self._grupo_seleccionado_cod:
@@ -1006,7 +1006,7 @@ class PantallaGrupos(QWidget):
         try:
             datos_prev = self._servicio.datos_grupo(cod)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"No se pudieron cargar datos del grupo: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"No se pudieron cargar datos del grupo: {e}", tipo="error")
             return
 
         dlg = DialogoGrupo(datos_previos=datos_prev, parent=self)
@@ -1016,9 +1016,9 @@ class PantallaGrupos(QWidget):
                 msg = self._servicio.actualizar_grupo(cod, nuevos_datos)
                 self.datos_modificados.emit()
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al actualizar grupo: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al actualizar grupo: {e}", tipo="error")
 
     def _al_pulsar_cambiar_estado(self) -> None:
         if not self._grupo_seleccionado_cod:
@@ -1030,9 +1030,9 @@ class PantallaGrupos(QWidget):
             msg = self._servicio.cambiar_estado("grupo", cod, nuevo_estado)
             self.datos_modificados.emit()
             self.refrescar()
-            GestorAvisos.instancia().mostrar(msg, tipo="exito")
+            GestorAvisos.mostrar_desde(self, msg, tipo="exito")
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al modificar estado: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al modificar estado: {e}", tipo="error")
 
     def _al_pulsar_eliminar(self) -> None:
         if not self._grupo_seleccionado_cod:
@@ -1041,7 +1041,7 @@ class PantallaGrupos(QWidget):
         try:
             cascada = self._servicio.describir_cascada("grupo", cod)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al inspeccionar dependencias: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al inspeccionar dependencias: {e}", tipo="error")
             return
 
         dlg = DialogoConfirmarEliminar(
@@ -1055,9 +1055,9 @@ class PantallaGrupos(QWidget):
                 self.datos_modificados.emit()
                 self._grupo_seleccionado_cod = None
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al eliminar grupo: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al eliminar grupo: {e}", tipo="error")
 
     def _al_pulsar_ver_ficha_completa(self) -> None:
         if not self._grupo_seleccionado_cod:
@@ -1067,7 +1067,7 @@ class PantallaGrupos(QWidget):
             dlg = DialogoFichaCompletaGrupo(vista, self._servicio, parent=self)
             dlg.exec()
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al abrir ficha completa: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al abrir ficha completa: {e}", tipo="error")
 
     def _al_pulsar_ver_productos(self) -> None:
         if self._grupo_seleccionado_nom:
@@ -1106,6 +1106,6 @@ class PantallaGrupos(QWidget):
                 escritor = csv.writer(f, delimiter=";")
                 escritor.writerows(filas_visibles)
 
-            GestorAvisos.instancia().mostrar(f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(self, f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito")
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al exportar CSV: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")

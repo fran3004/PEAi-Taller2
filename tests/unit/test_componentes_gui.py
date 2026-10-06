@@ -315,3 +315,25 @@ def test_toast_y_gestor_avisos(qapp: Any, qtbot: Any) -> None:
 
     gestor.limpiar_todos()
     assert len(gestor._toasts) == 0
+
+
+def test_gestor_avisos_resuelve_el_gestor_de_la_ventana(qapp: Any, qtbot: Any) -> None:
+    """Todas las variantes de aviso deben usar el gestor compartido de la ventana."""
+    ventana = QWidget()
+    ventana.resize(800, 600)
+    qtbot.addWidget(ventana)
+    ventana._gestor_toasts = GestorAvisos(ventana)
+    pantalla = QWidget(ventana)
+    pantalla.show()
+    ventana.show()
+
+    tipos = ("info", "exito", "aviso", "error")
+    for tipo in tipos:
+        toast = GestorAvisos.mostrar_desde(pantalla, f"Mensaje {tipo}", tipo=tipo)
+        assert toast is not None
+        assert toast.parentWidget() is ventana
+
+    assert GestorAvisos.desde_widget(pantalla) is ventana._gestor_toasts
+    assert GestorAvisos.mostrar_desde(QWidget(), "Sin ventana") is None
+    assert len(ventana._gestor_toasts._toasts) == len(tipos)
+    ventana._gestor_toasts.limpiar_todos()

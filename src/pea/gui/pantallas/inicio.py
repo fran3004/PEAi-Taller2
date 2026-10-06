@@ -183,8 +183,6 @@ class PantallaInicio(QWidget):
         self._codigo_grupo_seleccionado: str | None = None
         self._es_cuatro_columnas: bool | None = None
 
-        self._gestor_toasts = GestorAvisos(self)
-
         self._construir_ui()
         self.refrescar()
 
@@ -611,7 +609,7 @@ class PantallaInicio(QWidget):
                 self._actualizar_modo_grupo(resumen_inst)
 
         except Exception as err:
-            self._gestor_toasts.mostrar_error(f"Error cargando inicio: {err}", titulo="Inicio")
+            GestorAvisos.mostrar_desde(self, f"Error cargando inicio: {err}", tipo="error", titulo="Inicio")
 
     # -----------------------------------------------------------------------
     # Modo Institución
@@ -852,12 +850,12 @@ class PantallaInicio(QWidget):
     def _al_clic_cargar_demostracion(self) -> None:
         try:
             self._servicio.cargar_demostracion()
-            self._gestor_toasts.mostrar_exito(
-                "Datos de demostración cargados exitosamente.", titulo="Demostración"
+            GestorAvisos.mostrar_desde(
+                self, "Datos de demostración cargados exitosamente.", tipo="exito", titulo="Demostración"
             )
             self.refrescar()
         except Exception as err:
-            self._gestor_toasts.mostrar_error(str(err), titulo="Error de datos")
+            GestorAvisos.mostrar_desde(self, str(err), tipo="error", titulo="Error de datos")
 
     # -----------------------------------------------------------------------
     # Exportaciones (CSV y PNG)
@@ -913,11 +911,11 @@ class PantallaInicio(QWidget):
                     escritor.writerow(["Total productos", vg.get("total_productos", 0)])
                     escritor.writerow(["Productos avalados", vg.get("productos_avalados", 0)])
 
-            self._gestor_toasts.mostrar_exito(
-                f"Resumen exportado exitosamente a {Path(ruta).name}", titulo="Exportación CSV"
+            GestorAvisos.mostrar_desde(
+                self, f"Resumen exportado exitosamente a {Path(ruta).name}", tipo="exito", titulo="Exportación CSV"
             )
         except Exception as err:
-            self._gestor_toasts.mostrar_error(f"Fallo al exportar CSV: {err}", titulo="Exportar")
+            GestorAvisos.mostrar_desde(self, f"Fallo al exportar CSV: {err}", tipo="error", titulo="Exportar")
 
     def exportar_png(self) -> None:
         """Exporta los gráficos a archivos PNG de alta resolución."""
@@ -934,8 +932,8 @@ class PantallaInicio(QWidget):
             self._grafico_dona.exportar_png(dir_path / f"{prefijo}_tipologia_dona.png")
             self._mini_red.exportar_png(dir_path / f"{prefijo}_mini_red.png")
 
-            self._gestor_toasts.mostrar_exito(
-                f"Gráficos exportados correctamente en {dir_path.name}", titulo="Exportación PNG"
+            GestorAvisos.mostrar_desde(
+                self, f"Gráficos exportados correctamente en {dir_path.name}", tipo="exito", titulo="Exportación PNG"
             )
         except Exception as err:
-            self._gestor_toasts.mostrar_error(f"Error al exportar PNG: {err}", titulo="Exportar")
+            GestorAvisos.mostrar_desde(self, f"Error al exportar PNG: {err}", tipo="error", titulo="Exportar")

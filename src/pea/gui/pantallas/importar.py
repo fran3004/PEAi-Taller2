@@ -35,7 +35,7 @@ from pea.gui import estilo
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import TablaEstilizada
 from pea.gui.componentes.tarjeta import Tarjeta
-from pea.gui.componentes.toast import GestorAvisos, Toast
+from pea.gui.componentes.toast import GestorAvisos
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     ACENTO,
@@ -624,20 +624,8 @@ class PantallaImportar(QWidget):
 
     def _notificar_aviso(self, mensaje: str, titulo: str = "Aviso", exito: bool = True) -> None:
         """Muestra un toast flotante en la ventana principal si está disponible."""
-        win = self.window() if self.window() is not None else self
-        gestor = getattr(win, "_gestor_toasts", None) or getattr(win, "_gestor_avisos", None)
-        if isinstance(gestor, GestorAvisos):
-            if exito:
-                gestor.mostrar_exito(mensaje, titulo=titulo)
-            else:
-                gestor.mostrar_error(mensaje, titulo=titulo)
-        else:
-            try:
-                tipo = "exito" if exito else "error"
-                toast = Toast(mensaje, titulo=titulo, tipo=tipo, parent=win)
-                toast.show()
-            except Exception:
-                pass
+        tipo = "exito" if exito else "error"
+        GestorAvisos.mostrar_desde(self, mensaje, tipo=tipo, titulo=titulo)
 
     # -----------------------------------------------------------------------
     # API Pública Requerida

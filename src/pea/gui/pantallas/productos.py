@@ -860,7 +860,7 @@ class PantallaProductos(QWidget):
 
         # Conectar copia de código al gestor de avisos (toast)
         self.tabla.delegado_enlace.copiado.connect(
-            lambda cod: GestorAvisos.instancia().mostrar(f"Código de producto {cod} copiado al portapapeles.", tipo="info")
+            lambda cod: GestorAvisos.mostrar_desde(self, f"Código de producto {cod} copiado al portapapeles.", tipo="info")
         )
 
         # Señales de selección
@@ -1020,7 +1020,7 @@ class PantallaProductos(QWidget):
                 self._ficha_lateral.mostrar_vacio("No hay productos registrados en esta ventana temporal")
 
         except Exception as err:
-            GestorAvisos.instancia().mostrar(f"Error cargando catálogo de productos: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error cargando catálogo de productos: {err}", tipo="error")
 
     def _al_seleccionar_clave(self, codigo_producto: str) -> None:
         """Carga y visualiza los datos en la ficha lateral para el producto seleccionado."""
@@ -1051,9 +1051,9 @@ class PantallaProductos(QWidget):
                 self.datos_modificados.emit()
                 self._producto_seleccionado_cod = datos["codigo_identificador"]
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al registrar producto: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al registrar producto: {e}", tipo="error")
 
     def _al_pulsar_editar(self) -> None:
         if not self._producto_seleccionado_cod:
@@ -1063,7 +1063,7 @@ class PantallaProductos(QWidget):
             detalle = self._servicio.detalle_producto(cod)
             opciones_grupos = self._servicio.opciones_grupos()
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"No se pudieron cargar datos del producto: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"No se pudieron cargar datos del producto: {e}", tipo="error")
             return
 
         dlg = DialogoEditarProducto(datos_previos=detalle, grupos=opciones_grupos, parent=self)
@@ -1073,9 +1073,9 @@ class PantallaProductos(QWidget):
                 msg = self._servicio.actualizar_producto(cod_orig, nuevos_datos)
                 self.datos_modificados.emit()
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al actualizar producto: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al actualizar producto: {e}", tipo="error")
 
     def _al_pulsar_cambiar_estado(self) -> None:
         if not self._producto_seleccionado_cod:
@@ -1087,9 +1087,9 @@ class PantallaProductos(QWidget):
             msg = self._servicio.cambiar_estado("producto", cod, nuevo_estado)
             self.datos_modificados.emit()
             self.refrescar()
-            GestorAvisos.instancia().mostrar(msg, tipo="exito")
+            GestorAvisos.mostrar_desde(self, msg, tipo="exito")
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al cambiar estado del producto: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al cambiar estado del producto: {e}", tipo="error")
 
     def _al_pulsar_eliminar(self) -> None:
         if not self._producto_seleccionado_cod:
@@ -1098,7 +1098,7 @@ class PantallaProductos(QWidget):
         try:
             cascada = self._servicio.describir_cascada("producto", cod)
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al inspeccionar dependencias: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al inspeccionar dependencias: {e}", tipo="error")
             return
 
         dlg = DialogoConfirmarEliminar(
@@ -1112,9 +1112,9 @@ class PantallaProductos(QWidget):
                 self.datos_modificados.emit()
                 self._producto_seleccionado_cod = None
                 self.refrescar()
-                GestorAvisos.instancia().mostrar(msg, tipo="exito")
+                GestorAvisos.mostrar_desde(self, msg, tipo="exito")
             except Exception as e:
-                GestorAvisos.instancia().mostrar(f"Error al eliminar producto: {e}", tipo="error")
+                GestorAvisos.mostrar_desde(self, f"Error al eliminar producto: {e}", tipo="error")
 
     # -----------------------------------------------------------------------
     # Exportación
@@ -1147,6 +1147,6 @@ class PantallaProductos(QWidget):
                 escritor = csv.writer(f, delimiter=";")
                 escritor.writerows(filas_visibles)
 
-            GestorAvisos.instancia().mostrar(f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(self, f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito")
         except Exception as e:
-            GestorAvisos.instancia().mostrar(f"Error al exportar CSV: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")

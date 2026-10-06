@@ -174,6 +174,56 @@ class GestorAvisos(QObject):
         super().__init__(ventana_padre)
         self._ventana.installEventFilter(self)
 
+    @staticmethod
+    def desde_widget(widget: QWidget) -> GestorAvisos | None:
+        """Resuelve el gestor perteneciente a la ventana principal del widget."""
+        ventana = widget.window()
+        gestor = getattr(ventana, "_gestor_toasts", None)
+        return gestor if isinstance(gestor, GestorAvisos) else None
+
+    @staticmethod
+    def mostrar_desde(
+        widget: QWidget,
+        mensaje: str,
+        tipo: str = "info",
+        titulo: str | None = None,
+    ) -> Toast | None:
+        """Muestra un aviso usando únicamente el gestor de la ventana principal."""
+        gestor = GestorAvisos.desde_widget(widget)
+        if gestor is None:
+            return None
+        return gestor.mostrar(mensaje, tipo=tipo, titulo=titulo)
+
+    def mostrar(
+        self,
+        mensaje: str,
+        tipo: str = "info",
+        titulo: str | None = None,
+        duracion_ms: int | None = None,
+    ) -> Toast:
+        """Delega un aviso al método semántico correspondiente."""
+        tipo_normalizado = tipo.lower()
+        if tipo_normalizado == "exito":
+            metodo = self.mostrar_exito
+        elif tipo_normalizado == "aviso":
+            metodo = self.mostrar_aviso
+        elif tipo_normalizado == "error":
+            metodo = self.mostrar_error
+        else:
+            metodo = self.mostrar_info
+
+        titulo_efectivo = titulo
+        if tipo_normalizado == "exito" and titulo_efectivo is None:
+            titulo_efectivo = "Éxito"
+        elif tipo_normalizado == "aviso" and titulo_efectivo is None:
+            titulo_efectivo = "Advertencia"
+        elif tipo_normalizado == "error" and titulo_efectivo is None:
+            titulo_efectivo = "Error"
+        elif titulo_efectivo is None:
+            titulo_efectivo = "Información"
+        duracion_efectiva = 4000 if duracion_ms is None else duracion_ms
+        return metodo(mensaje, titulo=titulo_efectivo, duracion_ms=duracion_efectiva)
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         ventana = getattr(self, "_ventana", None)
         if ventana is not None and watched == ventana and event.type() in (QEvent.Type.Resize, QEvent.Type.Move):
