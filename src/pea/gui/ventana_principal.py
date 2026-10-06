@@ -6,7 +6,7 @@ Estructura de cuatro zonas:
    7 pestañas institucionales, botón Deshacer con popover de historial,
    avatar con iniciales, Cerrar sesión, enlace Acerca de y filete UPC de 3 px.
 2. Franjas reactivas de aviso de revisión remota y modo sin conexión.
-3. Zona central con QStackedWidget animado (200 ms) y 8 pantallas (enum Pantalla).
+3. Zona central con QStackedWidget y 8 pantallas (enum Pantalla).
 4. Pie institucional con logo de la UPC en pastilla blanca, texto institucional
    y estado vivo (conexión, revisión, deshacer y cola).
 """
@@ -55,7 +55,6 @@ from PySide6.QtWidgets import (
 )
 
 from pea.gui import estilo
-from pea.gui.componentes.animacion import animaciones_habilitadas, animar_desvanecimiento
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.estado_vacio import EstadoVacio
 from pea.gui.componentes.filtro_anios import ChipVentana
@@ -1043,11 +1042,7 @@ class VentanaPrincipal(QMainWindow):
                 b.setChecked(False)
             self._pestanas.setExclusive(True)
 
-        # Transición animada o directa
-        if animaciones_habilitadas():
-            self._animar_cambio_pantalla(indice)
-        else:
-            self._apilador.setCurrentIndex(indice)
+        self._cambiar_pantalla_estable(indice)
 
         pantalla_actual = self._apilador.currentWidget()
         if hasattr(pantalla_actual, "refrescar"):
@@ -1055,15 +1050,19 @@ class VentanaPrincipal(QMainWindow):
 
         self.actualizar_estado_global()
 
-    def _animar_cambio_pantalla(self, indice: int) -> None:
-        """Aplica una transición suave de desvanecimiento entre pantallas."""
+    def _cambiar_pantalla_estable(self, indice: int) -> None:
+        """Cambia de página sin composición temporal ni efectos de opacidad."""
+        widget_anterior = self._apilador.currentWidget()
         widget_nuevo = self._apilador.widget(indice)
         if widget_nuevo is None:
-            self._apilador.setCurrentIndex(indice)
             return
 
+        # Elimina cualquier efecto de opacidad heredado de versiones anteriores
+        # antes de que cualquiera de las dos páginas vuelva a pintarse.
+        if widget_anterior is not None:
+            widget_anterior.setGraphicsEffect(None)  # type: ignore[arg-type]
+        widget_nuevo.setGraphicsEffect(None)  # type: ignore[arg-type]
         self._apilador.setCurrentIndex(indice)
-        animar_desvanecimiento(widget_nuevo, inicio=0.2, fin=1.0, duracion_ms=200)
 
     def _al_clic_pestana(self, id_btn: int) -> None:
         self.seleccionar_pantalla(Pantalla(id_btn))

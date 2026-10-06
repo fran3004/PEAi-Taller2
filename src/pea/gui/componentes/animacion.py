@@ -37,7 +37,7 @@ def animar_desvanecimiento(
     fin: float = 1.0,
     duracion_ms: int = DURACION_TRANSICION_PANTALLA_MS,
 ) -> QPropertyAnimation | None:
-    """Aplica una animación de opacidad/desvanecimiento sobre el widget indicado."""
+    """Anima widgets sencillos sin cambiar la política de navegación de páginas."""
     efecto = widget.graphicsEffect()
     if not isinstance(efecto, QGraphicsOpacityEffect):
         efecto = QGraphicsOpacityEffect(widget)
