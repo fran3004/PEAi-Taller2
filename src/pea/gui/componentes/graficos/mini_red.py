@@ -2,8 +2,8 @@
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 9.5).
 - Muestra hasta 18 nodos de mayor grado.
-- Sin etiquetas saturadas: solo los 6 primeros llevan rótulo textual.
-- Aristas en gris azulado ({estilo.COLOR_RED_ARISTAS}).
+- Sin etiquetas saturadas: solo los 6 primeros llevan rótulo textual en píldora legible.
+- Aristas en gris azulado ({estilo.COLOR_RED_ARISTAS}) con resaltado dinámico.
 - Hover en nodo resalta vecinos y muestra tooltip oscuro institucional.
 - Al hacer clic abre la pantalla completa de Análisis de redes (señal abrir_analisis_completo).
 """
@@ -24,33 +24,56 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QFontMetricsF,
     QMouseEvent,
     QPainter,
     QPen,
+    QRadialGradient,
 )
 from PySide6.QtWidgets import QWidget
 
 from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.estilo import (
+    ACENTO,
     COLOR_CAT_ASOCIADO,
     COLOR_CAT_EMERITO,
     COLOR_CAT_JUNIOR,
     COLOR_CAT_SENIOR,
-    COLOR_CAT_SIN_CATEGORIA_FONDO,
-    COLOR_CAT_SIN_CATEGORIA_TEXTO,
     COLOR_DTI,
-    COLOR_RED_ARISTAS,
+    PRIMARIO,
+    SUPERFICIE,
     TEXTO,
+)
+from pea.gui.red.nodo import (
+    abreviar_nombre_investigador,
+    normalizar_nombre_investigador,
 )
 
 COLORES_CATEGORIAS_MAP: Final[dict[str, str]] = {
     "Emérito": COLOR_CAT_EMERITO,
+    "Emerito": COLOR_CAT_EMERITO,
     "Senior": COLOR_CAT_SENIOR,
     "Asociado": COLOR_CAT_ASOCIADO,
     "Junior": COLOR_CAT_JUNIOR,
-    "Sin categoría": COLOR_CAT_SIN_CATEGORIA_FONDO,
+    "Sin categoría": estilo.COLOR_NODO_SIN_CATEGORIA,
+    "Sin categoria": estilo.COLOR_NODO_SIN_CATEGORIA,
 }
+
+
+def _resolver_color_mini_nodo(categoria: str, grado: int, idx: int) -> str:
+    cat_baja = (categoria or "").strip().lower()
+    if "emérito" in cat_baja or "emerito" in cat_baja:
+        return COLOR_CAT_EMERITO
+    if "senior" in cat_baja:
+        return COLOR_CAT_SENIOR
+    if "asociado" in cat_baja:
+        return COLOR_CAT_ASOCIADO
+    if "junior" in cat_baja:
+        return COLOR_CAT_JUNIOR
+    if grado > 0:
+        return estilo.PALETA_NODOS_RED[idx % len(estilo.PALETA_NODOS_RED)]
+    return estilo.COLOR_NODO_AISLADO
 
 
 class _NodoMiniRed:
@@ -63,14 +86,18 @@ class _NodoMiniRed:
         pos: QPointF,
         radio: float,
         mostrar_etiqueta: bool,
+        color_hex: str = estilo.COLOR_NODO_SIN_CATEGORIA,
     ) -> None:
         self.codigo = codigo
         self.nombre = nombre
+        self.nombre_legible = normalizar_nombre_investigador(nombre) or nombre
+        self.etiqueta = abreviar_nombre_investigador(nombre) or nombre
         self.categoria = categoria
         self.grado = grado
         self.pos = pos
         self.radio = radio
         self.mostrar_etiqueta = mostrar_etiqueta
+        self.color_hex = color_hex
 
 
 class MiniRed(GraficoBase):
@@ -143,72 +170,79 @@ class MiniRed(GraficoBase):
                 if idx_u != idx_v:
                     self._aristas_indices.append((idx_u, idx_v, int(peso)))
 
-        # Guardar lista temporal de nodos para posicionamiento en resize / paint
         self._nodos_seleccionados = nodos_ordenados
         r = QRectF(self.rect())
         self._calcular_posiciones(r if r.width() > 10 else QRectF(0, 0, 400, 300))
 
     def _calcular_posiciones(self, rect_lienzo: QRectF) -> None:
-        """Distribuye armónicamente los nodos en el área disponible."""
+        """Distribuye armónicamente los nodos en dos órbitas concéntricas."""
         if not hasattr(self, "_nodos_seleccionados") or not self._nodos_seleccionados:
             self._nodos_geom = []
             return
 
         cx = rect_lienzo.center().x()
-        cy = rect_lienzo.center().y() + 4.0
-        rx = max(30.0, (rect_lienzo.width() - 40.0) / 2.0)
-        ry = max(30.0, (rect_lienzo.height() - 40.0) / 2.0)
+        cy = rect_lienzo.center().y() - 2.0
+        rx = max(36.0, (rect_lienzo.width() - 56.0) / 2.0)
+        ry = max(32.0, (rect_lienzo.height() - 48.0) / 2.0)
 
         total_n = len(self._nodos_seleccionados)
         self._nodos_geom = []
 
         if total_n == 1:
             n0 = self._nodos_seleccionados[0]
+            grado0 = int(n0.get("grado", 0))
+            cat0 = str(n0.get("categoria", "Sin categoría"))
             self._nodos_geom.append(
                 _NodoMiniRed(
                     codigo=n0["codigo"],
                     nombre=n0["nombre"],
-                    categoria=n0.get("categoria", "Sin categoría"),
-                    grado=int(n0.get("grado", 0)),
+                    categoria=cat0,
+                    grado=grado0,
                     pos=QPointF(cx, cy),
                     radio=14.0,
                     mostrar_etiqueta=True,
+                    color_hex=_resolver_color_mini_nodo(cat0, grado0, 0),
                 )
             )
             return
 
-        # Si hay más nodos: el primer nodo (más conectado) o primeros 2 van en órbita interna,
-        # los demás en órbita elíptica externa para máxima claridad visual.
-        n_internos = 1 if total_n > 4 else 0
-        n_externos = total_n - n_internos
+        # Distribución en 2 anillos alrededor del nodo central (índice 0):
+        # - Anillo primario (índices 1..5, etiquetados): radio 55% para que sus etiquetas nunca se corten.
+        # - Anillo secundario (índices 6..17): radio 92% en el perímetro exterior.
+        n_anillo1 = min(5, max(0, total_n - 1))
+        n_anillo2 = max(0, total_n - 1 - n_anillo1)
 
         for i, n in enumerate(self._nodos_seleccionados):
             grado = int(n.get("grado", 0))
-            # Escala de radio según grado: de 7 px a 13 px
-            radio = min(13.0, max(7.0, 7.0 + grado * 0.8))
+            cat = str(n.get("categoria", "Sin categoría"))
+            radio = min(14.0, max(7.5, 8.0 + math.sqrt(max(0, grado)) * 2.0))
             es_top6 = i < 6
 
-            if i < n_internos:
+            if i == 0:
                 px = cx
                 py = cy
+            elif i <= n_anillo1:
+                idx_1 = i - 1
+                angulo = -math.pi / 2.0 + (2.0 * math.pi * idx_1) / max(1, n_anillo1)
+                r_factor = 0.56 if n_anillo2 > 0 else 0.78
+                px = cx + rx * r_factor * math.cos(angulo)
+                py = cy + ry * r_factor * math.sin(angulo)
             else:
-                idx_ext = i - n_internos
-                # Disposición angular regular en elipse
-                angulo = (2.0 * math.pi * idx_ext) / max(1, n_externos)
-                # Pequeña rotación para que no sea estrictamente cardinal
-                angulo += math.pi / 6.0
-                px = cx + rx * math.cos(angulo)
-                py = cy + ry * math.sin(angulo)
+                idx_2 = i - 1 - n_anillo1
+                angulo = (math.pi / 10.0) + (2.0 * math.pi * idx_2) / max(1, n_anillo2)
+                px = cx + rx * 0.92 * math.cos(angulo)
+                py = cy + ry * 0.90 * math.sin(angulo)
 
             self._nodos_geom.append(
                 _NodoMiniRed(
                     codigo=n["codigo"],
                     nombre=n["nombre"],
-                    categoria=n.get("categoria", "Sin categoría"),
+                    categoria=cat,
                     grado=grado,
                     pos=QPointF(px, py),
                     radio=radio,
                     mostrar_etiqueta=es_top6,
+                    color_hex=_resolver_color_mini_nodo(cat, grado, i),
                 )
             )
 
@@ -221,7 +255,7 @@ class MiniRed(GraficoBase):
         for n in self._nodos_geom:
             dx = pos.x() - n.pos.x()
             dy = pos.y() - n.pos.y()
-            if (dx * dx + dy * dy) <= (n.radio + 4.0) ** 2:
+            if (dx * dx + dy * dy) <= (n.radio + 5.0) ** 2:
                 self._nodo_hover = n
                 break
 
@@ -248,7 +282,7 @@ class MiniRed(GraficoBase):
     def _dibujar(self, painter: QPainter, rect: QRectF) -> None:
         painter.fillRect(rect, QColor(estilo.SUPERFICIE))
         alto_encabezado = self.dibujar_encabezado(painter, rect)
-        margen = 16.0
+        margen = 14.0
 
         if self.esta_vacio():
             rect_vacio = rect.adjusted(margen, alto_encabezado + 10, -margen, -margen)
@@ -257,10 +291,24 @@ class MiniRed(GraficoBase):
 
         area_red = QRectF(
             rect.left() + margen,
-            rect.top() + alto_encabezado + 10.0,
+            rect.top() + alto_encabezado + 6.0,
             rect.width() - 2 * margen,
             rect.height() - (alto_encabezado + margen + 24.0),
         )
+
+        # Halo elíptico suave de fondo para dar estructura visual
+        painter.save()
+        grad_fondo = QRadialGradient(area_red.center(), max(area_red.width(), area_red.height()) * 0.48)
+        c_in = QColor(estilo.SUPERFICIE_SELECCIONADA)
+        c_in.setAlpha(115)
+        c_out = QColor(estilo.SUPERFICIE)
+        c_out.setAlpha(0)
+        grad_fondo.setColorAt(0.0, c_in)
+        grad_fondo.setColorAt(1.0, c_out)
+        painter.setPen(QPen(QColor(estilo.LINEA), 1.0, Qt.PenStyle.DotLine))
+        painter.setBrush(QBrush(grad_fondo))
+        painter.drawEllipse(area_red.center(), area_red.width() * 0.42, area_red.height() * 0.42)
+        painter.restore()
 
         self._calcular_posiciones(area_red)
 
@@ -274,42 +322,71 @@ class MiniRed(GraficoBase):
             nv = self._nodos_geom[v_idx]
 
             es_conectada_a_hover = (
-                self._nodo_hover is not None and
-                (self._nodo_hover.codigo == nu.codigo or self._nodo_hover.codigo == nv.codigo)
+                self._nodo_hover is not None
+                and (self._nodo_hover.codigo == nu.codigo or self._nodo_hover.codigo == nv.codigo)
             )
 
-            color_arista = QColor(COLOR_DTI if es_conectada_a_hover else COLOR_RED_ARISTAS)
-            color_arista.setAlpha(240 if es_conectada_a_hover else 140)
-            grosor = 2.0 if es_conectada_a_hover else min(2.5, 1.0 + peso * 0.4)
+            color_arista = QColor(ACENTO if es_conectada_a_hover else estilo.COLOR_RED_ARISTA_ACTIVA)
+            color_arista.setAlpha(240 if es_conectada_a_hover else 155)
+            grosor = 2.4 if es_conectada_a_hover else min(2.6, 1.2 + peso * 0.4)
 
-            painter.setPen(QPen(color_arista, grosor))
+            painter.setPen(QPen(color_arista, grosor, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
             painter.drawLine(nu.pos, nv.pos)
 
-        # 2. Dibujar nodos
-        fuente_eti = QFont()
-        fuente_eti.setPointSize(estilo.TAMANO_AUXILIAR)
-        painter.setFont(fuente_eti)
-
+        # 2. Dibujar nodos (primero círculos, luego etiquetas del top 6 encima para que nunca queden tapadas)
         for n in self._nodos_geom:
-            es_hover = (self._nodo_hover is not None and self._nodo_hover.codigo == n.codigo)
+            es_hover = self._nodo_hover is not None and self._nodo_hover.codigo == n.codigo
             r_actual = (n.radio + (3.0 if es_hover else 0.0)) * prog
 
-            col_hex = COLORES_CATEGORIAS_MAP.get(n.categoria, COLOR_CAT_SIN_CATEGORIA_FONDO)
-            color_nodo = QColor(col_hex)
+            color_nodo = QColor(n.color_hex)
+            if es_hover:
+                halo = QColor(ACENTO)
+                halo.setAlpha(55)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(halo))
+                painter.drawEllipse(n.pos, r_actual + 4.5, r_actual + 4.5)
 
-            painter.setBrush(QBrush(color_nodo))
-            painter.setPen(QPen(QColor(estilo.SUPERFICIE), 1.75))
+            grad_n = QRadialGradient(
+                QPointF(n.pos.x() - r_actual * 0.3, n.pos.y() - r_actual * 0.3),
+                r_actual * 1.35,
+            )
+            grad_n.setColorAt(0.0, color_nodo.lighter(124))
+            grad_n.setColorAt(0.7, color_nodo)
+            grad_n.setColorAt(1.0, color_nodo.darker(112))
+
+            painter.setBrush(QBrush(grad_n))
+            painter.setPen(QPen(QColor(ACENTO if es_hover else SUPERFICIE), 2.0))
             painter.drawEllipse(n.pos, r_actual, r_actual)
 
-            # Rótulo visible solo para los 6 primeros nodos
-            if n.mostrar_etiqueta and prog >= 0.7:
-                partes = n.nombre.split()
-                primer_nombre = partes[0] if partes else n.nombre
-                primer_apellido = partes[1] if len(partes) > 1 else ""
-                etiqueta = f"{primer_nombre} {primer_apellido}".strip()
+        # 2b. Rótulos en píldora legible para los 6 primeros nodos
+        fuente_eti = QFont()
+        fuente_eti.setPointSize(estilo.TAMANO_MICRO)
+        fuente_eti.setBold(True)
+        painter.setFont(fuente_eti)
+        fm = QFontMetricsF(fuente_eti)
 
-                painter.setPen(QPen(QColor(TEXTO)))
-                rect_eti = QRectF(n.pos.x() - 40.0, n.pos.y() + r_actual + 2.0, 80.0, 14.0)
+        for n in self._nodos_geom:
+            if n.mostrar_etiqueta and prog >= 0.7:
+                es_hover = self._nodo_hover is not None and self._nodo_hover.codigo == n.codigo
+                r_actual = (n.radio + (3.0 if es_hover else 0.0)) * prog
+                etiqueta = fm.elidedText(n.etiqueta, Qt.TextElideMode.ElideRight, 92.0)
+                ancho_p = fm.horizontalAdvance(etiqueta) + 10.0
+                alto_p = max(14.0, fm.height() + 2.0)
+
+                x_p = max(
+                    rect.left() + 6.0,
+                    min(rect.right() - ancho_p - 6.0, n.pos.x() - ancho_p / 2.0),
+                )
+                y_p = min(area_red.bottom() - alto_p, n.pos.y() + r_actual + 2.5)
+                rect_eti = QRectF(x_p, y_p, ancho_p, alto_p)
+
+                fondo_p = QColor(estilo.SUPERFICIE_SELECCIONADA if es_hover else SUPERFICIE)
+                fondo_p.setAlpha(238)
+                painter.setPen(QPen(QColor(ACENTO if es_hover else estilo.LINEA), 1.0))
+                painter.setBrush(QBrush(fondo_p))
+                painter.drawRoundedRect(rect_eti, 4.0, 4.0)
+
+                painter.setPen(QPen(QColor(PRIMARIO if es_hover else TEXTO)))
                 painter.drawText(rect_eti, Qt.AlignmentFlag.AlignCenter, etiqueta)
 
         # 3. Pie interactivo «Ver análisis completo →»
@@ -319,14 +396,17 @@ class MiniRed(GraficoBase):
         painter.setFont(fuente_pie)
         painter.setPen(QPen(QColor(COLOR_DTI)))
         rect_pie = QRectF(rect.left() + margen, rect.bottom() - 20.0, rect.width() - 2 * margen, 16.0)
-        painter.drawText(rect_pie, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "Ver análisis completo")
+        painter.drawText(
+            rect_pie,
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            "Ver análisis completo ->",
+        )
 
         # 4. Tooltip al pasar sobre un nodo
         if self._tooltip_visible and self._nodo_hover is not None and self._pos_cursor is not None:
             nh = self._nodo_hover
-            col_cat = COLORES_CATEGORIAS_MAP.get(nh.categoria, COLOR_CAT_SIN_CATEGORIA_TEXTO)
             filas_tt = [
-                ("Categoría", nh.categoria, col_cat),
+                ("Categoría", nh.categoria, nh.color_hex),
                 ("Coautorías", str(nh.grado), None),
             ]
-            self._dibujar_tooltip(painter, rect, self._pos_cursor, nh.nombre, filas_tt)
+            self._dibujar_tooltip(painter, rect, self._pos_cursor, nh.nombre_legible, filas_tt)

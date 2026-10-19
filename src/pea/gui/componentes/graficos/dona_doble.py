@@ -138,14 +138,14 @@ class GraficoDonaDoble(GraficoBase):
         self._iniciar_animacion(duracion_ms=450)
 
     def _calcular_geometria(self, rect: QRectF) -> None:
-        margen = 16.0
-        alto_encabezado = 38.0 if (self.titulo or self.subtitulo) else 0.0
-        alto_leyenda = 96.0
+        margen = 14.0
+        alto_encabezado = 36.0 if (self.titulo or self.subtitulo) else 0.0
+        alto_leyenda = 84.0
         area_dona = QRectF(
             rect.left() + margen,
-            rect.top() + alto_encabezado + 8.0,
+            rect.top() + alto_encabezado + 4.0,
             rect.width() - 2 * margen,
-            rect.height() - (alto_encabezado + alto_leyenda + margen + 10.0),
+            rect.height() - (alto_encabezado + alto_leyenda + margen + 6.0),
         )
 
         diametro_max = min(area_dona.width(), area_dona.height())
@@ -159,9 +159,9 @@ class GraficoDonaDoble(GraficoBase):
         self._centro_y = cy
 
         r_out_ext = r_ext
-        r_in_ext = r_ext * 0.78
-        r_out_int = r_ext * 0.74
-        r_in_int = r_ext * 0.56
+        r_in_ext = r_ext * 0.80
+        r_out_int = r_ext * 0.76
+        r_in_int = r_ext * 0.60
         self._r_in_int = r_in_int
 
         self._segmentos = []
@@ -219,18 +219,19 @@ class GraficoDonaDoble(GraficoBase):
         self._rect_leyenda_items = []
         y_ley = area_dona.bottom() + 10.0
         self._y_ley = y_ley
-        ancho_util = rect.width() - 32.0
-        ancho_col = ancho_util / 2.0
+        ancho_util = rect.width() - 24.0
+        ancho_col1 = ancho_util * 0.44
+        ancho_col2 = ancho_util * 0.56
 
-        x_col1 = rect.left() + 16.0
+        x_col1 = rect.left() + 12.0
         for i, t in enumerate(TIPOLOGIAS_ORDEN):
             y_item = y_ley + 18.0 + i * 16.0
-            self._rect_leyenda_items.append((t, QRectF(x_col1, y_item, ancho_col - 10.0, 15.0)))
+            self._rect_leyenda_items.append((t, QRectF(x_col1, y_item, ancho_col1 - 4.0, 15.0)))
 
-        x_col2 = x_col1 + ancho_col
+        x_col2 = x_col1 + ancho_col1
         for i, v in enumerate(VALIDACIONES_ORDEN):
             y_item = y_ley + 18.0 + i * 16.0
-            self._rect_leyenda_items.append((v, QRectF(x_col2, y_item, ancho_col - 10.0, 15.0)))
+            self._rect_leyenda_items.append((v, QRectF(x_col2, y_item, ancho_col2 - 4.0, 15.0)))
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         pos = event.position()
@@ -371,57 +372,59 @@ class GraficoDonaDoble(GraficoBase):
         painter.restore()
 
     def _dibujar_centro(self, painter: QPainter, cx: float, cy: float, r_centro: float, total: int) -> None:
-        """Dibuja el contenido dinámico del centro de la dona."""
-        rect_centro = QRectF(cx - r_centro + 4, cy - r_centro + 4, 2 * (r_centro - 4), 2 * (r_centro - 4))
+        """Dibuja el contenido dinámico del centro de la dona sin recortar texto."""
+        rect_centro = QRectF(cx - r_centro + 2, cy - r_centro + 2, 2 * (r_centro - 2), 2 * (r_centro - 2))
+        ancho_txt = max(2.0 * (r_centro - 2.0), 104.0)
+        x_txt = cx - ancho_txt / 2.0
+        es_compacto = r_centro < 46.0
 
         painter.save()
-        # Fondo blanco interior
+        # Fondo interior suave con filete circular delicado
         painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
-        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setPen(QPen(QColor(estilo.LINEA), 1.0))
         painter.drawEllipse(rect_centro)
 
         if self._segmento_hover is not None:
-            # Mostrar datos del segmento sobrevolado
             seg = self._segmento_hover
 
             fuente_nom = QFont()
-            fuente_nom.setPointSize(estilo.TAMANO_AUXILIAR)
+            fuente_nom.setPointSize(estilo.TAMANO_ESLOGAN if es_compacto else estilo.TAMANO_AUXILIAR)
             fuente_nom.setBold(True)
             painter.setFont(fuente_nom)
             painter.setPen(QPen(QColor(seg.color_hex)))
-            rect_nom = QRectF(rect_centro.left(), cy - 22.0, rect_centro.width(), 18.0)
+            rect_nom = QRectF(x_txt, cy - (19.0 if es_compacto else 22.0), ancho_txt, 16.0)
             painter.drawText(rect_nom, Qt.AlignmentFlag.AlignCenter, seg.clave)
 
             fuente_val = QFont()
-            fuente_val.setPointSize(estilo.TAMANO_TITULO_TARJETA)
+            fuente_val.setPointSize(estilo.TAMANO_COMPACTO_VALOR if es_compacto else estilo.TAMANO_TITULO_TARJETA)
             fuente_val.setBold(True)
             painter.setFont(fuente_val)
             painter.setPen(QPen(QColor(TEXTO)))
-            rect_val = QRectF(rect_centro.left(), cy - 4.0, rect_centro.width(), 24.0)
+            rect_val = QRectF(x_txt, cy - 5.0, ancho_txt, 22.0)
             texto_cifra = f"{formatear_entero(seg.valor)}"
             painter.drawText(rect_val, Qt.AlignmentFlag.AlignCenter, texto_cifra)
 
             fuente_pct = QFont()
-            fuente_pct.setPointSize(estilo.TAMANO_AUXILIAR)
+            fuente_pct.setPointSize(estilo.TAMANO_MICRO if es_compacto else estilo.TAMANO_ESLOGAN)
             painter.setFont(fuente_pct)
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
-            rect_pct = QRectF(rect_centro.left(), cy + 18.0, rect_centro.width(), 16.0)
+            rect_pct = QRectF(x_txt, cy + (13.0 if es_compacto else 16.0), ancho_txt, 15.0)
             painter.drawText(rect_pct, Qt.AlignmentFlag.AlignCenter, f"({formatear_porcentaje(seg.porcentaje)})")
         else:
-            # Estado normal: total de productos
             fuente_tot = QFont()
-            fuente_tot.setPointSize(estilo.TAMANO_KPI)
+            fuente_tot.setPointSize(estilo.TAMANO_CENTRO_DONA_COMPACTO if es_compacto else estilo.TAMANO_CENTRO_DONA)
             fuente_tot.setBold(True)
             painter.setFont(fuente_tot)
-            painter.setPen(QPen(QColor(TEXTO)))
-            rect_tot = QRectF(rect_centro.left(), cy - 20.0, rect_centro.width(), 28.0)
+            painter.setPen(QPen(QColor(estilo.PRIMARIO)))
+            rect_tot = QRectF(x_txt, cy - (18.0 if es_compacto else 20.0), ancho_txt, 26.0)
             painter.drawText(rect_tot, Qt.AlignmentFlag.AlignCenter, formatear_entero(total))
 
             fuente_sub = QFont()
-            fuente_sub.setPointSize(estilo.TAMANO_AUXILIAR)
+            fuente_sub.setPointSize(estilo.TAMANO_MICRO if es_compacto else estilo.TAMANO_ESLOGAN)
+            fuente_sub.setWeight(QFont.Weight.DemiBold)
             painter.setFont(fuente_sub)
             painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
-            rect_sub = QRectF(rect_centro.left(), cy + 10.0, rect_centro.width(), 16.0)
+            rect_sub = QRectF(x_txt, cy + (6.0 if es_compacto else 8.0), ancho_txt, 16.0)
             painter.drawText(rect_sub, Qt.AlignmentFlag.AlignCenter, "productos")
 
         painter.restore()
@@ -436,28 +439,30 @@ class GraficoDonaDoble(GraficoBase):
     ) -> None:
         """Dibuja la leyenda inferior en dos columnas ('Tipología' y 'Validación')."""
         self._rect_leyenda_items = []
-        ancho_util = rect.width() - 32.0
-        ancho_col = ancho_util / 2.0
+        ancho_util = rect.width() - 24.0
+        ancho_col1 = ancho_util * 0.44
+        ancho_col2 = ancho_util * 0.56
+        es_estrecho = rect.width() < 370.0
 
         fuente_tit_ley = QFont()
-        fuente_tit_ley.setPointSize(estilo.TAMANO_AUXILIAR)
+        fuente_tit_ley.setPointSize(estilo.TAMANO_MICRO if es_estrecho else estilo.TAMANO_AUXILIAR)
         fuente_tit_ley.setBold(True)
 
         fuente_item_ley = QFont()
-        fuente_item_ley.setPointSize(estilo.TAMANO_AUXILIAR)
+        fuente_item_ley.setPointSize(estilo.TAMANO_MICRO if es_estrecho else estilo.TAMANO_AUXILIAR)
 
         # Columna 1: Tipologías
-        x_col1 = rect.left() + 16.0
+        x_col1 = rect.left() + 12.0
         painter.setFont(fuente_tit_ley)
         painter.setPen(QPen(QColor(TEXTO)))
-        painter.drawText(QRectF(x_col1, y_ley, ancho_col, 16.0), Qt.AlignmentFlag.AlignLeft, "Tipología (exterior)")
+        painter.drawText(QRectF(x_col1, y_ley, ancho_col1, 16.0), Qt.AlignmentFlag.AlignLeft, "Tipología (exterior)")
 
         for i, t in enumerate(TIPOLOGIAS_ORDEN):
             cant = self._tipologias.get(t, 0)
             pct = (cant / total_tip * 100.0) if total_tip > 0 else 0.0
             y_item = y_ley + 18.0 + i * 16.0
 
-            rect_click = QRectF(x_col1, y_item, ancho_col - 10.0, 15.0)
+            rect_click = QRectF(x_col1, y_item, ancho_col1 - 4.0, 15.0)
             self._rect_leyenda_items.append((t, rect_click))
 
             esta_atenuada = t in self._series_atenuadas
@@ -467,25 +472,25 @@ class GraficoDonaDoble(GraficoBase):
 
             painter.setBrush(QBrush(color))
             painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
-            painter.drawRoundedRect(QRectF(x_col1, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
+            painter.drawRoundedRect(QRectF(x_col1, y_item + 2.5, 9.5, 9.5), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)
             painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else TEXTO)))
             txt = f"{t} · {formatear_entero(cant)} ({formatear_porcentaje(pct)})"
-            painter.drawText(QRectF(x_col1 + 16.0, y_item, ancho_col - 26.0, 15.0), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, txt)
+            painter.drawText(QRectF(x_col1 + 14.0, y_item, ancho_col1 - 16.0, 15.0), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, txt)
 
         # Columna 2: Validaciones
-        x_col2 = x_col1 + ancho_col
+        x_col2 = x_col1 + ancho_col1
         painter.setFont(fuente_tit_ley)
         painter.setPen(QPen(QColor(TEXTO)))
-        painter.drawText(QRectF(x_col2, y_ley, ancho_col, 16.0), Qt.AlignmentFlag.AlignLeft, "Validación (interior)")
+        painter.drawText(QRectF(x_col2, y_ley, ancho_col2, 16.0), Qt.AlignmentFlag.AlignLeft, "Validación (interior)")
 
         for i, v in enumerate(VALIDACIONES_ORDEN):
             cant = self._validaciones.get(v, 0)
             pct = (cant / total_val * 100.0) if total_val > 0 else 0.0
             y_item = y_ley + 18.0 + i * 16.0
 
-            rect_click = QRectF(x_col2, y_item, ancho_col - 10.0, 15.0)
+            rect_click = QRectF(x_col2, y_item, ancho_col2 - 4.0, 15.0)
             self._rect_leyenda_items.append((v, rect_click))
 
             esta_atenuada = v in self._series_atenuadas
@@ -495,9 +500,9 @@ class GraficoDonaDoble(GraficoBase):
 
             painter.setBrush(QBrush(color))
             painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
-            painter.drawRoundedRect(QRectF(x_col2, y_item + 2.0, 10.0, 10.0), 2.0, 2.0)
+            painter.drawRoundedRect(QRectF(x_col2, y_item + 2.5, 9.5, 9.5), 2.0, 2.0)
 
             painter.setFont(fuente_item_ley)
             painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else TEXTO)))
             txt = f"{v} · {formatear_entero(cant)} ({formatear_porcentaje(pct)})"
-            painter.drawText(QRectF(x_col2 + 16.0, y_item, ancho_col - 26.0, 15.0), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, txt)
+            painter.drawText(QRectF(x_col2 + 14.0, y_item, ancho_col2 - 14.0, 15.0), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, txt)

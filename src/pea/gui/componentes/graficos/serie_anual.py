@@ -188,6 +188,15 @@ class GraficoSerieAnual(GraficoBase):
             rect_col_interactiva = QRectF(x_centro - paso_col / 2.0, area_grafico.top(), paso_col, area_grafico.height() + 24.0)
             self._rects_columnas.append((anio, rect_col_interactiva))
 
+            if self._columna_hover == anio:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_GRAFICO_HOVER)))
+                painter.drawRoundedRect(
+                    QRectF(x_centro - min(paso_col * 0.44, 24.0), area_grafico.top(), min(paso_col * 0.88, 48.0), area_grafico.height()),
+                    5.0,
+                    5.0,
+                )
+
             val = self._datos[anio]
             fraccion = float(val) / float(max_redondo)
             alto_b = fraccion * area_grafico.height() * prog

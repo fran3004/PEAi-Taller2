@@ -3,7 +3,7 @@
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.5) y ADR-0015.
 - Conecta los centros de dos nodos investigadores.
 - Grosor proporcional a los productos compartidos: min(4.0, 1.0 + log2(peso)).
-- Color base: {estilo.COLOR_RED_ARISTAS} (gris azulado).
+- Color base: {estilo.COLOR_RED_ARISTAS} con insignia de peso en mitad del enlace.
 - Resaltado y atenuación interactiva según el foco del usuario.
 """
 
@@ -13,10 +13,11 @@ import math
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QLineF, QRectF, Qt
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
 from PySide6.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem, QWidget
 
-from pea.gui.estilo import ACENTO, COLOR_RED_ARISTAS
+from pea.gui import estilo
+from pea.gui.estilo import ACENTO, COLOR_RED_ARISTAS, PRIMARIO, SUPERFICIE
 
 if TYPE_CHECKING:
     from pea.gui.red.nodo import NodoGrafoItem
@@ -54,6 +55,11 @@ class AristaGrafoItem(QGraphicsItem):
         self.setZValue(-1.0)
         self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
+        sufijo = "producto compartido" if self.productos_compartidos == 1 else "productos compartidos"
+        nom_o = getattr(self.origen, "nombre_legible", getattr(self.origen, "nombre", ""))
+        nom_d = getattr(self.destino, "nombre_legible", getattr(self.destino, "nombre", ""))
+        self.setToolTip(f"{nom_o} ↔ {nom_d}\n{self.productos_compartidos} {sufijo}")
+
         self.origen.agregar_arista(self)
         self.destino.agregar_arista(self)
 
@@ -71,7 +77,7 @@ class AristaGrafoItem(QGraphicsItem):
         """Activa el resaltado directo cuando uno de sus nodos tiene foco."""
         if self._resaltada != resaltada:
             self._resaltada = resaltada
-            self.setZValue(0.0 if resaltada else -1.0)
+            self.setZValue(0.5 if resaltada else -1.0)
             self.update()
 
     def establecer_atenuado(self, atenuada: bool) -> None:
@@ -88,7 +94,7 @@ class AristaGrafoItem(QGraphicsItem):
         self.update()
 
     def boundingRect(self) -> QRectF:
-        ancho_extra = (self.grosor + 4.0) / 2.0
+        ancho_extra = max((self.grosor + 4.0) / 2.0, 12.0)
         return (
             QRectF(self._linea.p1(), self._linea.p2())
             .normalized()
@@ -101,24 +107,43 @@ class AristaGrafoItem(QGraphicsItem):
         option: QStyleOptionGraphicsItem,
         widget: QWidget | None = None,
     ) -> None:
+        del option, widget
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
         if self._resaltada:
             color = QColor(ACENTO)
-            grosor = self.grosor + 1.2
-            painter.setOpacity(1.0)
+            grosor = self.grosor + 1.4
+            painter.setOpacity(0.96)
         elif self._atenuada:
             color = QColor(COLOR_RED_ARISTAS)
             grosor = self.grosor
-            painter.setOpacity(0.25)
+            painter.setOpacity(0.18)
         else:
-            color = QColor(COLOR_RED_ARISTAS)
-            grosor = self.grosor
-            painter.setOpacity(0.85)
+            color = QColor(estilo.COLOR_RED_ARISTA_ACTIVA if self.productos_compartidos >= 3 else COLOR_RED_ARISTAS)
+            grosor = self.grosor + 0.3
+            painter.setOpacity(0.82)
 
         pen = QPen(color, grosor, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.drawLine(self._linea)
+
+        # Insignia con la cantidad de coautorías en el punto medio del enlace
+        if (self._resaltada or not self._atenuada) and self._linea.length() >= 52.0:
+            mx = (self._linea.p1().x() + self._linea.p2().x()) / 2.0
+            my = (self._linea.p1().y() + self._linea.p2().y()) / 2.0
+            r_b = 8.0 if self._resaltada else 7.2
+            rect_b = QRectF(mx - r_b, my - r_b, r_b * 2.0, r_b * 2.0)
+
+            painter.setPen(QPen(QColor(SUPERFICIE if self._resaltada else ACENTO), 1.2))
+            painter.setBrush(QBrush(QColor(PRIMARIO if self._resaltada else SUPERFICIE)))
+            painter.drawEllipse(rect_b)
+
+            f_b = QFont(estilo.FAMILIA_FUENTE, 7)
+            f_b.setBold(True)
+            painter.setFont(f_b)
+            painter.setPen(QColor(SUPERFICIE if self._resaltada else PRIMARIO))
+            painter.drawText(rect_b, Qt.AlignmentFlag.AlignCenter, str(self.productos_compartidos))
 
         painter.restore()

@@ -1,9 +1,9 @@
 """Visor interactivo de red de coautoría con QGraphicsView.
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.5) y ADR-0015.
-- Lienzo QGraphicsView con fondo blanco y cuadrícula tenue de puntos.
+- Lienzo QGraphicsView con fondo institucional, halo central y cuadrícula tenue de puntos.
 - Zoom suave con rueda del ratón, paneo mediante arrastre del fondo.
-- Resaltado reactivo de vecinos en hover y atenuación del resto al 25%.
+- Resaltado reactivo de vecinos en hover y selección, y atenuación del resto al 25%.
 - Selección de nodo que alimenta el panel de métricas de centralidad.
 - Doble clic que emite la señal para abrir la ficha en Investigadores.
 - Leyenda cromática institucional en la esquina inferior izquierda.
@@ -16,9 +16,12 @@ from typing import Any
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
+    QBrush,
     QColor,
     QMouseEvent,
     QPainter,
+    QPen,
+    QRadialGradient,
     QWheelEvent,
 )
 from PySide6.QtWidgets import (
@@ -38,7 +41,6 @@ from pea.gui.estilo import (
     COLOR_CAT_EMERITO,
     COLOR_CAT_JUNIOR,
     COLOR_CAT_SENIOR,
-    COLOR_CAT_SIN_CATEGORIA_FONDO,
     LINEA,
     TEXTO,
     TEXTO_SECUNDARIO,
@@ -77,7 +79,8 @@ class LeyendaRed(QFrame):
             ("Senior", COLOR_CAT_SENIOR),
             ("Asociado", COLOR_CAT_ASOCIADO),
             ("Junior", COLOR_CAT_JUNIOR),
-            ("Sin cat.", COLOR_CAT_SIN_CATEGORIA_FONDO),
+            ("Sin cat. (activo)", estilo.COLOR_NODO_SIN_CATEGORIA),
+            ("Aislado", estilo.COLOR_NODO_AISLADO),
         ]
 
         for nombre_cat, color_hex in categorias:
@@ -85,9 +88,9 @@ class LeyendaRed(QFrame):
             item_c.setSpacing(4)
 
             punto = QLabel("●", self)
-            punto.setStyleSheet(f"color: {color_hex}; font-size: {estilo.TAMANO_CUERPO}pt;")
+            punto.setStyleSheet(f"color: {color_hex}; font-size: {estilo.TAMANO_CUERPO}pt; border: none; background: transparent;")
             lbl = QLabel(nombre_cat, self)
-            lbl.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO}; font-weight: 500;")
+            lbl.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO}; font-weight: 500; border: none; background: transparent;")
 
             item_c.addWidget(punto)
             item_c.addWidget(lbl)
@@ -96,8 +99,8 @@ class LeyendaRed(QFrame):
         layout.addLayout(fila_cats)
 
         # Rótulo de escala
-        lbl_escala = QLabel("Tamaño del nodo = coautores  ·  Grosor de línea = productos compartidos", self)
-        lbl_escala.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
+        lbl_escala = QLabel("Tamaño/insignia = coautores  ·  Número en línea = productos compartidos", self)
+        lbl_escala.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; border: none; background: transparent;")
         layout.addWidget(lbl_escala)
 
 
@@ -136,7 +139,10 @@ class VistaRed(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet(f"background-color: {estilo.SUPERFICIE};")
+        self.setStyleSheet(
+            f"QGraphicsView#vistaRed {{ background-color: {estilo.SUPERFICIE}; "
+            f"border: 1px solid {LINEA}; border-radius: {estilo.RADIO_BOTON}px; }}"
+        )
 
         # Leyenda flotante
         self._leyenda = LeyendaRed(self)
@@ -173,12 +179,34 @@ class VistaRed(QGraphicsView):
         return self._leyenda
 
     # -----------------------------------------------------------------------
-    # Fondo con Cuadrícula Tenue de Puntos
+    # Fondo con Halo Central y Cuadrícula Tenue de Puntos
     # -----------------------------------------------------------------------
 
     def drawBackground(self, painter: QPainter, rect: QRectF) -> None:
         painter.save()
         painter.fillRect(rect, QColor(estilo.SUPERFICIE))
+
+        # Halo elíptico suave en el centro para enmarcar el núcleo conectado de coautorías
+        if self._items_nodos:
+            r_items = self._escena.itemsBoundingRect()
+            cx = r_items.center().x()
+            cy = r_items.center().y()
+            radio_max = max(r_items.width(), r_items.height()) * 0.42
+            if radio_max > 20.0:
+                grad = QRadialGradient(QPointF(cx, cy), radio_max)
+                c_centro = QColor(estilo.SUPERFICIE_SELECCIONADA)
+                c_centro.setAlpha(110)
+                c_borde = QColor(estilo.SUPERFICIE)
+                c_borde.setAlpha(0)
+                grad.setColorAt(0.0, c_centro)
+                grad.setColorAt(1.0, c_borde)
+                painter.setPen(QPen(QColor(estilo.LINEA), 1.0, Qt.PenStyle.DotLine))
+                painter.setBrush(QBrush(grad))
+                painter.drawEllipse(
+                    QPointF(cx, cy),
+                    r_items.width() * 0.36,
+                    r_items.height() * 0.36,
+                )
 
         # Cuadrícula suave de puntos cada 36 px
         paso = 36.0
@@ -188,14 +216,15 @@ class VistaRed(QGraphicsView):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(estilo.SUPERFICIE_GRAFICO_GUIA))
 
-        r_punto = 1.2
-        x = left
-        while x < rect.right():
-            y = top
-            while y < rect.bottom():
-                painter.drawEllipse(QPointF(x, y), r_punto, r_punto)
-                y += paso
-            x += paso
+        r_punto = 1.25
+        if (rect.width() / paso) <= 140 and (rect.height() / paso) <= 140:
+            x = left
+            while x < rect.right():
+                y = top
+                while y < rect.bottom():
+                    painter.drawEllipse(QPointF(x, y), r_punto, r_punto)
+                    y += paso
+                x += paso
 
         painter.restore()
 
@@ -224,8 +253,8 @@ class VistaRed(QGraphicsView):
     def _actualizar_posicion_leyenda(self) -> None:
         if hasattr(self, "_leyenda") and self._leyenda:
             self._leyenda.adjustSize()
-            margen_x = 16
-            margen_y = 16
+            margen_x = 14
+            margen_y = 14
             y = self.height() - self._leyenda.height() - margen_y
             self._leyenda.move(margen_x, max(10, y))
 
@@ -282,19 +311,19 @@ class VistaRed(QGraphicsView):
                 alto=alto_vista,
             )
 
-        # Determinar los 10 nodos de mayor grado para mostrar sus etiquetas forzadas
+        # Determinar los 15 nodos de mayor grado para mostrar sus etiquetas forzadas
         nodos_ordenados_grado = sorted(
             nodos_filtrados, key=lambda d: -int(d.get("grado", 0))
         )
-        codigos_top_10 = {
-            str(d.get("codigo", "")) for d in nodos_ordenados_grado[:10]
+        codigos_top = {
+            str(d.get("codigo", "")) for d in nodos_ordenados_grado[:15]
         }
 
         # 1. Crear nodos en escena
         for nd in nodos_filtrados:
             cod = str(nd.get("codigo", ""))
             item_nodo = NodoGrafoItem(datos=nd, vista=self)
-            if cod in codigos_top_10:
+            if cod in codigos_top or int(nd.get("grado", 0)) > 0:
                 item_nodo.mostrar_etiqueta_forzada = True
 
             pos = posiciones.get(cod, (0.0, 0.0))
@@ -321,6 +350,7 @@ class VistaRed(QGraphicsView):
                 self._items_aristas.append(item_arista)
 
         self._actualizar_estado_vacio()
+        self.ajustar_vista()
         QTimer.singleShot(0, self.ajustar_vista)
 
     # -----------------------------------------------------------------------
@@ -330,10 +360,23 @@ class VistaRed(QGraphicsView):
     def notificar_hover_nodo(self, nodo: NodoGrafoItem) -> None:
         """Resalta el nodo bajo el cursor y sus vecinos; atenúa el resto."""
         self._nodo_hover = nodo
+        self._aplicar_foco_nodo(nodo)
+
+    def notificar_fin_hover(self) -> None:
+        """Restaura la opacidad y estilo cuando el cursor sale del nodo."""
+        self._nodo_hover = None
+        if self._nodo_seleccionado is not None:
+            self._aplicar_foco_nodo(self._nodo_seleccionado)
+        else:
+            for item in self._items_nodos.values():
+                item.restablecer_estado()
+            for ar in self._items_aristas:
+                ar.restablecer_estado()
+
+    def _aplicar_foco_nodo(self, nodo: NodoGrafoItem) -> None:
         vecinos = nodo.vecinos()
         grupo_enfocado = vecinos | {nodo}
 
-        # Nodos
         for item in self._items_nodos.values():
             if item in grupo_enfocado:
                 item.establecer_resaltado(True)
@@ -342,22 +385,14 @@ class VistaRed(QGraphicsView):
                 item.establecer_resaltado(False)
                 item.establecer_atenuado(True)
 
-        # Aristas
         for ar in self._items_aristas:
-            if (ar.origen in grupo_enfocado) and (ar.destino in grupo_enfocado):
+            es_incidente = (ar.origen is nodo) or (ar.destino is nodo)
+            if es_incidente:
                 ar.establecer_resaltado(True)
                 ar.establecer_atenuado(False)
             else:
                 ar.establecer_resaltado(False)
                 ar.establecer_atenuado(True)
-
-    def notificar_fin_hover(self) -> None:
-        """Restaura la opacidad y estilo cuando el cursor sale del nodo."""
-        self._nodo_hover = None
-        for item in self._items_nodos.values():
-            item.restablecer_estado()
-        for ar in self._items_aristas:
-            ar.restablecer_estado()
 
     # -----------------------------------------------------------------------
     # Selección
@@ -377,9 +412,14 @@ class VistaRed(QGraphicsView):
         self._nodo_seleccionado = target
         if target is not None:
             target.establecer_seleccion(True)
+            self._aplicar_foco_nodo(target)
             self.centerOn(target)
             self.nodo_seleccionado.emit(target.datos)
         else:
+            for item in self._items_nodos.values():
+                item.restablecer_estado()
+            for ar in self._items_aristas:
+                ar.restablecer_estado()
             self.nodo_deseleccionado.emit()
 
     def deseleccionar(self) -> None:
@@ -429,8 +469,7 @@ class VistaRed(QGraphicsView):
         """Ajusta el zoom para que todo el grafo quede visible con margen."""
         rect_items = self._escena.itemsBoundingRect()
         if not rect_items.isEmpty():
-            self.fitInView(rect_items.adjusted(-50, -50, 50, 50), Qt.AspectRatioMode.KeepAspectRatio)
-            # Calcular zoom efectivo resultante
+            self.fitInView(rect_items.adjusted(-65, -65, 65, 75), Qt.AspectRatioMode.KeepAspectRatio)
             matriz = self.transform()
             self._zoom_actual = matriz.m11()
             self._actualizar_etiquetas_zoom()

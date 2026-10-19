@@ -1,182 +1,304 @@
-"""Algoritmo determinista de disposición por fuerzas (Hooke + Coulomb) para grafos de coautoría.
+"""Algoritmo de disposición por fuerzas determinista para la red de colaboración (ADR-0015).
 
-Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.5) y ADR-0015.
-- Modelo físico: repulsión electrostática de Coulomb entre todos los nodos
-  y atracción elástica de Hooke a lo largo de las aristas compartidas.
-- Enfriamiento simulado (simulated annealing) para convergencia estable.
-- Semilla pseudoaleatoria fija para garantizar repetibilidad 100% determinista.
+Implementa un modelo físico de repulsión de Coulomb y atracción de Hooke con enfriamiento
+progresivo y separación de componentes desconectados para evitar que nodos aislados
+compriman el núcleo conectado de coautorías.
 """
 
 from __future__ import annotations
 
 import math
-import random
 from typing import Any
 
 
 def calcular_disposicion_fuerzas(
-    nodos: list[dict[str, Any]] | tuple[dict[str, Any], ...],
-    aristas: list[dict[str, Any]] | tuple[dict[str, Any], ...],
-    ancho: float = 1000.0,
-    alto: float = 700.0,
-    margen: float = 60.0,
+    nodos: list[dict[str, Any]],
+    aristas: list[dict[str, Any]],
+    ancho: float = 960.0,
+    alto: float = 640.0,
     iteraciones: int = 120,
     semilla: int = 42,
 ) -> dict[str, tuple[float, float]]:
-    """Calcula las coordenadas (x, y) de los nodos mediante un modelo de fuerzas determinista.
+    """Calcula coordenadas (x, y) deterministas centradas en (0, 0).
 
-    Args:
-        nodos: Lista o tupla de diccionarios de nodos con al menos la clave 'codigo'.
-        aristas: Lista o tupla de aristas con claves 'origen', 'destino' y opcionalmente 'productos_compartidos'.
-        ancho: Ancho total del área de disposición en píxeles de escena.
-        alto: Alto total del área de disposición en píxeles de escena.
-        margen: Margen de resguardo respecto a los bordes.
-        iteraciones: Número de pasos de simulación.
-        semilla: Semilla fija para reproducibilidad matemática.
+    Parámetros:
+        nodos: Lista de diccionarios con al menos 'codigo' (o 'id') y 'grado'.
+        aristas: Lista de diccionarios con 'origen', 'destino' y 'peso' (o 'productos_compartidos').
+        ancho: Ancho lógico del área de dibujo.
+        alto: Alto lógico del área de dibujo.
+        iteraciones: Número de pasos de simulación física (90 a 150 según ADR-0015).
+        semilla: Semilla determinista (42 por defecto) para desempates angulares.
 
-    Returns:
-        Diccionario asociando el código de cada nodo con su tupla de coordenadas (x, y).
+    Retorna:
+        Diccionario {codigo_nodo: (x, y)}.
     """
-    codigos = [str(n.get("codigo") or n.get("id")) for n in nodos if "codigo" in n or "id" in n]
-    n = len(codigos)
-    if n == 0:
+    if not nodos:
         return {}
 
-    cx = ancho / 2.0
-    cy = alto / 2.0
+    def _id_nodo(n: dict[str, Any]) -> str:
+        return str(n.get("codigo") or n.get("id") or "")
 
-    if n == 1:
-        return {codigos[0]: (cx, cy)}
+    def _grado_nodo(n: dict[str, Any]) -> int:
+        return int(n.get("grado", 0))
 
-    if n == 2:
-        dist_mitad = min(ancho, alto) * 0.25
-        return {
-            codigos[0]: (cx - dist_mitad, cy),
-            codigos[1]: (cx + dist_mitad, cy),
-        }
+    nodos_ordenados = sorted(
+        nodos,
+        key=lambda n: (-_grado_nodo(n), _id_nodo(n)),
+    )
 
-    rng = random.Random(semilla)
-    indice_por_codigo = {cod: i for i, cod in enumerate(codigos)}
+    n_total = len(nodos_ordenados)
+    if n_total == 1:
+        return {_id_nodo(nodos_ordenados[0]): (0.0, 0.0)}
 
-    # Distribución inicial circular determinista con leve perturbación fija
-    pos_x = [0.0] * n
-    pos_y = [0.0] * n
-    radio_base = min(ancho, alto) * 0.38
+    ids_totales = {_id_nodo(n) for n in nodos_ordenados}
 
-    for i in range(n):
-        angulo = (2.0 * math.pi * i) / n
-        radio_var = radio_base + rng.uniform(-15.0, 15.0)
-        pos_x[i] = cx + radio_var * math.cos(angulo)
-        pos_y[i] = cy + radio_var * math.sin(angulo)
-
-    # Parámetros del modelo Fruchterman-Reingold
-    area_efectiva = (ancho - 2.0 * margen) * (alto - 2.0 * margen)
-    k = math.sqrt(max(100.0, area_efectiva) / n)
-    k_cuadrado = k * k
-
-    # Lista de aristas indexadas con sus pesos
-    aristas_indexadas: list[tuple[int, int, float]] = []
+    # Filtrar aristas válidas y detectar qué nodos participan en al menos un enlace
+    enlaces_validos: list[tuple[str, str, float]] = []
+    ids_con_enlace: set[str] = set()
     for a in aristas:
-        u_cod = str(a.get("origen") or a.get("source") or "")
-        v_cod = str(a.get("destino") or a.get("target") or "")
-        if u_cod in indice_por_codigo and v_cod in indice_por_codigo:
-            u_idx = indice_por_codigo[u_cod]
-            v_idx = indice_por_codigo[v_cod]
-            if u_idx != v_idx:
-                peso = float(a.get("productos_compartidos") or a.get("peso") or 1.0)
-                aristas_indexadas.append((u_idx, v_idx, peso))
+        u = str(a.get("origen", ""))
+        v = str(a.get("destino", ""))
+        if u in ids_totales and v in ids_totales and u != v:
+            peso = float(a.get("peso") or a.get("productos_compartidos") or 1.0)
+            enlaces_validos.append((u, v, max(1.0, peso)))
+            ids_con_enlace.add(u)
+            ids_con_enlace.add(v)
 
-    # Temperatura inicial y amortiguamiento
-    temp = min(ancho, alto) * 0.20
-    enfriamiento = temp / max(1, iteraciones)
+    nodos_conectados = [n for n in nodos_ordenados if _id_nodo(n) in ids_con_enlace]
+    nodos_aislados = [n for n in nodos_ordenados if _id_nodo(n) not in ids_con_enlace]
 
-    for _paso in range(iteraciones):
-        disp_x = [0.0] * n
-        disp_y = [0.0] * n
+    # Si ningún nodo tiene aristas activas, distribuir en anillos concéntricos armónicos
+    if not nodos_conectados:
+        pos_sin_aristas: dict[str, tuple[float, float]] = {}
+        desfase_base = ((semilla % 360) * math.pi) / 180.0
+        for idx, n_item in enumerate(nodos_ordenados):
+            nid = _id_nodo(n_item)
+            if idx == 0 and n_total > 4:
+                pos_sin_aristas[nid] = (0.0, 0.0)
+                continue
+            k = idx - 1 if n_total > 4 else idx
+            total_anillo = n_total - 1 if n_total > 4 else n_total
+            angulo = desfase_base + (2.0 * math.pi * k) / max(1, total_anillo)
+            rx = ancho * 0.38
+            ry = alto * 0.36
+            pos_sin_aristas[nid] = (rx * math.cos(angulo), ry * math.sin(angulo))
+        return pos_sin_aristas
 
-        # 1. Repulsión de Coulomb entre todos los pares de nodos
-        for i in range(n):
-            xi = pos_x[i]
-            yi = pos_y[i]
-            for j in range(i + 1, n):
-                dx = xi - pos_x[j]
-                dy = yi - pos_y[j]
-                dist = math.sqrt(dx * dx + dy * dy)
-                if dist < 0.01:
-                    dist = 0.01
+    # ------------------------------------------------------------------
+    # Simulación física sobre el subgrafo conectado (nodos_conectados)
+    # ------------------------------------------------------------------
+    n_con = len(nodos_conectados)
+    pos_x: dict[str, float] = {}
+    pos_y: dict[str, float] = {}
+    grados: dict[str, int] = {}
 
-                fuerza_rep = k_cuadrado / dist
-                fx = (dx / dist) * fuerza_rep
-                fy = (dy / dist) * fuerza_rep
+    desfase_semilla = ((semilla % 360) * math.pi) / 180.0
+    radio_inicial_x = ancho * 0.34
+    radio_inicial_y = alto * 0.32
 
-                disp_x[i] += fx
-                disp_y[i] += fy
-                disp_x[j] -= fx
-                disp_y[j] -= fy
+    for idx, nodo in enumerate(nodos_conectados):
+        nid = _id_nodo(nodo)
+        grados[nid] = _grado_nodo(nodo)
+        if n_con == 1:
+            pos_x[nid] = 0.0
+            pos_y[nid] = 0.0
+        elif idx == 0 and n_con >= 4:
+            pos_x[nid] = 0.0
+            pos_y[nid] = 0.0
+        else:
+            k = idx - 1 if n_con >= 4 else idx
+            m = n_con - 1 if n_con >= 4 else n_con
+            angulo = desfase_semilla + (2.0 * math.pi * k) / max(1, m)
+            factor_anillo = 0.62 if (k % 2 == 0 and m > 6) else 1.0
+            pos_x[nid] = radio_inicial_x * factor_anillo * math.cos(angulo)
+            pos_y[nid] = radio_inicial_y * factor_anillo * math.sin(angulo)
 
-        # 2. Atracción de Hooke a lo largo de las aristas
-        for u_idx, v_idx, peso in aristas_indexadas:
-            dx = pos_x[u_idx] - pos_x[v_idx]
-            dy = pos_y[u_idx] - pos_y[v_idx]
-            dist = math.sqrt(dx * dx + dy * dy)
-            if dist < 0.01:
-                dist = 0.01
+    area = ancho * alto * 0.65
+    k_optimo = math.sqrt(area / max(1, n_con))
+    k_repulsion = k_optimo * k_optimo * 1.45
+    k_atraccion = 1.0 / max(1.0, k_optimo * 1.05)
 
-            # Factor logarítmico del peso de coautoría
-            factor_peso = min(2.5, 1.0 + 0.20 * math.log2(max(1.0, peso)))
-            fuerza_atr = ((dist * dist) / k) * factor_peso
+    ids_con = [_id_nodo(n) for n in nodos_conectados]
+    temp_inicial = min(ancho, alto) * 0.20
 
-            fx = (dx / dist) * fuerza_atr
-            fy = (dy / dist) * fuerza_atr
+    if n_con > 1:
+        for paso in range(iteraciones):
+            progreso = paso / max(1, iteraciones - 1)
+            temperatura = temp_inicial * ((1.0 - progreso) ** 1.4)
+            if temperatura < 0.4:
+                temperatura = 0.4
 
-            disp_x[u_idx] -= fx
-            disp_y[u_idx] -= fy
-            disp_x[v_idx] += fx
-            disp_y[v_idx] += fy
+            disp_x: dict[str, float] = {nid: 0.0 for nid in ids_con}
+            disp_y: dict[str, float] = {nid: 0.0 for nid in ids_con}
 
-        # 3. Gravedad hacia el centro para evitar dispersión de componentes aislados
-        for i in range(n):
-            dx_c = cx - pos_x[i]
-            dy_c = cy - pos_y[i]
-            disp_x[i] += dx_c * 0.06
-            disp_y[i] += dy_c * 0.06
+            # Repulsión de Coulomb entre pares conectados
+            for i in range(n_con):
+                u = ids_con[i]
+                ux, uy = pos_x[u], pos_y[u]
+                for j in range(i + 1, n_con):
+                    v = ids_con[j]
+                    dx = ux - pos_x[v]
+                    dy = uy - pos_y[v]
+                    dist_sq = dx * dx + dy * dy
+                    if dist_sq < 1.0:
+                        ang = desfase_semilla + (i * 0.7 + j * 1.3)
+                        dx = math.cos(ang)
+                        dy = math.sin(ang)
+                        dist_sq = 1.0
+                    dist = math.sqrt(dist_sq)
+                    fuerza_rep = k_repulsion / dist
+                    fx = (dx / dist) * fuerza_rep
+                    fy = (dy / dist) * fuerza_rep
+                    disp_x[u] += fx
+                    disp_y[u] += fy
+                    disp_x[v] -= fx
+                    disp_y[v] -= fy
 
-        # 4. Actualización de posiciones acotada por la temperatura actual
-        for i in range(n):
-            dx = disp_x[i]
-            dy = disp_y[i]
-            dist_disp = math.sqrt(dx * dx + dy * dy)
-            if dist_disp > 0.001:
-                limite = min(dist_disp, temp)
-                pos_x[i] += (dx / dist_disp) * limite
-                pos_y[i] += (dy / dist_disp) * limite
+            # Atracción de Hooke en las aristas
+            for u, v, peso in enlaces_validos:
+                dx = pos_x[u] - pos_x[v]
+                dy = pos_y[u] - pos_y[v]
+                dist = math.hypot(dx, dy)
+                if dist < 0.1:
+                    continue
+                factor_peso = 1.0 + 0.30 * math.log2(peso)
+                fuerza_atr = (dist * dist) * k_atraccion * factor_peso
+                fx = (dx / dist) * fuerza_atr
+                fy = (dy / dist) * fuerza_atr
+                disp_x[u] -= fx
+                disp_y[u] -= fy
+                disp_x[v] += fx
+                disp_y[v] += fy
 
-        temp = max(0.0, temp - enfriamiento)
+            # Gravedad suave hacia el centro
+            for nid in ids_con:
+                peso_grav = 0.04 + 0.015 * math.sqrt(max(1, grados[nid]))
+                disp_x[nid] -= pos_x[nid] * peso_grav
+                disp_y[nid] -= pos_y[nid] * peso_grav
 
-    # 5. Normalización y escalado para ajustar al área delimitada con margen
-    min_x = min(pos_x)
-    max_x = max(pos_x)
-    min_y = min(pos_y)
-    max_y = max(pos_y)
+            # Actualizar posiciones limitadas por temperatura
+            for nid in ids_con:
+                dx = disp_x[nid]
+                dy = disp_y[nid]
+                mag = math.hypot(dx, dy)
+                if mag > 0.0:
+                    despl = min(mag, temperatura)
+                    pos_x[nid] += (dx / mag) * despl
+                    pos_y[nid] += (dy / mag) * despl
 
-    rango_x = max(1.0, max_x - min_x)
-    rango_y = max(1.0, max_y - min_y)
+    # Normalización del subgrafo conectado para que ocupe generosamente el lienzo central
+    tiene_aislados = len(nodos_aislados) > 0
+    fraccion_lienzo = 0.62 if tiene_aislados else 0.80
+    mitad_w = (ancho * fraccion_lienzo) / 2.0
+    mitad_h = (alto * fraccion_lienzo) / 2.0
 
-    ancho_util = ancho - 2.0 * margen
-    alto_util = alto - 2.0 * margen
+    if n_con > 1:
+        min_x = min(pos_x.values())
+        max_x = max(pos_x.values())
+        min_y = min(pos_y.values())
+        max_y = max(pos_y.values())
 
-    escala_x = ancho_util / rango_x
-    escala_y = alto_util / rango_y
-    escala = min(escala_x, escala_y)
+        rango_x = max(1.0, max_x - min_x)
+        rango_y = max(1.0, max_y - min_y)
+        cx = (min_x + max_x) / 2.0
+        cy = (min_y + max_y) / 2.0
 
-    # Centrar la red en el lienzo disponible
-    centro_red_x = (min_x + max_x) / 2.0
-    centro_red_y = (min_y + max_y) / 2.0
+        for nid in ids_con:
+            pos_x[nid] = ((pos_x[nid] - cx) / (rango_x / 2.0)) * mitad_w
+            pos_y[nid] = ((pos_y[nid] - cy) / (rango_y / 2.0)) * mitad_h
+
+        # Pase de anticolisión para garantizar legibilidad de etiquetas y nodos
+        dist_min = max(72.0, min(ancho, alto) / max(4.5, math.sqrt(n_con) * 2.1))
+        for _ in range(18):
+            hubo_ajuste = False
+            for i in range(n_con):
+                u = ids_con[i]
+                for j in range(i + 1, n_con):
+                    v = ids_con[j]
+                    dx = pos_x[u] - pos_x[v]
+                    dy = pos_y[u] - pos_y[v]
+                    d = math.hypot(dx, dy)
+                    if d < dist_min:
+                        hubo_ajuste = True
+                        if d < 0.01:
+                            ang = desfase_semilla + i * 1.1 + j * 0.7
+                            dx, dy, d = math.cos(ang), math.sin(ang), 1.0
+                        empuje = (dist_min - d) * 0.52
+                        ux = (dx / d) * empuje
+                        uy = (dy / d) * empuje
+                        pos_x[u] = max(-mitad_w * 1.08, min(mitad_w * 1.08, pos_x[u] + ux))
+                        pos_y[u] = max(-mitad_h * 1.08, min(mitad_h * 1.08, pos_y[u] + uy))
+                        pos_x[v] = max(-mitad_w * 1.08, min(mitad_w * 1.08, pos_x[v] - ux))
+                        pos_y[v] = max(-mitad_h * 1.08, min(mitad_h * 1.08, pos_y[v] - uy))
+            if not hubo_ajuste:
+                break
+
+    # ------------------------------------------------------------------
+    # Ubicación perimetral ordenada para nodos aislados (grado == 0)
+    # ------------------------------------------------------------------
+    n_ais = len(nodos_aislados)
+    if n_ais > 0:
+        rx_ais = ancho * 0.46
+        ry_ais = alto * 0.44
+        for idx_a, nodo_a in enumerate(nodos_aislados):
+            nid_a = _id_nodo(nodo_a)
+            angulo = desfase_semilla + (2.0 * math.pi * idx_a) / max(1, n_ais)
+            xa = rx_ais * math.cos(angulo)
+            ya = ry_ais * math.sin(angulo)
+            # Evitar colisión con nodos conectados cercanos al borde del anillo interior
+            for _ in range(8):
+                colision = False
+                for nid_c in ids_con:
+                    dx_c = xa - pos_x[nid_c]
+                    dy_c = ya - pos_y[nid_c]
+                    d_c = math.hypot(dx_c, dy_c)
+                    if d_c < 84.0:
+                        colision = True
+                        angulo += 0.16
+                        xa = (rx_ais + 16.0) * math.cos(angulo)
+                        ya = (ry_ais + 14.0) * math.sin(angulo)
+                        break
+                if not colision:
+                    break
+            pos_x[nid_a] = xa
+            pos_y[nid_a] = ya
 
     resultado: dict[str, tuple[float, float]] = {}
-    for i, cod in enumerate(codigos):
-        x_final = cx + (pos_x[i] - centro_red_x) * escala
-        y_final = cy + (pos_y[i] - centro_red_y) * escala
-        resultado[cod] = (round(x_final, 2), round(y_final, 2))
-
+    for n_item in nodos_ordenados:
+        nid = _id_nodo(n_item)
+        resultado[nid] = (round(pos_x[nid], 4), round(pos_y[nid], 4))
     return resultado
+
+
+def normalizar_nombre_investigador(nombre_completo: str) -> str:
+    """Normaliza la capitalización de un nombre manteniendo partículas en minúscula."""
+    limpio = " ".join(nombre_completo.strip().split())
+    if not limpio:
+        return "Investigador"
+    particulas = {"de", "del", "la", "las", "los", "y", "e", "da", "do", "dos"}
+    palabras = limpio.split(" ")
+    resultado: list[str] = []
+    for idx, p in enumerate(palabras):
+        p_low = p.lower()
+        if idx > 0 and p_low in particulas:
+            resultado.append(p_low)
+        elif p.islower() or p.isupper():
+            resultado.append(p[:1].upper() + p[1:].lower())
+        else:
+            resultado.append(p)
+    return " ".join(resultado)
+
+
+def abreviar_nombre_investigador(nombre_completo: str) -> str:
+    """Abrevia un nombre completo al formato 'N. Apellido' para etiquetas de nodo."""
+    limpio = normalizar_nombre_investigador(nombre_completo)
+    if not limpio:
+        return "Inv."
+    partes = limpio.split(" ")
+    if len(partes) == 1:
+        return partes[0][:12]
+    inicial = partes[0][0].upper()
+    # Si tiene 4 partes (2 nombres + 2 apellidos), usar el primer apellido (penúltima palabra)
+    # pero mantener compatibilidad con 2-3 partes usando la última o primer apellido significativo
+    apellido = partes[-1]
+    return f"{inicial}. {apellido}"

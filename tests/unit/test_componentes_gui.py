@@ -89,7 +89,7 @@ def test_animacion_aplica_opacidad_solo_si_no_hay_efecto(qapp: Any, monkeypatch:
     assert animacion is not None
     efecto = widget.graphicsEffect()
     assert isinstance(efecto, QGraphicsOpacityEffect)
-    qtbot.wait(60)
+    qtbot.waitUntil(lambda: efecto.opacity() == 1.0, timeout=500)
     assert efecto.opacity() == 1.0
     widget.deleteLater()
 

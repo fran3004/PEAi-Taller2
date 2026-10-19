@@ -25,7 +25,6 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.4).
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +85,10 @@ from pea.gui.estilo import (
     RADIO_BOTON,
     TEXTO,
     TEXTO_SECUNDARIO,
+)
+from pea.gui.exportador_visual import (
+    exportar_reporte_pdf,
+    guardar_csv_profesional,
 )
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios
@@ -762,6 +765,8 @@ class PantallaProductos(QWidget):
         )
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
+        act_pdf = menu_exp.addAction("Exportar catálogo visible a PDF")
+        act_pdf.triggered.connect(self._exportar_catalogo_pdf)
         act_csv = menu_exp.addAction("Exportar catálogo visible a CSV")
         act_csv.triggered.connect(self._exportar_catalogo_csv)
         self.btn_exportar.setMenu(menu_exp)
@@ -1122,33 +1127,83 @@ class PantallaProductos(QWidget):
     # Exportación
     # -----------------------------------------------------------------------
 
-    def _exportar_catalogo_csv(self) -> None:
-        ruta, _ = QFileDialog.getSaveFileName(
-            self,
-            "Exportar Catálogo de Productos",
-            "catalogo_productos.csv",
-            "Archivos CSV (*.csv)",
-        )
-        if not ruta:
-            return
+    def _obtener_tabla_visible(self) -> tuple[list[str], list[list[str]]]:
+        cols = [str(self._modelo.headerData(c, Qt.Orientation.Horizontal)) for c in range(self._modelo.columnCount())]
+        filas_visibles: list[list[str]] = []
+        for r in range(self._proxy.rowCount()):
+            fila_datos: list[str] = []
+            for c in range(self._proxy.columnCount()):
+                idx = self._proxy.index(r, c)
+                val = self._proxy.data(idx, Qt.ItemDataRole.DisplayRole)
+                fila_datos.append(str(val) if val is not None else "")
+            filas_visibles.append(fila_datos)
+        return cols, filas_visibles
+
+    def _exportar_catalogo_pdf(self, ruta_destino: str | Path | None = None) -> None:
+        if ruta_destino is None:
+            ruta, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exportar Catálogo de Productos a PDF",
+                "catalogo_productos.pdf",
+                "Documento PDF (*.pdf)",
+            )
+            if not ruta:
+                return
+        else:
+            ruta = str(ruta_destino)
 
         try:
-            filas_visibles: list[list[str]] = []
-            cols = [self._modelo.headerData(c, Qt.Orientation.Horizontal) for c in range(self._modelo.columnCount())]
-            filas_visibles.append(cols)
+            cols, filas_visibles = self._obtener_tabla_visible()
+            desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
+            exportar_reporte_pdf(
+                ruta,
+                titulo="Catálogo de Productos Científicos",
+                subtitulo="Universidad Popular del Cesar · Registro consolidado de producción intelectual",
+                metadatos=[
+                    ("Filtro temporal", desc_f),
+                    ("Tipología", self.combo_tipologia.currentText()),
+                    ("Validación", self.combo_validacion.currentText()),
+                    ("Estado", self.combo_estado.currentText()),
+                ],
+                kpis=[
+                    ("Productos visibles", str(len(filas_visibles))),
+                    ("Total en catálogo", str(self._modelo.rowCount())),
+                ],
+                columnas_tabla=cols,
+                filas_tabla=filas_visibles,
+                nota_pie="Catálogo enlazado en memoria mediante Multilista (Grupo ↔ Producto ↔ Autores).",
+            )
+            GestorAvisos.mostrar_desde(
+                self, f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PDF"
+            )
+        except Exception as e:
+            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {e}", tipo="error")
 
-            for r in range(self._proxy.rowCount()):
-                fila_datos: list[str] = []
-                for c in range(self._proxy.columnCount()):
-                    idx = self._proxy.index(r, c)
-                    val = self._proxy.data(idx, Qt.ItemDataRole.DisplayRole)
-                    fila_datos.append(str(val) if val is not None else "")
-                filas_visibles.append(fila_datos)
+    def _exportar_catalogo_csv(self, ruta_destino: str | Path | None = None) -> None:
+        if ruta_destino is None:
+            ruta, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exportar Catálogo de Productos",
+                "catalogo_productos.csv",
+                "Archivos CSV (*.csv)",
+            )
+            if not ruta:
+                return
+        else:
+            ruta = str(ruta_destino)
 
-            with open(ruta, "w", newline="", encoding="utf-8") as f:
-                escritor = csv.writer(f, delimiter=";")
-                escritor.writerows(filas_visibles)
-
+        try:
+            cols, filas_visibles = self._obtener_tabla_visible()
+            guardar_csv_profesional(
+                ruta,
+                titulo="Catálogo de Productos Científicos",
+                metadatos=[
+                    ("Filtro temporal", self._servicio.descripcion_filtro(self._filtro_actual)),
+                    ("Productos exportados", str(len(filas_visibles))),
+                ],
+                columnas=cols,
+                filas=filas_visibles,
+            )
             GestorAvisos.mostrar_desde(self, f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito")
         except Exception as e:
             GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")

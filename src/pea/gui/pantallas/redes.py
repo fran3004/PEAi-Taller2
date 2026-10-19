@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -50,7 +51,7 @@ from PySide6.QtWidgets import (
 from pea.gui import estilo
 from pea.gui.componentes.avatar import Avatar
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
-from pea.gui.componentes.filtro_anios import ChipVentana
+from pea.gui.componentes.filtro_anios import ChipVentana, texto_resumen_filtro
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
 from pea.gui.componentes.toast import GestorAvisos
@@ -68,10 +69,18 @@ from pea.gui.estilo import (
     TEXTO,
     TEXTO_SECUNDARIO,
 )
+from pea.gui.exportador_visual import (
+    exportar_png_institucional,
+    exportar_reporte_pdf,
+    guardar_csv_profesional,
+)
 from pea.gui.formato import formatear_entero
 from pea.gui.recursos.cargador import cargar_icono
 from pea.gui.red.disposicion import calcular_disposicion_fuerzas
-from pea.gui.red.nodo import abreviar_nombre_investigador
+from pea.gui.red.nodo import (
+    abreviar_nombre_investigador,
+    normalizar_nombre_investigador,
+)
 from pea.gui.red.vista_red import VistaRed
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios
@@ -93,31 +102,36 @@ class FilaTopConectado(QFrame):
     ) -> None:
         super().__init__(parent)
         self.codigo = codigo
-        self._nombre_completo = abreviar_nombre_investigador(nombre)
+        self._nombre_completo = normalizar_nombre_investigador(nombre) or abreviar_nombre_investigador(nombre)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(f"#{puesto} · {self._nombre_completo} ({categoria}) — {grado} coautores directos")
         self.setStyleSheet(
             f"QFrame {{"
             f"  background-color: {estilo.SUPERFICIE};"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {estilo.RADIO_BOTON}px;"
-            f"  padding: 4px 8px;"
             f"}}"
             f"QFrame:hover {{"
-            f"  background-color: {estilo.FONDO_APP};"
+            f"  background-color: {estilo.SUPERFICIE_SELECCIONADA};"
             f"  border-color: {ACENTO};"
+            f"}}"
+            f"QLabel {{"
+            f"  border: none;"
+            f"  background: transparent;"
             f"}}"
         )
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
 
         lbl_num = QLabel(f"#{puesto}", self)
-        lbl_num.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {TEXTO_SECUNDARIO};")
-        lbl_num.setFixedWidth(24)
+        lbl_num.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {PRIMARIO};")
+        lbl_num.setFixedWidth(26)
+        lbl_num.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_num)
 
-        av = Avatar(diametro=28, nombre=nombre, parent=self)
+        av = Avatar(diametro=28, nombre=self._nombre_completo, parent=self)
         layout.addWidget(av)
 
         col_txt = QVBoxLayout()
@@ -128,7 +142,10 @@ class FilaTopConectado(QFrame):
         lbl_nom.setMinimumWidth(0)
         lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
         self._lbl_nom = lbl_nom
-        lbl_sub = QLabel(categoria, self)
+        cat_limpia = "Sin categoría" if categoria.lower() == "sin categoria" else (
+            "Emérito" if categoria.lower() == "emerito" else categoria
+        )
+        lbl_sub = QLabel(cat_limpia, self)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
 
         col_txt.addWidget(lbl_nom)
@@ -252,11 +269,31 @@ class PantallaRedes(QWidget):
         self.btn_exportar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_exportar.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
-            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 16px; font-size: {estilo.TAMANO_CUERPO}pt; }}"
+            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
             f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_exportar.clicked.connect(self.exportar_png)
         layout.addWidget(self.btn_exportar)
+
+        # Menú Exportar reporte (PDF y CSV)
+        self.btn_exportar_reporte = QPushButton("Reporte (PDF / CSV)", barra)
+        self.btn_exportar_reporte.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_exportar_reporte.setToolTip("Exportar reporte ejecutivo en PDF o métricas de centralidad en CSV")
+        self.btn_exportar_reporte.setAccessibleName("Exportar reporte de red")
+        self.btn_exportar_reporte.setStyleSheet(
+            f"QPushButton {{ background-color: {PRIMARIO}; color: {estilo.SUPERFICIE}; font-weight: 600; "
+            f"border: none; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
+            f"QPushButton:hover {{ background-color: {PRIMARIO_HOVER}; }}"
+        )
+        menu_rep = QMenu(self.btn_exportar_reporte)
+        act_pdf = menu_rep.addAction("Exportar reporte de red a PDF")
+        act_pdf.triggered.connect(self.exportar_pdf)
+        act_csv = menu_rep.addAction("Exportar métricas de centralidad a CSV")
+        act_csv.triggered.connect(self.exportar_csv)
+        act_png2 = menu_rep.addAction("Exportar imagen de red a PNG (2x)")
+        act_png2.triggered.connect(self.exportar_png)
+        self.btn_exportar_reporte.setMenu(menu_rep)
+        layout.addWidget(self.btn_exportar_reporte)
 
         self.btn_alternar_panel = QPushButton("Ocultar panel", barra)
         self.btn_alternar_panel.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -291,7 +328,7 @@ class PantallaRedes(QWidget):
 
         # 2. Selector Mínimo de coautorías
         self.combo_min_coautorias = QComboBox(contenedor_controles)
-        self.combo_min_coautorias.setMinimumWidth(100)
+        self.combo_min_coautorias.setMinimumWidth(145)
         for val in range(1, 6):
             txt = f"Mín. {val} coautoría" if val == 1 else f"Mín. {val} coautorías"
             self.combo_min_coautorias.addItem(txt, val)
@@ -581,13 +618,15 @@ class PantallaRedes(QWidget):
             return
         compacto = ancho < 1240
         self.combo_grupo.setMinimumWidth(120 if compacto else 160)
-        self.combo_min_coautorias.setMinimumWidth(100 if compacto else 130)
-        self.campo_busqueda.setMinimumWidth(140 if compacto else 180)
+        self.combo_min_coautorias.setMinimumWidth(140 if compacto else 155)
+        self.campo_busqueda.setMinimumWidth(130 if compacto else 180)
         self.btn_reordenar.setText("Reordenar")
         self.btn_zoom_ajustar.setText("Ajustar")
         self.btn_zoom_ajustar.setToolTip("Ajustar vista al contenido completo")
         self.btn_exportar.setText("PNG" if compacto else "Exportar red (PNG)")
         self.btn_exportar.setToolTip("Exporta la red como imagen PNG")
+        if hasattr(self, "btn_exportar_reporte"):
+            self.btn_exportar_reporte.setText("Exportar" if compacto else "Reporte (PDF / CSV)")
         self.btn_alternar_panel.setText("Panel" if compacto else ("Ocultar panel" if self._panel_metricas_visible else "Mostrar panel"))
         self.btn_alternar_panel.setToolTip(
             "Muestra el panel de métricas" if not self._panel_metricas_visible else "Oculta el panel de métricas"
@@ -883,14 +922,34 @@ class PantallaRedes(QWidget):
                 return
 
     # -----------------------------------------------------------------------
-    # Exportación
+    # Exportación (PNG 2x institucional, PDF ejecutivo y CSV UTF-8 BOM)
     # -----------------------------------------------------------------------
 
+    def _renderizar_imagen_red(self) -> QImage:
+        rect_escena = self.vista_red._escena.itemsBoundingRect().adjusted(-50, -50, 50, 60)
+        if rect_escena.isEmpty():
+            rect_escena = QRectF(0, 0, 900, 620)
+        ancho_px = max(1400, int(rect_escena.width() * 2.0))
+        alto_px = max(860, int(rect_escena.height() * 2.0))
+        imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32_Premultiplied)
+        imagen.fill(QColor(estilo.SUPERFICIE))
+        with QPainter(imagen) as painter:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            self.vista_red._escena.render(
+                painter,
+                QRectF(20, 20, ancho_px - 40, alto_px - 40),
+                rect_escena,
+                Qt.AspectRatioMode.KeepAspectRatio,
+            )
+        return imagen
+
     def exportar_png(self) -> None:
-        """Exporta la vista actual de la red como imagen PNG a doble resolución (2x)."""
+        """Exporta la vista actual de la red como imagen PNG institucional a doble resolución (2x)."""
         ruta, _ = QFileDialog.getSaveFileName(
             self,
-            "Exportar Red de Colaboración",
+            "Exportar Red de Colaboración (PNG)",
             "red_colaboracion.png",
             "Imágenes PNG (*.png)",
         )
@@ -898,23 +957,108 @@ class PantallaRedes(QWidget):
             return
 
         try:
-            rect_escena = self.vista_red._escena.itemsBoundingRect().adjusted(-40, -40, 40, 40)
-            if rect_escena.isEmpty():
-                rect_escena = QRectF(0, 0, 800, 600)
-
-            ancho_px = int(rect_escena.width() * 2.0)
-            alto_px = int(rect_escena.height() * 2.0)
-
-            imagen = QImage(ancho_px, alto_px, QImage.Format.Format_ARGB32_Premultiplied)
-            imagen.fill(QColor(estilo.SUPERFICIE))
-
-            with QPainter(imagen) as painter:
-                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-                painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
-                painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-                self.vista_red._escena.render(painter, QRectF(0, 0, ancho_px, alto_px), rect_escena)
-
-            imagen.save(ruta, "PNG")
+            img_red = self._renderizar_imagen_red()
+            resumen = self._datos_red_actual.get("resumen", {})
+            n_inv = int(resumen.get("investigadores", 0))
+            n_vinc = int(resumen.get("vinculos", 0))
+            dens = float(resumen.get("densidad", 0.0))
+            grp_txt = self.combo_grupo.currentText()
+            vent_txt = texto_resumen_filtro(self._filtro_actual)
+            exportar_png_institucional(
+                ruta=ruta,
+                titulo="Análisis de Red de Colaboración Científica",
+                subtitulo=f"Ámbito: {grp_txt} · Ventana: {vent_txt} · Mín. coautorías: {self._min_coautorias_actual}",
+                imagenes=[img_red],
+                pie_extra=f"Investigadores: {n_inv} · Enlaces: {n_vinc} · Densidad: {dens:.4f}",
+            )
             GestorAvisos.mostrar_desde(self, f"Red exportada exitosamente a {Path(ruta).name}", tipo="exito")
         except Exception as err:
             GestorAvisos.mostrar_desde(self, f"Error al exportar imagen de red: {err}", tipo="error")
+
+    def exportar_pdf(self) -> None:
+        """Exporta el reporte ejecutivo de la red de colaboración (grafo + tabla de centralidad) en PDF."""
+        ruta, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportar Reporte de Red (PDF)",
+            "reporte_red_colaboracion.pdf",
+            "Documentos PDF (*.pdf)",
+        )
+        if not ruta:
+            return
+
+        try:
+            img_red = self._renderizar_imagen_red()
+            resumen = self._datos_red_actual.get("resumen", {})
+            n_inv = int(resumen.get("investigadores", 0))
+            n_vinc = int(resumen.get("vinculos", 0))
+            dens = float(resumen.get("densidad", 0.0))
+            grp_txt = self.combo_grupo.currentText()
+            vent_txt = texto_resumen_filtro(self._filtro_actual)
+
+            kpis = [
+                ("Investigadores en red", formatear_entero(n_inv), grp_txt),
+                ("Enlaces de coautoría", formatear_entero(n_vinc), f"Mín. {self._min_coautorias_actual} coautoría(s)"),
+                ("Densidad topológica", f"{dens:.4f}", f"Ventana: {vent_txt}"),
+            ]
+            nodos = sorted(
+                self._datos_red_actual.get("nodos", ()),
+                key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
+            )
+            columnas = ("Código CvLAC", "Investigador", "Categoría", "Grupo Principal", "Grado (Coautores)", "Intermediación")
+            filas = [
+                (
+                    nd.get("codigo", ""),
+                    normalizar_nombre_investigador(str(nd.get("nombre", ""))),
+                    nd.get("categoria", "Sin categoría"),
+                    nd.get("grupo_principal", "Sin grupo"),
+                    int(nd.get("grado", 0)),
+                    f"{float(nd.get('intermediacion', 0.0)):.4f}",
+                )
+                for nd in nodos
+            ]
+            exportar_reporte_pdf(
+                ruta=ruta,
+                titulo="Análisis de Redes de Colaboración Científica",
+                subtitulo=f"Ámbito: {grp_txt} · Ventana temporal: {vent_txt}",
+                kpis=kpis,
+                imagenes=[img_red],
+                columnas=columnas,
+                filas=filas,
+                orientacion_horizontal=True,
+            )
+            GestorAvisos.mostrar_desde(self, f"Reporte PDF de red exportado a {Path(ruta).name}", tipo="exito")
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF de red: {err}", tipo="error")
+
+    def exportar_csv(self) -> None:
+        """Exporta las métricas de centralidad de la red a un archivo CSV UTF-8 con BOM."""
+        ruta, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exportar Métricas de Centralidad (CSV)",
+            "metricas_red_colaboracion.csv",
+            "Archivos CSV (*.csv)",
+        )
+        if not ruta:
+            return
+
+        try:
+            nodos = sorted(
+                self._datos_red_actual.get("nodos", ()),
+                key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
+            )
+            columnas = ("Código CvLAC", "Nombre", "Categoría", "Grupo Principal", "Grado", "Intermediación")
+            filas = [
+                (
+                    nd.get("codigo", ""),
+                    normalizar_nombre_investigador(str(nd.get("nombre", ""))),
+                    nd.get("categoria", "Sin categoría"),
+                    nd.get("grupo_principal", "Sin grupo"),
+                    int(nd.get("grado", 0)),
+                    f"{float(nd.get('intermediacion', 0.0)):.4f}",
+                )
+                for nd in nodos
+            ]
+            guardar_csv_profesional(ruta, columnas, filas)
+            GestorAvisos.mostrar_desde(self, f"Métricas de red exportadas a {Path(ruta).name}", tipo="exito")
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV de red: {err}", tipo="error")

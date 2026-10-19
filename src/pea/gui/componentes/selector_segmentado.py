@@ -72,11 +72,11 @@ class SelectorSegmentado(QFrame):
             f"QPushButton {{"
             f"  background-color: transparent;"
             f"  color: {TEXTO_SECUNDARIO};"
-            f"  border: none;"
+            f"  border: 1px solid transparent;"
             f"  border-radius: {RADIO_BOTON}px;"
             f"  padding: 6px 18px;"
             f"  font-size: {TAMANO_CUERPO}pt;"
-            f"  font-weight: 500;"
+            f"  font-weight: 600;"
             f"}}"
             f"QPushButton:hover:!checked {{"
             f"  background-color: {estilo.SUPERPOSICION_CLARA_45};"
@@ -85,11 +85,13 @@ class SelectorSegmentado(QFrame):
             f"QPushButton:checked {{"
             f"  background-color: {SUPERFICIE};"
             f"  color: {PRIMARIO};"
-            f"  font-weight: bold;"
+            f"  font-weight: 700;"
             f"  border: 1px solid {LINEA};"
             f"  border-radius: {RADIO_BOTON}px;"
             f"}}"
         )
+        ancho_texto = btn.fontMetrics().horizontalAdvance(etiqueta)
+        btn.setMinimumWidth(max(84, ancho_texto + 42))
 
         btn.clicked.connect(lambda: self._al_pulsar_boton(clave))
 

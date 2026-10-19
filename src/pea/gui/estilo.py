@@ -50,6 +50,7 @@ SUPERFICIE_PULSADA: Final[str] = "#E2EBF5"
 SUPERFICIE_SELECCIONADA: Final[str] = "#E3EEF7"
 SUPERFICIE_GRAFICO: Final[str] = "#F3F7FB"
 SUPERFICIE_GRAFICO_GUIA: Final[str] = "#E2E8F0"
+SUPERFICIE_GRAFICO_HOVER: Final[str] = "#EBF2FA"
 SUPERFICIE_ERROR: Final[str] = "#FFF0F0"
 SUPERFICIE_EXITO: Final[str] = "#E6F4EC"
 SUPERFICIE_EXITO_HOVER: Final[str] = "#D7EFE0"
@@ -139,7 +140,22 @@ COLORES_CATEGORIAS: Final[dict[str, str]] = {
 }
 
 # Red de colaboración
-COLOR_RED_ARISTAS: Final[str] = "#9DB5C9"
+COLOR_RED_ARISTAS: Final[str] = "#7E9AB8"
+COLOR_RED_ARISTA_ACTIVA: Final[str] = "#1F6FA8"
+COLOR_NODO_SIN_CATEGORIA: Final[str] = "#4F709C"
+COLOR_NODO_AISLADO: Final[str] = "#7B8FA6"
+
+# Paleta cromática para nodos de red por comunidad/grado cuando no tienen categoría
+PALETA_NODOS_RED: Final[tuple[str, ...]] = (
+    "#1F6FA8",
+    "#0F7F73",
+    "#4B4C9D",
+    "#2B5B84",
+    "#196E8F",
+    "#2E8B57",
+    "#8E5B23",
+    "#3B6EA5",
+)
 
 # Paleta cíclica para series gráficas
 SERIE: Final[tuple[str, ...]] = (
@@ -223,6 +239,7 @@ def calcular_radio_contraste(color1_hex: str, color2_hex: str) -> float:
 # ---------------------------------------------------------------------------
 
 FAMILIA_TIPOGRAFICA: Final[str] = '"Inter", "Segoe UI", "Noto Sans", "Helvetica Neue", sans-serif'
+FAMILIA_FUENTE: Final[str] = "Inter"
 
 TAMANO_MARCA: Final[int] = 30           # pt, peso 800 (Black)
 PESO_MARCA: Final[int] = 800
@@ -240,6 +257,10 @@ TAMANO_SUBTITULO: Final[int] = 12       # pt, Regular
 TAMANO_CUERPO: Final[int] = 11          # pt, Regular (cuerpo, tablas, pestañas; no baja de 11)
 TAMANO_AUXILIAR: Final[int] = 10        # pt, Regular / Bold (pie, encabezados, ayudas)
 TAMANO_ESLOGAN: Final[int] = 9          # pt, Regular (única excepción de tamaño, solo en barra superior)
+TAMANO_MICRO: Final[int] = 8            # pt, etiquetas compactas de gráficos / insignias
+TAMANO_COMPACTO_VALOR: Final[int] = 13  # pt, cifra compacta en tarjetas / leyendas
+TAMANO_CENTRO_DONA_COMPACTO: Final[int] = 16  # pt, centro de dona en vista compacta
+TAMANO_CENTRO_DONA: Final[int] = 20     # pt, centro de dona en vista estándar
 
 # ---------------------------------------------------------------------------
 # 4.3 Espaciado, radios, sombras y movimiento
@@ -615,7 +636,7 @@ def generar_hoja_estilos() -> str:
     }}
 
     /* Campos de formulario */
-    QLineEdit, QComboBox, QSpinBox, QPlainTextEdit, QTextBrowser {{
+    QLineEdit, QComboBox, QPlainTextEdit, QTextBrowser {{
         background-color: {SUPERFICIE};
         color: {TEXTO};
         border: 1px solid {LINEA_FUERTE};
@@ -624,9 +645,24 @@ def generar_hoja_estilos() -> str:
         font-size: {TAMANO_CUERPO}pt;
     }}
 
-    QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QPlainTextEdit:focus {{
+    QSpinBox {{
+        background-color: {SUPERFICIE};
+        color: {TEXTO};
+        border: 1px solid {LINEA_FUERTE};
+        border-radius: {RADIO_CAMPO}px;
+        padding: 4px 6px;
+        font-size: {TAMANO_CUERPO}pt;
+        min-height: 24px;
+    }}
+
+    QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus {{
         border: 2px solid {ACENTO};
         padding: 5px 9px;
+    }}
+
+    QSpinBox:focus {{
+        border: 2px solid {ACENTO};
+        padding: 3px 5px;
     }}
 
     /* Pie institucional */

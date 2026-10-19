@@ -39,13 +39,14 @@ class FichaKPI(QFrame):
 
         self._titulo = titulo
         layout_principal = QVBoxLayout(self)
-        layout_principal.setContentsMargins(16, 12, 16, 12)
-        layout_principal.setSpacing(4)
+        layout_principal.setContentsMargins(12, 10, 12, 10)
+        layout_principal.setSpacing(3)
 
         # Rótulo auxiliar superior (10 pt)
         self.lbl_titulo = QLabel(titulo, self)
         self.lbl_titulo.setMinimumWidth(0)
-        self.lbl_titulo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.lbl_titulo.setWordWrap(True)
+        self.lbl_titulo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.lbl_titulo.setObjectName("tarjetaTitulo")
         self.lbl_titulo.setStyleSheet(
             f"font-size: {TAMANO_AUXILIAR}pt; font-weight: 600; color: {TEXTO_SECUNDARIO};"

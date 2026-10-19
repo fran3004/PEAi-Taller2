@@ -28,7 +28,6 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.3).
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +87,12 @@ from pea.gui.estilo import (
     RADIO_BOTON,
     TEXTO,
     TEXTO_SECUNDARIO,
+)
+from pea.gui.exportador_visual import (
+    exportar_png_institucional,
+    exportar_reporte_pdf,
+    guardar_csv_profesional,
+    renderizar_widget_imagen,
 )
 from pea.gui.formato import (
     formatear_porcentaje,
@@ -743,6 +748,10 @@ class PantallaGrupos(QWidget):
         )
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
+        act_pdf = menu_exp.addAction("Exportar directorio visible a PDF")
+        act_pdf.triggered.connect(self._exportar_directorio_pdf)
+        act_png = menu_exp.addAction("Exportar gráfico del grupo a PNG")
+        act_png.triggered.connect(self._exportar_grupo_png)
         act_csv = menu_exp.addAction("Exportar directorio visible a CSV")
         act_csv.triggered.connect(self._exportar_directorio_csv)
         self.btn_exportar.setMenu(menu_exp)
@@ -1084,33 +1093,120 @@ class PantallaGrupos(QWidget):
     # Exportación
     # -----------------------------------------------------------------------
 
-    def _exportar_directorio_csv(self) -> None:
-        ruta, _ = QFileDialog.getSaveFileName(
-            self,
-            "Exportar Directorio de Grupos",
-            "directorio_grupos.csv",
-            "Archivos CSV (*.csv)",
-        )
-        if not ruta:
-            return
+    def _obtener_tabla_visible(self) -> tuple[list[str], list[list[str]]]:
+        cols = [str(self._modelo.headerData(c, Qt.Orientation.Horizontal)) for c in range(self._modelo.columnCount())]
+        filas_visibles: list[list[str]] = []
+        for r in range(self._proxy.rowCount()):
+            fila_datos: list[str] = []
+            for c in range(self._proxy.columnCount()):
+                idx = self._proxy.index(r, c)
+                val = self._proxy.data(idx, Qt.ItemDataRole.DisplayRole)
+                fila_datos.append(str(val) if val is not None else "")
+            filas_visibles.append(fila_datos)
+        return cols, filas_visibles
+
+    def _exportar_directorio_pdf(self, ruta_destino: str | Path | None = None) -> None:
+        if ruta_destino is None:
+            ruta, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exportar Directorio de Grupos a PDF",
+                "directorio_grupos.pdf",
+                "Documento PDF (*.pdf)",
+            )
+            if not ruta:
+                return
+        else:
+            ruta = str(ruta_destino)
 
         try:
-            filas_visibles: list[list[str]] = []
-            cols = [self._modelo.headerData(c, Qt.Orientation.Horizontal) for c in range(self._modelo.columnCount())]
-            filas_visibles.append(cols)
+            cols, filas = self._obtener_tabla_visible()
+            desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
+            imagenes = []
+            if self._grupo_seleccionado_nom:
+                imagenes.append(
+                    (
+                        f"Producción anual · {self._grupo_seleccionado_nom}",
+                        renderizar_widget_imagen(self._ficha_lateral.grafico_barras),
+                    )
+                )
+            exportar_reporte_pdf(
+                ruta,
+                titulo="Directorio de Grupos de Investigación",
+                subtitulo="Universidad Popular del Cesar · Catálogo institucional GrupLAC",
+                metadatos=[
+                    ("Filtro temporal", desc_f),
+                    ("Categoría filtrada", self.combo_categoria.currentText()),
+                    ("Estado", self.combo_estado.currentText()),
+                ],
+                kpis=[
+                    ("Grupos visibles", str(len(filas))),
+                    ("Total registrados", str(self._modelo.rowCount())),
+                ],
+                imagenes=imagenes,
+                columnas_tabla=cols,
+                filas_tabla=filas,
+            )
+            GestorAvisos.mostrar_desde(
+                self, f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PDF"
+            )
+        except Exception as e:
+            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {e}", tipo="error")
 
-            for r in range(self._proxy.rowCount()):
-                fila_datos: list[str] = []
-                for c in range(self._proxy.columnCount()):
-                    idx = self._proxy.index(r, c)
-                    val = self._proxy.data(idx, Qt.ItemDataRole.DisplayRole)
-                    fila_datos.append(str(val) if val is not None else "")
-                filas_visibles.append(fila_datos)
+    def _exportar_grupo_png(self, ruta_destino: str | Path | None = None) -> None:
+        if ruta_destino is None:
+            ruta, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exportar gráfico del grupo a PNG",
+                "grupo_produccion.png",
+                "Imagen PNG (*.png)",
+            )
+            if not ruta:
+                return
+        else:
+            ruta = str(ruta_destino)
 
-            with open(ruta, "w", newline="", encoding="utf-8") as f:
-                escritor = csv.writer(f, delimiter=";")
-                escritor.writerows(filas_visibles)
+        try:
+            desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
+            nom = self._grupo_seleccionado_nom or "Directorio de Grupos"
+            exportar_png_institucional(
+                ruta,
+                titulo=f"Producción de Grupo · {nom}",
+                subtitulo=f"Filtro temporal: {desc_f}",
+                imagenes=[
+                    ("Producción anual por tipología", renderizar_widget_imagen(self._ficha_lateral.grafico_barras))
+                ],
+            )
+            GestorAvisos.mostrar_desde(
+                self, f"Gráfico del grupo exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PNG"
+            )
+        except Exception as e:
+            GestorAvisos.mostrar_desde(self, f"Error al exportar PNG: {e}", tipo="error")
 
+    def _exportar_directorio_csv(self, ruta_destino: str | Path | None = None) -> None:
+        if ruta_destino is None:
+            ruta, _ = QFileDialog.getSaveFileName(
+                self,
+                "Exportar Directorio de Grupos",
+                "directorio_grupos.csv",
+                "Archivos CSV (*.csv)",
+            )
+            if not ruta:
+                return
+        else:
+            ruta = str(ruta_destino)
+
+        try:
+            cols, filas_visibles = self._obtener_tabla_visible()
+            guardar_csv_profesional(
+                ruta,
+                titulo="Directorio de Grupos de Investigación",
+                metadatos=[
+                    ("Filtro temporal", self._servicio.descripcion_filtro(self._filtro_actual)),
+                    ("Grupos exportados", str(len(filas_visibles))),
+                ],
+                columnas=cols,
+                filas=filas_visibles,
+            )
             GestorAvisos.mostrar_desde(self, f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito")
         except Exception as e:
             GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")

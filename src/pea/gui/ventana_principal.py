@@ -1303,8 +1303,13 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     """Ejecuta el recorrido visual, valida geometrías y genera capturas oficiales."""
     import os
 
+    prev_sin_anim = os.environ.get("PEA_SIN_ANIMACIONES")
     os.environ["PEA_SIN_ANIMACIONES"] = "1"
     if not fuente_inter_cargada():
+        if prev_sin_anim is None:
+            os.environ.pop("PEA_SIN_ANIMACIONES", None)
+        else:
+            os.environ["PEA_SIN_ANIMACIONES"] = prev_sin_anim
         print("[AUTOPRUEBA] ERROR: la fuente Inter no está cargada; no se generan capturas.")
         return 2
     print("[AUTOPRUEBA] Iniciando autoprueba de ventana principal PEA-i (PEA_SIN_ANIMACIONES=1)...")
@@ -1387,9 +1392,17 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
                 )
             resumen.append((nombre_pantalla, etiqueta, len(barras), len(fuera), str(ruta)))
 
-    # Restaurar a Inicio
+    # Restaurar a Inicio y cerrar ventana de autoprueba para no interferir con pruebas posteriores
     ventana.seleccionar_pantalla(Pantalla.INICIO)
+    if hasattr(ventana, "_timer_revision"):
+        ventana._timer_revision.stop()
+    ventana.close()
+    ventana.deleteLater()
     app.processEvents()
+    if prev_sin_anim is None:
+        os.environ.pop("PEA_SIN_ANIMACIONES", None)
+    else:
+        os.environ["PEA_SIN_ANIMACIONES"] = prev_sin_anim
 
     print("\n[AUTOPRUEBA] Resumen")
     print(f"{'Pantalla':<22} {'Tamano':<10} {'Barras':>7} {'Fuera':>7}  Captura")

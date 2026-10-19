@@ -239,3 +239,64 @@ def test_mini_red_filtrado_y_senales(tmp_path: Path, qapp: QApplication, qtbot: 
     img = QImage(str(destino))
     assert img.width() == 1600
     assert img.height() == 1000
+
+
+def test_exportador_visual_pdf_png_csv(tmp_path: Path, qapp: QApplication, qtbot: Any) -> None:
+    """Verifica exportar_reporte_pdf, exportar_png_institucional y guardar_csv_profesional."""
+    from pea.gui.exportador_visual import (
+        exportar_png_institucional,
+        exportar_reporte_pdf,
+        guardar_csv_profesional,
+        renderizar_widget_imagen,
+    )
+
+    grafico = GraficoBarrasApiladas(titulo="Producción institucional")
+    qtbot.addWidget(grafico)
+    grafico.resize(640, 360)
+    grafico.establecer_datos({2022: {"GNC": 15, "DTI": 8, "ASC": 5, "FRH": 4}})
+    img_grafico = renderizar_widget_imagen(grafico)
+    assert not img_grafico.isNull()
+
+    # 1. PDF ejecutivo multipágina
+    ruta_pdf = tmp_path / "reporte_ejecutivo.pdf"
+    assert exportar_reporte_pdf(
+        ruta_pdf,
+        titulo="Panorama Estadístico Institucional",
+        subtitulo="Universidad Popular del Cesar · Reporte de prueba",
+        metadatos=[("Ámbito", "Institución"), ("Filtro temporal", "Histórico completo")],
+        kpis=[("Grupos activos", "3"), ("Investigadores", "82"), ("Productos", "192")],
+        imagenes=[("Evolución anual por tipología", img_grafico)],
+        columnas_tabla=["Año", "GNC", "DTI", "ASC", "FRH", "Total"],
+        filas_tabla=[(2022, 15, 8, 5, 4, 32)],
+    )
+    assert ruta_pdf.exists()
+    assert ruta_pdf.stat().st_size > 1024
+
+    # 2. PNG institucional con cabecera y pie
+    ruta_png = tmp_path / "lamina_institucional.png"
+    assert exportar_png_institucional(
+        ruta_png,
+        titulo="Producción anual por tipología",
+        subtitulo="Filtro: Histórico completo",
+        imagenes=[("Gráfico de barras apiladas", img_grafico)],
+    )
+    assert ruta_png.exists()
+    img_out = QImage(str(ruta_png))
+    assert not img_out.isNull()
+    assert img_out.width() >= 1800
+    assert img_out.height() > 600
+
+    # 3. CSV profesional con BOM UTF-8
+    ruta_csv = tmp_path / "tabla_profesional.csv"
+    assert guardar_csv_profesional(
+        ruta_csv,
+        titulo="Producción anual",
+        metadatos=[("Institución", "Universidad Popular del Cesar")],
+        columnas=["Año", "GNC", "DTI", "ASC", "FRH", "Total"],
+        filas=[(2022, 15, 8, 5, 4, 32)],
+    )
+    assert ruta_csv.exists()
+    contenido = ruta_csv.read_text(encoding="utf-8-sig")
+    assert "PEA-i · Programa Estadístico de Análisis de Investigación" in contenido
+    assert "2022;15;8;5;4;32" in contenido
+

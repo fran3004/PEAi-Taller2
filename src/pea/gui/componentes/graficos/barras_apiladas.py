@@ -283,6 +283,15 @@ class _LienzoBarrasApiladas(GraficoBase):
             rect_col_interactiva = QRectF(x_centro - paso_col / 2.0, area_grafico.top(), paso_col, area_grafico.height() + 24.0)
             self._rects_columnas.append((anio, rect_col_interactiva))
 
+            if self._columna_hover == anio:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_GRAFICO_HOVER)))
+                painter.drawRoundedRect(
+                    QRectF(x_centro - min(paso_col * 0.44, 28.0), area_grafico.top(), min(paso_col * 0.88, 56.0), area_grafico.height()),
+                    6.0,
+                    6.0,
+                )
+
             total_anio = totales_por_anio[anio]
             dict_anio = self._datos[anio]
 
@@ -366,20 +375,28 @@ class _LienzoBarrasApiladas(GraficoBase):
         painter.setFont(fuente_ley)
 
         # Disponer en 2 columnas equilibradas
-        ancho_util = rect.width() - 32.0
+        ancho_util = rect.width() - 28.0
         ancho_col = ancho_util / 2.0
+        es_compacto = ancho_col < 225.0
+        fuente_ley.setPointSize(estilo.TAMANO_MICRO if ancho_col < 185.0 else estilo.TAMANO_AUXILIAR)
+        painter.setFont(fuente_ley)
+
         items_por_col = [
-            [("GNC", NOMBRES_TIPOLOGIAS.get("GNC", "Generación de nuevo conocimiento")),
-             ("DTI", NOMBRES_TIPOLOGIAS.get("DTI", "Desarrollo tecnológico e innovación"))],
-            [("ASC", NOMBRES_TIPOLOGIAS.get("ASC", "Apropiación social del conocimiento")),
-             ("FRH", NOMBRES_TIPOLOGIAS.get("FRH", "Formación de recurso humano"))],
+            [
+                ("GNC", "Nuevo conocimiento" if es_compacto else NOMBRES_TIPOLOGIAS.get("GNC", "Generación de nuevo conocimiento")),
+                ("DTI", "Des. tecnológico" if es_compacto else NOMBRES_TIPOLOGIAS.get("DTI", "Desarrollo tecnológico e innovación")),
+            ],
+            [
+                ("ASC", "Apropiación social" if es_compacto else NOMBRES_TIPOLOGIAS.get("ASC", "Apropiación social del conocimiento")),
+                ("FRH", "Recurso humano" if es_compacto else NOMBRES_TIPOLOGIAS.get("FRH", "Formación de recurso humano")),
+            ],
         ]
 
         for col_idx, items in enumerate(items_por_col):
-            x_col = rect.left() + 16.0 + col_idx * ancho_col
+            x_col = rect.left() + 14.0 + col_idx * ancho_col
             for row_idx, (sigla, nombre) in enumerate(items):
                 y_item = y_leyenda + row_idx * 18.0
-                rect_click = QRectF(x_col, y_item, ancho_col - 10.0, 16.0)
+                rect_click = QRectF(x_col, y_item, ancho_col - 6.0, 16.0)
                 self._rect_leyenda_items.append((sigla, rect_click))
 
                 esta_atenuada = sigla in self._series_atenuadas
@@ -391,12 +408,12 @@ class _LienzoBarrasApiladas(GraficoBase):
 
                 painter.setBrush(QBrush(color_cuadro))
                 painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else estilo.SUPERFICIE), 1))
-                painter.drawRoundedRect(QRectF(x_col, y_item + 2.0, 11.0, 11.0), 3.0, 3.0)
+                painter.drawRoundedRect(QRectF(x_col, y_item + 2.5, 10.0, 10.0), 2.5, 2.5)
 
                 # Texto
                 painter.setPen(QPen(QColor(LINEA_FUERTE if esta_atenuada else TEXTO)))
-                texto_ley = f"{sigla}  {nombre}"
-                rect_texto = QRectF(x_col + 16.0, y_item, ancho_col - 26.0, 16.0)
+                texto_ley = f"{sigla} · {nombre}"
+                rect_texto = QRectF(x_col + 14.0, y_item, ancho_col - 18.0, 16.0)
                 painter.drawText(
                     rect_texto,
                     Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
