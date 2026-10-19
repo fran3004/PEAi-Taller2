@@ -24,6 +24,9 @@ TAMANO_LOTE = 1000
 TABLAS_A_RESPALDAR = (
     "meta",
     "grupos",
+    "grupo_instituciones",
+    "grupo_plan_estrategico",
+    "lineas_investigacion",
     "investigadores",
     "integrantes_grupo",
     "productos",
@@ -31,6 +34,12 @@ TABLAS_A_RESPALDAR = (
     "producto_grupos",
     "proyectos",
     "semilleros",
+    "investigador_formacion",
+    "investigador_experiencia",
+    "investigador_areas_actuacion",
+    "investigador_idiomas",
+    "investigador_reconocimientos",
+    "investigador_redes_identificadores",
     "auditoria_cambios",
 )
 

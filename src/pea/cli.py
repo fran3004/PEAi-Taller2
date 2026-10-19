@@ -18,10 +18,32 @@ from pea.version import APP_NAME, APP_VERSION, INSTITUCION, obtener_version
 
 
 def _obtener_cliente_desde_entorno() -> ClienteHTTPSupabase | None:
-    url = os.environ.get("PEA_SUPABASE_URL_PROD") or os.environ.get("PEA_SUPABASE_URL_TEST")
-    key = os.environ.get("PEA_SUPABASE_ANON_PROD") or os.environ.get("PEA_SUPABASE_ANON_TEST")
+    url = (
+        os.environ.get("PEA_SUPABASE_URL_PROD")
+        or os.environ.get("PEA_SUPABASE_URL_TEST")
+        or os.environ.get("PEA_SUPABASE_URL")
+    )
+    key = (
+        os.environ.get("PEA_SUPABASE_ANON_PROD")
+        or os.environ.get("PEA_SUPABASE_ANON_TEST")
+        or os.environ.get("PEA_SUPABASE_KEY_PROD")
+        or os.environ.get("PEA_SUPABASE_KEY_TEST")
+        or os.environ.get("PEA_SUPABASE_PUBLISHABLE_KEY")
+    )
     if url and key:
-        return ClienteHTTPSupabase(base_url=url, anon_key=key, timeout=10.0)
+        cliente = ClienteHTTPSupabase(base_url=url, anon_key=key, timeout=10.0)
+        correo = os.environ.get("PEA_USUARIO_CORREO", "").strip()
+        clave = os.environ.get("PEA_USUARIO_CLAVE", "").strip()
+        if correo and clave:
+            try:
+                from pea.datos.auth import ClienteAuth
+                from pea.datos.sesion import Sesion
+
+                sesion = Sesion()
+                ClienteAuth(cliente, sesion).iniciar_sesion(correo, clave)
+            except Exception:
+                pass
+        return cliente
     return None
 
 

@@ -159,11 +159,42 @@ def test_herramientas_db_existencia():
         "tools/db/comparar.py",
         "tools/db/respaldar.py",
         "tools/db/reiniciar_prueba.py",
+        "tools/db/migrar_datos_reales.py",
     ]
     for h in herramientas:
         p = Path(h)
         assert p.exists(), f"Herramienta requerida faltante: {h}"
         assert p.stat().st_size > 200, f"Herramienta vacía o incompleta: {h}"
+
+
+def test_tablas_scienti_completas_y_datos_reales(contenido_migracion: str):
+    """Verifica que las tablas complementarias SCIENTI y los datos reales estén en la migración."""
+    tablas_scienti = [
+        "grupo_instituciones",
+        "grupo_plan_estrategico",
+        "lineas_investigacion",
+        "investigador_formacion",
+        "investigador_experiencia",
+        "investigador_areas_actuacion",
+        "investigador_idiomas",
+        "investigador_reconocimientos",
+        "investigador_redes_identificadores",
+    ]
+    for tabla in tablas_scienti:
+        patron_tabla = rf"CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+public\.{tabla}\s*\((.*?)\);"
+        m = re.search(patron_tabla, contenido_migracion, re.DOTALL | re.IGNORECASE)
+        assert m is not None, f"No se encontró la definición de tabla public.{tabla}"
+        cuerpo = m.group(1).lower()
+        assert "id bigint generated always as identity" in cuerpo
+        assert "activo boolean" in cuerpo
+        assert "es_ejemplo boolean" in cuerpo
+        assert f"alter table public.{tabla} enable row level security;" in contenido_migracion.lower()
+
+    assert "GRP2099-ART-0069" in contenido_migracion
+    assert "GRP2099-SW-0083" in contenido_migracion
+    assert "GRP2099-PRY-0022" in contenido_migracion
+    assert "CVL494917-EVE-0011" in contenido_migracion
+    assert "CVL494917-PRY-0004" in contenido_migracion
 
 
 @pytest.mark.red

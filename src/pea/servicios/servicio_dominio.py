@@ -918,6 +918,11 @@ class CatalogoInvestigacion:
             auts = autores_de_prod.get(p.id, []) if p.id else []
             self.multilista_productos.agregar_producto(p, grupo=grp, autores=auts)
 
+        # 5b. Cargar proyectos
+        proys_remotos = self.repo_proyectos.listar() if self.repo_proyectos else []
+        for proy in proys_remotos:
+            self.proyectos.insertar_final(proy)
+
         # Sincronizar Hipercubo 5D
         self.sincronizar_hipercubo()
 

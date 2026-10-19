@@ -176,10 +176,13 @@ class ServicioIngesta:
                     if grupo_ing.instituciones
                     else "Universidad Popular del Cesar"
                 )
+                cat_grupo = (grupo_ing.clasificacion or "Sin categoria").strip()
+                if cat_grupo not in ("A1", "A", "B", "C", "Reconocido", "Sin categoria"):
+                    cat_grupo = "Sin categoria"
                 nuevo_grp = Grupo(
                     codigo_gruplac=grupo_ing.codigo_gruplac,
                     nombre=grupo_ing.nombre_grupo or f"Grupo {grupo_ing.codigo_gruplac}",
-                    categoria=grupo_ing.clasificacion,
+                    categoria=cat_grupo,
                     lider=grupo_ing.lider,
                     institucion_principal=institucion,
                     departamento_ciudad=grupo_ing.departamento_ciudad,
@@ -200,7 +203,7 @@ class ServicioIngesta:
                         tipo_mayor=prod_ing.tipo_mayor,
                         subtipo=prod_ing.subtipo or prod_ing.tipo,
                         ano=prod_ing.ano or 2024,
-                        estado_validacion="Aprobado",
+                        estado_validacion="Avalado",
                         detalles={"origen": "GrupLAC", "fuente": tarea.origen},
                     )
                     self.catalogo.crear_producto(
@@ -213,14 +216,29 @@ class ServicioIngesta:
             inv_ing, _, _ = self.extractor_url.parsear_cvlac(html_txt, meta)
             inv_existente = self.catalogo.buscar_investigador(inv_ing.codigo_rh)
             if inv_existente is None:
-                nivel_formacion = inv_ing.formacion[0].nivel if inv_ing.formacion else "Profesional"
+                nivel_raw = (inv_ing.formacion[0].nivel if inv_ing.formacion else "Pregrado").lower()
+                if "posdoctor" in nivel_raw:
+                    nivel_formacion = "Posdoctorado"
+                elif "doctor" in nivel_raw:
+                    nivel_formacion = "Doctorado"
+                elif "maestr" in nivel_raw or "magist" in nivel_raw:
+                    nivel_formacion = "Maestria"
+                elif "especiali" in nivel_raw:
+                    nivel_formacion = "Especializacion"
+                elif "tecn" in nivel_raw:
+                    nivel_formacion = "Tecnico/Tecnologo"
+                else:
+                    nivel_formacion = "Pregrado"
+                cat_inv = (inv_ing.categoria_declarada or "Sin categoria").strip()
+                if cat_inv not in ("Emerito", "Senior", "Asociado", "Junior", "Sin categoria"):
+                    cat_inv = "Sin categoria"
                 nuevo_inv = Investigador(
                     codigo_rh=inv_ing.codigo_rh,
                     nombre_completo=inv_ing.nombre_completo or f"Investigador {inv_ing.codigo_rh}",
-                    categoria=inv_ing.categoria_declarada,
+                    categoria=cat_inv,
                     formacion_academica=nivel_formacion,
                     nacionalidad=inv_ing.nacionalidad or "Colombiana",
-                    sexo=inv_ing.sexo,
+                    sexo=inv_ing.sexo if inv_ing.sexo in ("M", "F", "O", "No especificado") else "No especificado",
                     nombre_en_citas=inv_ing.nombre_citaciones,
                 )
                 self.catalogo.crear_investigador(nuevo_inv, persistir=persistir)
@@ -238,7 +256,7 @@ class ServicioIngesta:
                         tipo_mayor=prod_ing.tipo_mayor,
                         subtipo=prod_ing.subtipo or prod_ing.tipo,
                         ano=prod_ing.ano or 2024,
-                        estado_validacion="Aprobado",
+                        estado_validacion="Avalado",
                         detalles={"origen": "CvLAC", "fuente": tarea.origen},
                     )
                     self.catalogo.crear_producto(
@@ -294,8 +312,19 @@ class ServicioIngesta:
             relaciones, errs = LectorCSV.leer_autores(tarea.origen)
             for rel in relaciones:
                 inv = self.catalogo.buscar_investigador(rel.investigador_codigo)
-                if inv and self.catalogo.buscar_producto(rel.producto_codigo):
+                prod = self.catalogo.buscar_producto(rel.producto_codigo)
+                if inv and prod:
                     self.catalogo.multilista_productos.agregar_autor_a_producto(rel.producto_codigo, inv)
+                    if persistir and self.catalogo.repo_productos and prod.id and inv.id:
+                        try:
+                            self.catalogo.repo_productos.asociar_autor(
+                                prod.id,
+                                inv.id,
+                                orden=rel.orden_autoria,
+                                es_ejemplo=prod.es_ejemplo,
+                            )
+                        except Exception:
+                            pass
                     informe.autores_procesados += 1
             informe.filas_erroneas.extend(errs)
 
