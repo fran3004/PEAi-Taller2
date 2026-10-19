@@ -66,3 +66,20 @@ TEST_CASE("Cascadas - Eliminación de Investigador en memoria") {
     auto prodsInvDespues = catalogo.multilista_productos.obtener_productos_investigador(inv->codigo_rh);
     CHECK(prodsInvDespues.tamano() == 0);
 }
+
+TEST_CASE("Integrante desde PostgREST resuelve códigos anidados") {
+    QJsonObject fila{
+        {"id", 21},
+        {"grupo_id", 3},
+        {"investigador_id", 5},
+        {"grupos", QJsonObject{{"codigo_gruplac", "PRUEBA-GRUPO"}}},
+        {"investigadores", QJsonObject{{"codigo_rh", "PRUEBA-INV"}}},
+    };
+
+    auto integrante = IntegranteGrupo::desdeJson(fila);
+
+    CHECK(integrante.codigo_gruplac == "PRUEBA-GRUPO");
+    CHECK(integrante.codigo_rh == "PRUEBA-INV");
+    CHECK(integrante.grupo_id == 3);
+    CHECK(integrante.investigador_id == 5);
+}

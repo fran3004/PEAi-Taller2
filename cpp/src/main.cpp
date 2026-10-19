@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCoreApplication>
 #include <QStringList>
 #include <iostream>
 #include <string>
@@ -17,6 +18,10 @@ int main(int argc, char* argv[]) {
 
     // Si hay argumentos de CLI y no es autoprueba de GUI, ejecutar CLI directamente
     if (!args.isEmpty() && !autoprueba) {
+        QCoreApplication app(argc, argv);
+        app.setApplicationName(pea::APP_NAME);
+        app.setApplicationVersion(pea::APP_VERSION);
+        app.setOrganizationName(pea::INSTITUCION);
         return pea::cli::ejecutar(args);
     }
 

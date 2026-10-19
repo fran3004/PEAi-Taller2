@@ -113,11 +113,23 @@ class RepositorioIntegrantes:
         self.cliente = cliente
 
     def listar(self, codigo_gruplac: str | None = None) -> list[IntegranteGrupo]:
-        params: dict[str, Any] = {"select": "*"}
+        params: dict[str, Any] = {
+            "select": "*,grupos!inner(codigo_gruplac),investigadores!inner(codigo_rh)"
+        }
         if codigo_gruplac is not None:
-            params["codigo_gruplac"] = f"eq.{codigo_gruplac}"
+            params["grupos.codigo_gruplac"] = f"eq.{codigo_gruplac}"
         filas = self.cliente.get_paginado("integrantes_grupo", params=params)
-        return [IntegranteGrupo.model_validate(f) for f in filas]
+        integrantes: list[IntegranteGrupo] = []
+        for fila in filas:
+            grupo = fila.get("grupos")
+            investigador = fila.get("investigadores")
+            if not isinstance(grupo, dict) or not isinstance(investigador, dict):
+                raise ValueError("La respuesta de integrantes no incluye los códigos de las entidades relacionadas.")
+            datos = {clave: valor for clave, valor in fila.items() if clave not in {"grupos", "investigadores"}}
+            datos["codigo_gruplac"] = grupo.get("codigo_gruplac")
+            datos["codigo_rh"] = investigador.get("codigo_rh")
+            integrantes.append(IntegranteGrupo.model_validate(datos))
+        return integrantes
 
     def vincular(self, integrante: IntegranteGrupo) -> IntegranteGrupo:
         datos = integrante.model_dump(exclude={"id"}, exclude_none=True)

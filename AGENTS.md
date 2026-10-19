@@ -33,8 +33,12 @@ Existe UN solo proyecto: pea-prod. NO existe pea-test. Cuando un prompt, una not
 - Las pruebas automáticas solo crean, modifican o borran filas con es_ejemplo=true Y con el prefijo PRUEBA- en su código o nombre. Nunca tocan filas reales (es_ejemplo=false) ni los datos de ejemplo oficiales.
 - PEA_SUPABASE_SECRET_TEST está vacía y NO se usa ninguna clave secret. reiniciar_prueba.py y test_reset() se implementan como borrado de las filas PRUEBA- con la sesión normal del usuario "pruebas" (PEA_USUARIO_CORREO / PEA_USUARIO_CLAVE).
 - meta.entorno vale 'produccion'.
-- Antes de proponer un "db push": ejecuta tools/db/respaldar.py y "npx supabase db push --dry-run" y muestra el resultado. El push real lo ejecuta el usuario, o tú solo con su confirmación explícita en ese mismo mensaje.
-- borrar_datos_ejemplo() (borra TODOS los datos de ejemplo) solo lo ejecuta el usuario, nunca las pruebas.
+- **Acceso remoto autorizado:** el agente puede usar Supabase CLI solo si hay una sesión autenticada previamente por el usuario en el entorno. Nunca debe solicitar, leer, imprimir ni almacenar tokens, contraseñas o claves secretas; se gestionan fuera del repositorio.
+- Si una solicitud autoriza explícitamente cambios remotos en `pea-prod`, esa autorización cubre las comprobaciones necesarias y la aplicación de migraciones no destructivas de esa tarea, sin pedir confirmación por cada comando. No autoriza cambios en otro proyecto, otras tareas ni operaciones fuera del alcance indicado.
+- Antes de aplicar una migración, verificar que el destino es `pea-prod` y su estado remoto; ejecutar `tools/db/respaldar.py` y validar que el respaldo esté completo; ejecutar `npx supabase db push --dry-run`, comprobar que el resultado coincide con lo esperado y mostrar los resultados. Si el respaldo no puede demostrarse completo, o el estado/dry-run es inesperado, detenerse y no aplicar la migración.
+- Se consideran no destructivas las migraciones que no borran ni truncan datos, no eliminan objetos con datos y no debilitan RLS. `db reset`, borrar datos reales, `TRUNCATE`, otras operaciones destructivas y relajar RLS requieren autorización explícita y específica para la operación y su alcance. `borrar_datos_ejemplo()` (borra TODOS los datos de ejemplo) solo lo ejecuta el usuario, nunca las pruebas.
+- Las operaciones de datos de las aplicaciones deben respetar Auth, permisos y las políticas RLS existentes.
+- Una operación remota solo se considera completada cuando el comando termina correctamente y se verifica el resultado en el proyecto remoto.
 
 ## Extracción de fuentes (URLs, PDF, CSV)
 - Biblioteca oficial para HTML: requests + beautifulsoup4 (analizador lxml); validación y organización con pydantic; PDF con pdfplumber. Otra herramienta requiere un ADR.
