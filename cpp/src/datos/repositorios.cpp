@@ -179,14 +179,16 @@ void RepositorioInvestigadores::eliminar(qint64 id_inv, qint64 revision_esperada
 estructuras::ListaDoble<dominio::IntegranteGrupo> RepositorioIntegrantes::listar(const QString& codigo_gruplac) {
     estructuras::ListaDoble<dominio::IntegranteGrupo> lista;
     QJsonArray filas;
+    const QString seleccion =
+        "select=*,grupos!inner(codigo_gruplac),investigadores!inner(codigo_rh)";
     if (!codigo_gruplac.isEmpty()) {
-        QString params = QString("select=*&codigo_gruplac=eq.%1").arg(codigo_gruplac);
+        QString params = QString("%1&grupos.codigo_gruplac=eq.%2").arg(seleccion, codigo_gruplac);
         QJsonDocument doc = m_cliente.get("integrantes_grupo", params);
         if (doc.isArray()) {
             filas = doc.array();
         }
     } else {
-        filas = m_cliente.getPaginado("integrantes_grupo");
+        filas = m_cliente.getPaginado("integrantes_grupo?" + seleccion);
     }
 
     for (const auto& val : filas) {

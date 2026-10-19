@@ -12,20 +12,28 @@ import json
 import sys
 from pathlib import Path
 
-from respaldar import TABLAS_A_RESPALDAR, cargar_configuracion, descargar_tabla
+from respaldar import (
+    TABLAS_A_RESPALDAR,
+    ErrorRespaldo,
+    cargar_configuracion,
+    descargar_tabla,
+    obtener_token_autenticado,
+)
 
 
 def volcar(ruta_destino: Path) -> int:
-    url, anon_key = cargar_configuracion()
-    if not url or not anon_key:
-        print("[ERROR] Falta configurar PEA_SUPABASE_URL y PEA_SUPABASE_ANON_KEY", file=sys.stderr)
+    try:
+        url, clave_publica = cargar_configuracion()
+        token = obtener_token_autenticado(url, clave_publica)
+    except ErrorRespaldo as error:
+        print(f"[ERROR] {error}", file=sys.stderr)
         return 1
 
     print(f"[*] Volcando datos canónicos desde {url} hacia {ruta_destino}...")
     resultado = {}
 
     for tabla in TABLAS_A_RESPALDAR:
-        filas = descargar_tabla(url, anon_key, tabla)
+        filas = descargar_tabla(url, clave_publica, tabla, token)
         # Ordenamiento canónico por id si existe
         if filas and "id" in filas[0]:
             filas = sorted(filas, key=lambda x: x["id"])

@@ -55,11 +55,13 @@ public:
         if (json.contains("grupo_id") && !json["grupo_id"].isNull()) {
             ig.grupo_id = json["grupo_id"].toVariant().toLongLong();
         }
-        ig.codigo_gruplac = json["codigo_gruplac"].toString();
+        QJsonObject grupo = json["grupos"].toObject();
+        ig.codigo_gruplac = json["codigo_gruplac"].toString(grupo["codigo_gruplac"].toString());
         if (json.contains("investigador_id") && !json["investigador_id"].isNull()) {
             ig.investigador_id = json["investigador_id"].toVariant().toLongLong();
         }
-        ig.codigo_rh = json["codigo_rh"].toString();
+        QJsonObject investigador = json["investigadores"].toObject();
+        ig.codigo_rh = json["codigo_rh"].toString(investigador["codigo_rh"].toString());
         if (json.contains("rol") && !json["rol"].toString().isEmpty()) {
             ig.rol = json["rol"].toString();
         }
