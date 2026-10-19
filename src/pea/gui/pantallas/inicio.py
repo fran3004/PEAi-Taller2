@@ -165,6 +165,7 @@ class PantallaInicio(QWidget):
     solicitar_navegacion = Signal(object)  # Emite el índice o enum de la pantalla destino
     filtro_cambiado = Signal(object)      # Emite FiltroAnios cuando cambia el filtro
     ver_red_nodo_solicitado = Signal(str)  # Emite código de investigador al pulsar nodo en mini red
+    datos_modificados = Signal()          # Emite cuando se conectan o cargan datos
 
     def __init__(
         self,
@@ -238,11 +239,11 @@ class PantallaInicio(QWidget):
         self._scroll_contenido.setWidget(self._widget_rejilla)
         self._apilador_estado.addWidget(self._scroll_contenido)
 
-        # Estado 2: Estado vacío
+        # Estado 2: Estado vacío (selección directa de origen de datos)
         self._estado_vacio = EstadoVacio(
-            titulo="Sin datos en esta ventana",
-            mensaje="No se han cargado grupos ni producción científica en el catálogo.",
-            texto_principal="Conectar con Supabase",
+            titulo="Seleccione el origen de datos",
+            mensaje="Cargue directamente los datos de la base de datos (conexión automática) o los datos de demostración.",
+            texto_principal="Cargar base de datos (Supabase)",
             texto_secundario="Cargar datos de demostración",
             parent=self,
         )
@@ -846,8 +847,50 @@ class PantallaInicio(QWidget):
     # -----------------------------------------------------------------------
 
     def _al_clic_conectar(self) -> None:
-        # Pestaña 6: Pantalla.CONFIGURACION
-        self.solicitar_navegacion.emit(6)
+        if self._estado_vacio.btn_principal is not None:
+            self._estado_vacio.btn_principal.setEnabled(False)
+        if self._estado_vacio.btn_secundario is not None:
+            self._estado_vacio.btn_secundario.setEnabled(False)
+        self._apilador_estado.setCurrentIndex(0)
+
+        def trabajo() -> Any:
+            return self._servicio.conectar()
+
+        def exito(est: Any) -> None:
+            if self._estado_vacio.btn_principal is not None:
+                self._estado_vacio.btn_principal.setEnabled(True)
+            if self._estado_vacio.btn_secundario is not None:
+                self._estado_vacio.btn_secundario.setEnabled(True)
+            self.refrescar()
+            self.datos_modificados.emit()
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Datos cargados desde Supabase (revisión {est.revision_local}).",
+                tipo="exito",
+                titulo="Base de datos",
+            )
+
+        def fallo(err: Exception, detalle: str) -> None:
+            if self._estado_vacio.btn_principal is not None:
+                self._estado_vacio.btn_principal.setEnabled(True)
+            if self._estado_vacio.btn_secundario is not None:
+                self._estado_vacio.btn_secundario.setEnabled(True)
+            self.refrescar()
+            GestorAvisos.mostrar_desde(
+                self,
+                f"No se pudo conectar automáticamente: {err}",
+                tipo="error",
+                titulo="Error de conexión",
+            )
+
+        if self._ejecutor is not None:
+            self._ejecutor.ejecutar(trabajo, al_terminar=exito, al_fallar=fallo)
+        else:
+            try:
+                est = trabajo()
+                exito(est)
+            except Exception as err:
+                fallo(err, str(err))
 
     def _al_clic_cargar_demostracion(self) -> None:
         try:
@@ -856,6 +899,7 @@ class PantallaInicio(QWidget):
                 self, "Datos de demostración cargados exitosamente.", tipo="exito", titulo="Demostración"
             )
             self.refrescar()
+            self.datos_modificados.emit()
         except Exception as err:
             GestorAvisos.mostrar_desde(self, str(err), tipo="error", titulo="Error de datos")
 

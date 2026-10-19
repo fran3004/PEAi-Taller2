@@ -115,17 +115,27 @@ class EstadoVacio(QFrame):
         texto_secundario: str | None = None,
     ) -> None:
         """Actualiza textos y visibilidad de los botones."""
+        from PySide6.QtGui import QFontMetrics
+
         self.lbl_titulo.setText(titulo)
         self.lbl_mensaje.setText(mensaje)
 
         if texto_principal:
             self.btn_principal.setText(texto_principal)
+            self.btn_principal.ensurePolished()
+            fm_p = QFontMetrics(self.btn_principal.font())
+            self.btn_principal.setMinimumWidth(fm_p.horizontalAdvance(texto_principal) + 32)
+            self.btn_principal.setMinimumHeight(estilo.ALTURA_CAMPO_MINIMA)
             self.btn_principal.setVisible(True)
         else:
             self.btn_principal.setVisible(False)
 
         if texto_secundario:
             self.btn_secundario.setText(texto_secundario)
+            self.btn_secundario.ensurePolished()
+            fm_s = QFontMetrics(self.btn_secundario.font())
+            self.btn_secundario.setMinimumWidth(fm_s.horizontalAdvance(texto_secundario) + 32)
+            self.btn_secundario.setMinimumHeight(estilo.ALTURA_CAMPO_MINIMA)
             self.btn_secundario.setVisible(True)
         else:
             self.btn_secundario.setVisible(False)

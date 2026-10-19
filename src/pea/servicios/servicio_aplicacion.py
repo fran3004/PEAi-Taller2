@@ -133,6 +133,34 @@ def _rol_jwt(clave: str) -> str | None:
     return str(rol) if rol is not None else None
 
 
+def _normalizar_url_supabase(url: str) -> str:
+    """Elimina barras finales y el sufijo /rest/v1 si está presente."""
+    limpia = url.strip().rstrip("/")
+    if limpia.endswith("/rest/v1"):
+        limpia = limpia[: -len("/rest/v1")].rstrip("/")
+    return limpia
+
+
+def _cargar_env_local() -> None:
+    """Carga variables de configuración desde .env local en os.environ si no existen."""
+    raiz_repo = Path(__file__).resolve().parents[3]
+    for ruta_env in (Path(".env"), raiz_repo / ".env"):
+        if not ruta_env.is_file():
+            continue
+        try:
+            with ruta_env.open("r", encoding="utf-8") as archivo:
+                for linea in archivo:
+                    linea = linea.strip()
+                    if linea and not linea.startswith("#") and "=" in linea:
+                        nombre, valor = linea.split("=", 1)
+                        nombre = nombre.strip()
+                        valor = valor.strip().strip("'\"")
+                        if nombre and nombre not in os.environ and valor:
+                            os.environ[nombre] = valor
+        except OSError:
+            pass
+
+
 class ServicioAplicacion:
     """Punto único de entrada de la interfaz gráfica a la lógica de PEA-i."""
 
@@ -143,6 +171,7 @@ class ServicioAplicacion:
         anio_actual: Callable[[], int] | None = None,
         directorio_salida: Path | None = None,
     ) -> None:
+        _cargar_env_local()
         self._fabrica_cliente = fabrica_cliente or (
             lambda url, clave: ClienteHTTPSupabase(base_url=url, anon_key=clave, timeout=15.0)
         )
@@ -168,12 +197,22 @@ class ServicioAplicacion:
 
     @staticmethod
     def configuracion_entorno() -> dict[str, Any]:
-        """Valores sugeridos para el formulario de conexión (sin devolver contraseñas)."""
-        url = os.environ.get("PEA_SUPABASE_URL_PROD") or os.environ.get("PEA_SUPABASE_URL_TEST") or ""
+        """Valores de conexión obtenidos automáticamente del entorno (sin devolver contraseñas)."""
+        _cargar_env_local()
+        url_cruda = (
+            os.environ.get("PEA_SUPABASE_URL")
+            or os.environ.get("PEA_SUPABASE_URL_PROD")
+            or os.environ.get("PEA_SUPABASE_URL_TEST")
+            or ""
+        )
+        url = _normalizar_url_supabase(url_cruda)
         clave = (
-            os.environ.get("PEA_SUPABASE_KEY_PROD")
+            os.environ.get("PEA_SUPABASE_PUBLISHABLE_KEY")
+            or os.environ.get("PEA_SUPABASE_ANON_KEY")
+            or os.environ.get("PEA_SUPABASE_KEY_PROD")
             or os.environ.get("PEA_SUPABASE_ANON_PROD")
             or os.environ.get("PEA_SUPABASE_KEY_TEST")
+            or os.environ.get("PEA_SUPABASE_ANON_TEST")
             or ""
         )
         return {
@@ -196,25 +235,28 @@ class ServicioAplicacion:
 
     def conectar(
         self,
-        url: str,
-        clave_publicable: str,
+        url: str = "",
+        clave_publicable: str = "",
         correo: str = "",
         clave: str = "",
-        usar_clave_entorno: bool = False,
+        usar_clave_entorno: bool = True,
     ) -> EstadoAplicacion:
-        """Autentica (si hay correo), descarga todo por HTTPS y reemplaza el catálogo en memoria."""
-        url = url.strip()
-        clave_publicable = clave_publicable.strip()
-        self._validar_parametros_conexion(url, clave_publicable)
+        """Conecta automáticamente por HTTPS usando el entorno y descarga el catálogo en memoria."""
+        cfg = self.configuracion_entorno()
+        es_url_entorno = not url.strip() or _normalizar_url_supabase(url) == cfg.get("url", "")
+        url_final = _normalizar_url_supabase(url or cfg.get("url", ""))
+        clave_pub_final = (clave_publicable or cfg.get("clave_publicable", "")).strip()
+        correo_final = correo.strip() or (cfg.get("correo", "").strip() if es_url_entorno and usar_clave_entorno else "")
+        self._validar_parametros_conexion(url_final, clave_pub_final)
 
         clave_usuario = clave or (os.environ.get("PEA_USUARIO_CLAVE", "") if usar_clave_entorno else "")
-        cliente = self._fabrica_cliente(url, clave_publicable)
+        cliente = self._fabrica_cliente(url_final, clave_pub_final)
         sesion = Sesion()
-        if correo.strip() and clave_usuario:
-            cuerpo = cliente.autenticar(correo.strip(), clave_usuario)
+        if correo_final and clave_usuario:
+            cuerpo = cliente.autenticar(correo_final, clave_usuario)
             sesion.iniciar_sesion(
                 token=str(cuerpo.get("access_token", "")),
-                correo=correo.strip(),
+                correo=correo_final,
                 tiempo_expiracion_segundos=float(cuerpo.get("expires_in", 3600)),
             )
         clave_usuario = ""  # no se conserva la contraseña
@@ -233,7 +275,7 @@ class ServicioAplicacion:
         self._sesion = sesion
         self._instalar_catalogo(catalogo, ModoConexion.SUPABASE)
         self._revision_remota = catalogo.controlador_revision.revision_local
-        self._mensaje = f"Conectado a {url}"
+        self._mensaje = f"Conectado a {url_final}"
         return self.estado()
 
     def desconectar(self) -> EstadoAplicacion:

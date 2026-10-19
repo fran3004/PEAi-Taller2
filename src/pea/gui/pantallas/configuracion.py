@@ -14,7 +14,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QCheckBox,
-    QFormLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -193,14 +192,14 @@ class PantallaConfiguracion(QWidget):
         self.lbl_servidor.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {TAMANO_CUERPO}pt;")
         layout_grid_estado.addWidget(self.lbl_servidor, 1, 1)
 
-        # Fila 3: Usuario
+        # Fila 3: Usuario (oculta en interfaz; conservada por compatibilidad interna)
         lbl_usr_rot = QLabel("Usuario autenticado:", self.tarjeta_estado)
         lbl_usr_rot.setStyleSheet(f"font-weight: bold; color: {TEXTO}; font-size: {TAMANO_CUERPO}pt;")
-        layout_grid_estado.addWidget(lbl_usr_rot, 2, 0)
+        lbl_usr_rot.setVisible(False)
 
         self.lbl_usuario = QLabel("—", self.tarjeta_estado)
         self.lbl_usuario.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {TAMANO_CUERPO}pt;")
-        layout_grid_estado.addWidget(self.lbl_usuario, 2, 1)
+        self.lbl_usuario.setVisible(False)
 
         # Fila 4: Revisiones
         lbl_rev_rot = QLabel("Revisión del esquema:", self.tarjeta_estado)
@@ -223,45 +222,50 @@ class PantallaConfiguracion(QWidget):
         self.tarjeta_estado.layout_contenido.addLayout(layout_grid_estado)
         layout.addWidget(self.tarjeta_estado)
 
-        # --- Tarjeta de Formulario de Parámetros ---
-        self.tarjeta_form = Tarjeta(titulo="Parámetros de Acceso a Supabase (HTTPS)", parent=contenedor)
-        layout_form = QFormLayout()
-        layout_form.setContentsMargins(0, 0, 0, 0)
-        layout_form.setSpacing(12)
+        # --- Tarjeta de Origen de Datos (Conexión Automática) ---
+        self.tarjeta_form = Tarjeta(titulo="Origen de Datos (Conexión Automática)", parent=contenedor)
+
+        lbl_desc_auto = QLabel(
+            "Seleccione el origen de datos para trabajar en PEA-i. La conexión con la base de datos "
+            "Supabase se establece automáticamente con la configuración del entorno, sin necesidad de iniciar sesión manualmente.",
+            self.tarjeta_form,
+        )
+        lbl_desc_auto.setWordWrap(True)
+        lbl_desc_auto.setStyleSheet(f"color: {TEXTO_SECUNDARIO}; font-size: {TAMANO_CUERPO}pt;")
+        self.tarjeta_form.agregar_widget(lbl_desc_auto)
 
         cfg = self.servicio.configuracion_entorno()
 
+        # Campos internos ocultos (la conexión se realiza automáticamente desde el entorno)
         self.txt_url = QLineEdit(cfg.get("url", ""), self.tarjeta_form)
         self.txt_url.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_url.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_url.setPlaceholderText("https://xxxxxxxxxxxx.supabase.co")
-        layout_form.addRow("URL de Supabase (HTTPS):", self.txt_url)
+        self.txt_url.setVisible(False)
 
         self.txt_clave = QLineEdit(cfg.get("clave_publicable", ""), self.tarjeta_form)
         self.txt_clave.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_clave.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_clave.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_clave.setPlaceholderText("Clave publicable (sb_publishable_... o anon JWT)")
-        layout_form.addRow("Clave publicable:", self.txt_clave)
+        self.txt_clave.setVisible(False)
 
         self.txt_correo = QLineEdit(cfg.get("correo", ""), self.tarjeta_form)
         self.txt_correo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_correo.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_correo.setPlaceholderText("usuario@unicesar.edu.co (opcional para Auth)")
-        layout_form.addRow("Correo de usuario:", self.txt_correo)
+        self.txt_correo.setVisible(False)
 
         self.txt_pass = QLineEdit(self.tarjeta_form)
         self.txt_pass.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.txt_pass.setMinimumHeight(ALTURA_CAMPO_MINIMA)
         self.txt_pass.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_pass.setPlaceholderText("Contraseña del usuario")
-        layout_form.addRow("Contraseña:", self.txt_pass)
+        self.txt_pass.setVisible(False)
 
         self.chk_entorno = QCheckBox("Tomar contraseña de la variable PEA_USUARIO_CLAVE si existe", self.tarjeta_form)
-        self.chk_entorno.setChecked(cfg.get("hay_clave_usuario_en_entorno", False))
-        layout_form.addRow("", self.chk_entorno)
-
-        self.tarjeta_form.layout_contenido.addLayout(layout_form)
+        self.chk_entorno.setChecked(True)
+        self.chk_entorno.setVisible(False)
 
         # Banner de aviso informativo
         self.lbl_aviso = QLabel("", self.tarjeta_form)

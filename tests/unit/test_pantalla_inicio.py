@@ -193,3 +193,53 @@ def test_pantalla_inicio_sin_desborde_horizontal(
     assert pantalla._mini_red.height() >= 260
     assert pantalla._grafico_dona._segmentos
     assert pantalla._mini_red._nodos_geom
+
+
+def test_conexion_automatica_sin_login_manual(
+    qapp: QApplication, servicio_vacio: ServicioAplicacion, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifica que al entrar se muestre la opción directa de BD o demostración sin formulario de login."""
+    from pea.cliente_http import ClienteHTTPSupabase
+    from pea.gui.pantallas.configuracion import PantallaConfiguracion
+
+    # 1. Normalización de URL con /rest/v1/ final
+    cliente = ClienteHTTPSupabase("https://ejemplo.supabase.co/rest/v1/", "sb_publishable_test")
+    assert cliente.base_url == "https://ejemplo.supabase.co"
+
+    # 2. En PantallaInicio vacía, el botón principal conecta directamente sin redirigir a login
+    pantalla = PantallaInicio(servicio=servicio_vacio)
+    qapp.processEvents()
+
+    assert pantalla._estado_vacio.btn_principal is not None
+    assert pantalla._estado_vacio.btn_secundario is not None
+    assert "Supabase" in pantalla._estado_vacio.btn_principal.text()
+    assert "demostración" in pantalla._estado_vacio.btn_secundario.text()
+
+    llamadas_conectar: list[bool] = []
+    notificaciones_datos: list[bool] = []
+    pantalla.datos_modificados.connect(lambda: notificaciones_datos.append(True))
+
+    def falso_conectar(*args: object, **kwargs: object) -> object:
+        llamadas_conectar.append(True)
+        return servicio_vacio.cargar_demostracion()
+
+    monkeypatch.setattr(servicio_vacio, "conectar", falso_conectar)
+    pantalla._estado_vacio.accion_principal_pulsada.emit()
+    qapp.processEvents()
+
+    assert llamadas_conectar == [True]
+    assert notificaciones_datos == [True]
+    assert pantalla._apilador_estado.currentIndex() == 1
+
+    # 3. En PantallaConfiguracion los campos de login manual están ocultos
+    cfg_widget = PantallaConfiguracion(servicio=servicio_vacio)
+    cfg_widget.show()
+    qapp.processEvents()
+    assert not cfg_widget.txt_url.isVisible()
+    assert not cfg_widget.txt_clave.isVisible()
+    assert not cfg_widget.txt_correo.isVisible()
+    assert not cfg_widget.txt_pass.isVisible()
+    assert not cfg_widget.chk_entorno.isVisible()
+    assert cfg_widget.btn_conectar.isVisible()
+    assert cfg_widget.btn_demo.isVisible()
+

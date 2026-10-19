@@ -25,8 +25,11 @@ class ClienteHTTPSupabase:
     """Cliente REST/RPC para interactuar con la API HTTPS de Supabase."""
 
     def __init__(self, base_url: str, anon_key: str, timeout: float = 15.0) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.anon_key = anon_key
+        url_limpia = base_url.strip().rstrip("/")
+        if url_limpia.endswith("/rest/v1"):
+            url_limpia = url_limpia[: -len("/rest/v1")].rstrip("/")
+        self.base_url = url_limpia
+        self.anon_key = anon_key.strip()
         self.timeout = timeout
         self._token_acceso: str | None = None
         self._sesion = requests.Session()

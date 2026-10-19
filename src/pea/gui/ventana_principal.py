@@ -778,6 +778,7 @@ class VentanaPrincipal(QMainWindow):
         )
         self._pantalla_inicio.solicitar_navegacion.connect(self.seleccionar_pantalla)
         self._pantalla_inicio.filtro_cambiado.connect(self._al_cambiar_filtro_global)
+        self._pantalla_inicio.datos_modificados.connect(self.actualizar_estado_global)
 
         self._pantalla_investigadores_modulo = PantallaInvestigadores(
             servicio=self._servicio,
