@@ -198,6 +198,27 @@ def test_ficha_lateral_base(qapp: QApplication, qtbot: Any) -> None:
     assert ficha.btn_estado.text() == "Desactivar"
 
 
+@pytest.mark.parametrize("ancho_ventana", [1100, 1366, 1920])
+def test_avatar_no_se_superpone_con_nombre_de_ficha(
+    qapp: QApplication, qtbot: Any, ancho_ventana: int
+) -> None:
+    ficha = FichaLateral(diametro_avatar=96)
+    qtbot.addWidget(ficha)
+    ficha.ajustar_ancho_ficha(ancho_ventana)
+    ficha.resize(ficha.width(), 560)
+    ficha.establecer_cabecera(
+        nombre="Investigador Ficticio Cinco",
+        subtitulo="Grupo Ficticio de Ciencias Agropecuarias · Senior",
+    )
+    ficha.show()
+    qapp.processEvents()
+    qapp.processEvents()
+
+    avatar = ficha._avatar.geometry()
+    nombre = ficha._lbl_nombre.geometry()
+    assert nombre.top() >= avatar.bottom() + 1
+
+
 @pytest.mark.parametrize(
     ("ancho_ventana", "ancho_ficha", "columnas_kpi"),
     [(1100, 320, 1), (1366, 380, 1), (1920, 440, 2)],

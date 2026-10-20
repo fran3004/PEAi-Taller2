@@ -252,8 +252,15 @@ class FichaLateral(QFrame):
         ancho = self._scroll.viewport().width()
         if ancho > 0:
             self._cuerpo.setFixedWidth(ancho)
+            if hasattr(self, "_lbl_nombre"):
+                self._ajustar_altura_nombre(ancho)
             if hasattr(self, "_layout_kpi"):
                 self._ajustar_columnas_kpi(ancho)
+
+    def _ajustar_altura_nombre(self, ancho: int) -> None:
+        self._lbl_nombre.setMinimumHeight(0)
+        if ancho > 0 and self._lbl_nombre.hasHeightForWidth():
+            self._lbl_nombre.setMinimumHeight(self._lbl_nombre.heightForWidth(ancho))
 
     def _ajustar_columnas_kpi(self, ancho_disponible: int, forzar: bool = False) -> None:
         ancho_dos_columnas = self.ANCHO_MINIMO_KPI * 2 + self._layout_kpi.spacing()
@@ -350,6 +357,7 @@ class FichaLateral(QFrame):
         self._lbl_nombre.setText(nombre)
         self._lbl_subtitulo.setText(subtitulo)
         self._lbl_subtitulo.setVisible(bool(subtitulo))
+        self._ajustar_altura_nombre(self._scroll.viewport().width())
         self._lbl_nombre.updateGeometry()
         self._lbl_subtitulo.updateGeometry()
 
