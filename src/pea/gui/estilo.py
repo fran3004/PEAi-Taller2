@@ -206,6 +206,16 @@ SOMBRA_TARJETA_OPACIDAD: Final[float] = 0.10
 # Generador de la hoja de estilo global (QSS)
 # ---------------------------------------------------------------------------
 
+HOJA_ESTILOS_TOOLTIP: Final[str] = f"""
+QToolTip {{
+    background-color: {TEXTO};
+    color: {TEXTO_SOBRE_OSCURO};
+    border: 1px solid {LINEA_FUERTE};
+    font-size: {TAMANO_CUERPO}pt;
+}}
+"""
+
+
 def generar_hoja_estilos() -> str:
     """Genera la hoja de estilos global Qt (QSS) basada estrictamente en los tokens."""
     return f"""
@@ -498,12 +508,7 @@ def generar_hoja_estilos() -> str:
         border-bottom: 3px solid {ACENTO};
     }}
 
-    QToolTip {{
-        background-color: {TEXTO};
-        color: {TEXTO_SOBRE_OSCURO};
-        border: 1px solid {LINEA_FUERTE};
-        font-size: {TAMANO_CUERPO}pt;
-    }}
+    {HOJA_ESTILOS_TOOLTIP}
 
     QMenu {{
         background-color: {SUPERFICIE};

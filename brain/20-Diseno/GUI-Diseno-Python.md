@@ -449,6 +449,7 @@ Se verifica con la autoprueba en tres tamaños: **1100×700**, **1366×768** y *
 ## 13. Accesibilidad
 
 - Contraste de texto ≥ 4,5:1 (tabla de la sección 4.1).
+- Los tooltips, incluidos los de nodos y aristas del grafo, usan fondo oscuro y texto claro con contraste alto.
 - Foco visible en todo control (anillo de 2 px) y orden de tabulación lógico: barra superior → contexto → filtros → tabla → ficha.
 - Cada control con `setAccessibleName`; los íconos sin texto llevan *tooltip*.
 - Ningún dato se transmite solo por color (sección 4.1).

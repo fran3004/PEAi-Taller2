@@ -80,6 +80,7 @@ from pea.gui.estilo import (
     ERROR_FONDO,
     EXITO,
     HOJA_ESTILOS_GLOBAL,
+    HOJA_ESTILOS_TOOLTIP,
     LINEA,
     PIE,
     RADIO_BOTON,
@@ -469,6 +470,11 @@ class VentanaPrincipal(QMainWindow):
             self.move(x, y)
 
     def _construir_ui(self) -> None:
+        app = QApplication.instance()
+        if app is not None:
+            hoja_app = app.styleSheet()
+            if HOJA_ESTILOS_TOOLTIP not in hoja_app:
+                app.setStyleSheet(f"{hoja_app}\n{HOJA_ESTILOS_TOOLTIP}".strip())
         self.setStyleSheet(HOJA_ESTILOS_GLOBAL)
 
         widget_central = QWidget(self)

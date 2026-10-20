@@ -99,6 +99,18 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
     assert "Cola:" in ventana._chip_cola.text()
 
 
+def test_tooltips_de_grafo_tienen_contraste_a_nivel_de_aplicacion(
+    ventana: VentanaPrincipal,
+) -> None:
+    """El estilo de alto contraste alcanza a los tooltips de elementos gráficos."""
+    from pea.gui import estilo
+
+    hoja_app = QApplication.instance().styleSheet()
+    assert estilo.HOJA_ESTILOS_TOOLTIP.strip() in hoja_app
+    assert f"background-color: {estilo.TEXTO};" in hoja_app
+    assert f"color: {estilo.TEXTO_SOBRE_OSCURO};" in hoja_app
+
+
 def test_insignia_fuente_datos_y_separacion_entre_demostracion_y_supabase(
     ventana: VentanaPrincipal,
 ) -> None:
