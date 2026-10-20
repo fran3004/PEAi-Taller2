@@ -598,6 +598,17 @@ class PantallaConfiguracion(QWidget):
                 )
             )
 
+        if not filas and res.comando_cpp is None:
+            filas.append(
+                (
+                    "C++ no compilado",
+                    "—",
+                    "—",
+                    "NO DISPONIBLE",
+                    res.mensaje,
+                )
+            )
+
         tabla = TablaDatos(
             columnas=("Paso de Verificación", "Argumentos", "Códigos Salida", "Resultado", "Detalle"),
             filas=tuple(filas),

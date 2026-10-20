@@ -10,6 +10,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import pytest
@@ -20,6 +21,7 @@ from pea.gui.pantallas.acerca import PantallaAcerca
 from pea.gui.pantallas.configuracion import PantallaConfiguracion
 from pea.gui.pantallas.importar import PantallaImportar, ZonaSoltarArchivo
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
+from pea.servicios.servicio_verificacion_cruzada import ServicioVerificacionCruzada
 from pea.servicios.vistas import FiltroAnios, ModoConexion, ModoFiltroAnios
 
 
@@ -239,9 +241,36 @@ def test_pantalla_configuracion_altura_minima_campos(
 
 
 def test_pantalla_configuracion_verificacion_cruzada(
-    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
+    servicio_demo: ServicioAplicacion,
+    qapp: QApplication,
+    qtbot: Any,
+    tmp_path: Any,
+    monkeypatch: Any,
 ) -> None:
-    """Verifica la ejecución de la prueba cruzada y el visor comparativo."""
+    """Verifica las tres filas de paridad con un ejecutor simulado, sin C++ real."""
+    ejecutable = tmp_path / "cpp" / "build" / ("pea-cpp.exe" if os.name == "nt" else "pea-cpp")
+    ejecutable.parent.mkdir(parents=True)
+    ejecutable.touch()
+
+    def ejecutar_simulado(
+        argumentos: list[str],
+        entorno: dict[str, str],
+        directorio: Any,
+    ) -> tuple[int, str, str]:
+        ultimo = argumentos[-1]
+        if ultimo == "--version":
+            salida = "PEA-i 1.0\n"
+        elif ultimo == "--json":
+            salida = '{"grupos":0,"investigadores":0,"productos":0}\n'
+        else:
+            salida = "Escenario completado\n"
+        return 0, salida, ""
+
+    verificacion = ServicioVerificacionCruzada(
+        raiz_proyecto=tmp_path,
+        ejecutor=ejecutar_simulado,
+    )
+    monkeypatch.setattr(servicio_demo, "_verificacion", verificacion)
     pantalla = PantallaConfiguracion(servicio=servicio_demo, ejecutor=None)
     qtbot.addWidget(pantalla)
     pantalla.show()
@@ -252,14 +281,62 @@ def test_pantalla_configuracion_verificacion_cruzada(
     # Ejecutar verificación cruzada
     pantalla._al_ejecutar_cruzada()
     assert pantalla._resultado_cruzada is not None
+    assert pantalla._resultado_cruzada.exito
 
     # Verificar tabla de pasos y selección de fila
-    assert pantalla.modelo_pasos.rowCount() > 0
+    assert pantalla.modelo_pasos.rowCount() == 3
+    for fila in range(3):
+        assert pantalla.modelo_pasos.index(fila, 3).data() == "✔ COINCIDEN"
     pantalla._al_seleccionar_paso_cruzada(0)
 
     # Verificar que los visores recibieron contenido
     assert len(pantalla.txt_out_py.toPlainText()) > 0
     assert len(pantalla.txt_out_cpp.toPlainText()) > 0
+
+
+@pytest.mark.cpp
+def test_pantalla_configuracion_verificacion_cruzada_ejecutable_real(
+    servicio_demo: ServicioAplicacion,
+    qapp: QApplication,
+    qtbot: Any,
+    monkeypatch: Any,
+) -> None:
+    """Prueba la CLI real solo cuando se encuentra el ejecutable C++."""
+    verificacion = ServicioVerificacionCruzada()
+    if verificacion.ruta_cpp() is None:
+        pytest.skip("No existe cpp/build/pea-cpp ni un ejecutable indicado por PEA_CPP_EXE")
+
+    monkeypatch.setattr(servicio_demo, "_verificacion", verificacion)
+    pantalla = PantallaConfiguracion(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    pantalla.selector_seccion.seleccionar("cruzada")
+    pantalla._al_ejecutar_cruzada()
+    assert pantalla._resultado_cruzada is not None
+    assert pantalla.modelo_pasos.rowCount() == 3
+
+
+def test_pantalla_configuracion_indica_cpp_no_compilado(
+    servicio_demo: ServicioAplicacion,
+    qapp: QApplication,
+    qtbot: Any,
+    monkeypatch: Any,
+    tmp_path: Any,
+) -> None:
+    """Muestra una fila informativa cuando no hay CLI C++ disponible."""
+    verificacion = ServicioVerificacionCruzada(raiz_proyecto=tmp_path)
+    monkeypatch.setenv("PEA_CPP_EXE", str(tmp_path / "no-existe-cpp.exe"))
+    resultado = verificacion.ejecutar()
+    assert resultado.comando_cpp is None
+    monkeypatch.setattr(servicio_demo, "ejecutar_verificacion_cruzada", lambda usar_base=False: resultado)
+    pantalla = PantallaConfiguracion(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    pantalla._al_ejecutar_cruzada()
+
+    assert pantalla.modelo_pasos.rowCount() == 1
+    assert pantalla.modelo_pasos.index(0, 0).data() == "C++ no compilado"
+    detalle = pantalla.modelo_pasos.index(0, 4).data()
+    assert "cpp/build/pea-cpp.exe" in detalle
+    assert "PEA_CPP_EXE" in detalle
 
 
 # ===========================================================================
@@ -471,4 +548,3 @@ def test_glifos_accesibilidad_y_tooltips_transversales(
     assert "▾" not in ventana._btn_deshacer.btn_chevron.text()
     assert ventana._btn_deshacer.btn_chevron.toolTip() != ""
     assert ventana._btn_deshacer.btn_chevron.accessibleName() != ""
-
