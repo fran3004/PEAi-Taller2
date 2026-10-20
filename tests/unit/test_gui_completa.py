@@ -97,6 +97,27 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
     assert "Cola:" in ventana._chip_cola.text()
 
 
+def test_pestanas_superiores_distribuyen_espacio_disponible(ventana: VentanaPrincipal) -> None:
+    """Verifica que las siete pestañas no queden agrupadas al inicio de la barra."""
+    ventana.resize(1366, 768)
+    ventana.show()
+    QApplication.processEvents()
+
+    contenedor = ventana._contenedor_pestanas
+    assert contenedor.width() > sum(btn.width() for btn in ventana._botones_pestanas)
+
+    separaciones = [
+        derecha.geometry().left() - izquierda.geometry().right() - 1
+        for izquierda, derecha in zip(
+            ventana._botones_pestanas,
+            ventana._botones_pestanas[1:],
+            strict=False,
+        )
+    ]
+    assert all(separacion > 0 for separacion in separaciones)
+    assert max(separaciones) - min(separaciones) <= 1
+
+
 @pytest.mark.parametrize("ancho, alto", [(1100, 700), (1366, 768), (1920, 1080)])
 def test_resoluciones_oficiales_son_logicas_y_no_dependen_del_monitor(
     ventana: VentanaPrincipal, ancho: int, alto: int

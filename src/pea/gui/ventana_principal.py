@@ -589,7 +589,8 @@ class VentanaPrincipal(QMainWindow):
         self._contenedor_pestanas = QWidget(barra)
         layout_p = QHBoxLayout(self._contenedor_pestanas)
         layout_p.setContentsMargins(0, 0, 0, 0)
-        layout_p.setSpacing(4)
+        layout_p.setSpacing(0)
+        layout_p.addStretch(1)
 
         datos_pestanas = [
             ("Inicio", "inicio.svg", Pantalla.INICIO),
@@ -606,13 +607,13 @@ class VentanaPrincipal(QMainWindow):
             btn = BotonPestanaSuperior(nombre, icono, self._contenedor_pestanas)
             self._pestanas.addButton(btn, int(pantalla_enum))
             layout_p.addWidget(btn)
+            layout_p.addStretch(1)
             self._botones_pestanas.append(btn)
             if idx == 0:
                 btn.setChecked(True)
 
         self._pestanas.idClicked.connect(self._al_clic_pestana)
-        layout.addWidget(self._contenedor_pestanas)
-        layout.addStretch(1)
+        layout.addWidget(self._contenedor_pestanas, 1)
 
         # --- Zona Derecha: Deshacer, Avatar, Sesión, Acerca de ---
         zona_der = QWidget(barra)
@@ -1276,10 +1277,9 @@ class VentanaPrincipal(QMainWindow):
                 btn.establecer_modo_compacto(modo_solo_icono)
             layout_pestanas = self._contenedor_pestanas.layout()
             if layout_pestanas is not None:
-                ancho_pestanas = sum(btn.minimumWidth() for btn in self._botones_pestanas)
-                ancho_pestanas += max(0, layout_pestanas.spacing()) * (len(self._botones_pestanas) - 1)
-                self._contenedor_pestanas.setMinimumWidth(ancho_pestanas)
                 layout_pestanas.invalidate()
+                ancho_pestanas = layout_pestanas.minimumSize().width()
+                self._contenedor_pestanas.setMinimumWidth(ancho_pestanas)
                 layout_pestanas.activate()
             layout_barra = self._barra_superior.layout()
             if layout_barra is not None:
