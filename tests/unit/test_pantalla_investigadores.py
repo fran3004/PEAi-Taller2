@@ -271,7 +271,10 @@ def test_cambio_filtro_anios_en_investigadores(
 
 
 def test_pantalla_investigadores_tabla_responsive_y_elipsis(
-    qapp: QApplication, servicio_con_datos: ServicioAplicacion, qtbot: Any
+    qapp: QApplication,
+    servicio_con_datos: ServicioAplicacion,
+    qtbot: Any,
+    fuente_inter: None,
 ) -> None:
     """Verifica que en 1100x700 Nombre conserve un ancho útil >= 240 px, sin desborde ni recorte de cabecera."""
     pantalla = PantallaInvestigadores(servicio=servicio_con_datos)
@@ -313,4 +316,3 @@ def test_pantalla_investigadores_tabla_responsive_y_elipsis(
     assert bool(tooltip_nombre)
     assert tooltip_nombre == vista.model().data(idx_0, Qt.ItemDataRole.DisplayRole)
     assert vista.model().headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole) == "Nombre"
-

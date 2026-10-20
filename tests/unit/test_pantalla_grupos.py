@@ -311,7 +311,10 @@ def test_cambio_filtro_anios_en_grupos(
 
 
 def test_pantalla_grupos_tabla_responsive_y_elipsis(
-    qapp: QApplication, servicio_con_datos: ServicioAplicacion, qtbot: Any
+    qapp: QApplication,
+    servicio_con_datos: ServicioAplicacion,
+    qtbot: Any,
+    fuente_inter: None,
 ) -> None:
     """Verifica que en 1100x700 Nombre conserve un ancho útil >= 240 px, sin desborde ni recorte de cabecera."""
     pantalla = PantallaGrupos(servicio=servicio_con_datos)

@@ -874,10 +874,10 @@ class PantallaGrupos(QWidget):
         # Col 0 (Nombre): estirar, min 240, prioridad 1 (siempre visible).
         # Columnas secundarias: modo fijo con anchos delimitados y prioridades 2 o 3.
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 240, 1), # 0: Nombre (prioridad 1, siempre visible)
+            ColumnSpecification("estirar", 280, 1), # 0: Nombre (prioridad 1, siempre visible)
             ColumnSpecification("fijo", 110, 3),    # 1: Código GrupLAC (ocultable en pantallas compactas)
-            ColumnSpecification("fijo", 95, 2),     # 2: Categoría
-            ColumnSpecification("fijo", 140, 3),    # 3: Líder (ocultable en pantallas compactas)
+            ColumnSpecification("fijo", 88, 2),     # 2: Categoría
+            ColumnSpecification("fijo", 110, 3),    # 3: Líder (ocultable en pantallas compactas)
             ColumnSpecification("fijo", 85, 2),     # 4: Integrantes
             ColumnSpecification("fijo", 80, 2),     # 5: Productos
             ColumnSpecification("fijo", 85, 2),     # 6: Estado

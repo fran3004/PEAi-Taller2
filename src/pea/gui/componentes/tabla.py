@@ -539,22 +539,8 @@ class _VistaTablaEstilizada(QTableView):
         fuente_encabezado.setBold(True)
         ancho_encabezado = QFontMetrics(fuente_encabezado).horizontalAdvance(encabezado) + 24
 
-        fuente_contenido = QFont(self.font())
-        fuente_contenido.setPointSize(estilo.TAMANO_CUERPO)
-        metricas_contenido = QFontMetrics(fuente_contenido)
-        filas = modelo.rowCount()
-        muestras = sorted({0, min(filas - 1, 4), min(filas - 1, 9)}) if filas else []
-        ancho_contenido = 0
-        for fila in muestras:
-            valor = modelo.index(fila, indice).data(Qt.ItemDataRole.DisplayRole)
-            if valor is None:
-                continue
-            ancho_contenido = max(
-                ancho_contenido,
-                metricas_contenido.horizontalAdvance(str(valor)) + 20,
-            )
-
-        return max(spec.ancho_minimo, ancho_encabezado, min(ancho_contenido, 320))
+        # Los valores largos se eliden con tooltip; no deben ocultar columnas vecinas.
+        return max(spec.ancho_minimo, ancho_encabezado)
 
 
 @dataclass(frozen=True)

@@ -45,7 +45,8 @@ encuentre hallazgos.
 - `python -m pytest -q`: 275 pasaron, 2 fallaron y 2 se omitieron. Fallaron
   `test_pantalla_grupos_tabla_responsive_y_elipsis` y
   `test_pantalla_investigadores_tabla_responsive_y_elipsis`; ambos fallos se
-  reprodujeron individualmente y quedan pendientes de investigar.
+  reprodujeron individualmente. Se resolvieron en un seguimiento al ajustar
+  los anchos mínimos de las columnas y fijar en esas pruebas la tipografía real.
 - `git diff --check`: sin errores.
 
 ## Decisiones
@@ -54,6 +55,5 @@ los textos envolventes de Importar, se asigna como alto mínimo el resultado
 de `heightForWidth` del ancho actual, evitando depender solo del tooltip.
 
 ## Pendientes y siguiente paso
-- Investigar los dos fallos de tablas responsivas de la suite completa antes
-  de afirmar que todas las pruebas están en verde.
+- Ejecutar la suite completa después del seguimiento de tablas responsivas.
 - Continuar con la tarea 6: histograma real calculado desde el hipercubo.

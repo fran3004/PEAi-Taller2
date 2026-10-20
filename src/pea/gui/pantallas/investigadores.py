@@ -855,8 +855,8 @@ class PantallaInvestigadores(QWidget):
         # Col 0 (Nombre): estirar, min 240, prioridad 1 (siempre visible).
         # Columnas secundarias: modo fijo con anchos delimitados y prioridades 2 o 3.
         self.tabla.configurar_columnas([
-            ColumnSpecification("estirar", 240, 1), # 0: Nombre (prioridad 1, siempre visible)
-            ColumnSpecification("fijo", 150, 3),    # 1: Grupo(s) (ocultable en pantallas compactas)
+            ColumnSpecification("estirar", 300, 1), # 0: Nombre (prioridad 1, siempre visible)
+            ColumnSpecification("fijo", 149, 3),    # 1: Grupo(s) (ocultable en pantallas compactas)
             ColumnSpecification("fijo", 105, 2),    # 2: Categoría
             ColumnSpecification("fijo", 110, 3),    # 3: Formación (ocultable en pantallas compactas)
             ColumnSpecification("fijo", 80, 2),     # 4: Productos
