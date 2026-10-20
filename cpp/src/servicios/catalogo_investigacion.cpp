@@ -6,6 +6,15 @@
 #include <unordered_map>
 
 namespace pea::servicios {
+namespace {
+
+void exigir_id_remoto(bool persistir, const std::optional<qint64>& id, const char* entidad) {
+    if (persistir && !id.has_value()) {
+        throw ErrorPEA(std::string(entidad) + " no tiene identificador remoto; se bloqueó la escritura.");
+    }
+}
+
+} // namespace
 
 CatalogoInvestigacion::CatalogoInvestigacion(ClienteHTTPSupabase* cliente,
                                             std::shared_ptr<datos::Sesion> s)
@@ -25,7 +34,13 @@ void CatalogoInvestigacion::sincronizarHipercubo() {
     hipercubo.poblarDesdeMultilista(multilista_productos);
 }
 
-void CatalogoInvestigacion::verificar_autenticacion_si_aplica() {
+void CatalogoInvestigacion::verificar_autenticacion_si_aplica(bool persistir) {
+    if (persistir && !m_cliente) {
+        throw ErrorConexion("No hay conexión a Supabase; la escritura fue bloqueada.");
+    }
+    if (persistir && m_cliente->tokenAcceso().isEmpty()) {
+        throw ErrorAutenticacion("Inicie sesión en Supabase antes de escribir.");
+    }
     if (m_cliente && sesion && sesion->esta_expirada()) {
         sesion->cerrar_sesion();
         throw ErrorAutenticacion("La sesión ha expirado.");
@@ -40,7 +55,7 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::crear_grupo(
     std::shared_ptr<dominio::Grupo> grupo,
     bool persistir) {
     if (!grupo) return nullptr;
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
 
     // 1. Unicidad en memoria
     auto* existente = grupos.buscar([&grupo](const std::shared_ptr<dominio::Grupo>& g) {
@@ -57,9 +72,10 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::crear_grupo(
         try {
             controlador_revision.verificar_consistencia(*m_cliente);
             dominio::Grupo creado = m_repo_grupos->crear(*grupo);
-            if (creado.id.has_value()) {
-                grupo->id = creado.id;
+            if (!creado.id.has_value()) {
+                throw ErrorServidor("Supabase no devolvió el identificador del grupo creado.");
             }
+            grupo->id = creado.id;
             controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
         } catch (...) {
             grupos.eliminar_nodo(nodo);
@@ -92,11 +108,12 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::actualizar_grupo(
     const QString& codigo_gruplac,
     const QJsonObject& datos,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
         throw RecursoNoEncontrado("Grupo con código " + codigo_gruplac.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, grupo->id, "El grupo");
 
     QJsonObject valores_anteriores;
     if (datos.contains("nombre")) {
@@ -144,11 +161,12 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::actualizar_grupo(
 }
 
 void CatalogoInvestigacion::desactivar_grupo(const QString& codigo_gruplac, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
         throw RecursoNoEncontrado("Grupo " + codigo_gruplac.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, grupo->id, "El grupo");
 
     grupo->desactivar();
 
@@ -175,11 +193,12 @@ void CatalogoInvestigacion::desactivar_grupo(const QString& codigo_gruplac, bool
 }
 
 void CatalogoInvestigacion::activar_grupo(const QString& codigo_gruplac, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
         throw RecursoNoEncontrado("Grupo " + codigo_gruplac.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, grupo->id, "El grupo");
 
     grupo->activar();
 
@@ -208,11 +227,12 @@ void CatalogoInvestigacion::activar_grupo(const QString& codigo_gruplac, bool pe
 }
 
 std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::eliminar_grupo(const QString& codigo_gruplac, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
         throw RecursoNoEncontrado("Grupo " + codigo_gruplac.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, grupo->id, "El grupo");
 
     // 1. Desenlazar productos del grupo en la Multilista
     multilista_productos.desvincular_grupo_de_todos(codigo_gruplac);
@@ -261,7 +281,7 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::crear_investigador
     std::shared_ptr<dominio::Investigador> inv,
     bool persistir) {
     if (!inv) return nullptr;
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
 
     auto* existente = investigadores.buscar([&inv](const std::shared_ptr<dominio::Investigador>& actual) {
         return actual && actual->codigo_rh == inv->codigo_rh;
@@ -276,9 +296,10 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::crear_investigador
         try {
             controlador_revision.verificar_consistencia(*m_cliente);
             dominio::Investigador creado = m_repo_investigadores->crear(*inv);
-            if (creado.id.has_value()) {
-                inv->id = creado.id;
+            if (!creado.id.has_value()) {
+                throw ErrorServidor("Supabase no devolvió el identificador del investigador creado.");
             }
+            inv->id = creado.id;
             controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
         } catch (...) {
             investigadores.eliminar_nodo(nodo);
@@ -310,11 +331,12 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::actualizar_investi
     const QString& codigo_rh,
     const QJsonObject& datos,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto inv = buscar_investigador(codigo_rh);
     if (!inv) {
         throw RecursoNoEncontrado("Investigador con código " + codigo_rh.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, inv->id, "El investigador");
 
     QJsonObject valores_anteriores;
     if (datos.contains("nombre_completo")) {
@@ -361,11 +383,12 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::actualizar_investi
 }
 
 void CatalogoInvestigacion::desactivar_investigador(const QString& codigo_rh, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto inv = buscar_investigador(codigo_rh);
     if (!inv) {
         throw RecursoNoEncontrado("Investigador " + codigo_rh.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, inv->id, "El investigador");
 
     inv->desactivar();
 
@@ -392,11 +415,12 @@ void CatalogoInvestigacion::desactivar_investigador(const QString& codigo_rh, bo
 }
 
 void CatalogoInvestigacion::activar_investigador(const QString& codigo_rh, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto inv = buscar_investigador(codigo_rh);
     if (!inv) {
         throw RecursoNoEncontrado("Investigador " + codigo_rh.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, inv->id, "El investigador");
 
     inv->activar();
 
@@ -427,11 +451,12 @@ void CatalogoInvestigacion::activar_investigador(const QString& codigo_rh, bool 
 std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::eliminar_investigador(
     const QString& codigo_rh,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto inv = buscar_investigador(codigo_rh);
     if (!inv) {
         throw RecursoNoEncontrado("Investigador " + codigo_rh.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, inv->id, "El investigador");
 
     // 1. Remover de listas de coautorías en la Multilista
     multilista_productos.desvincular_investigador_de_todos(codigo_rh);
@@ -480,7 +505,7 @@ dominio::IntegranteGrupo CatalogoInvestigacion::vincular_integrante(
     const QString& codigo_rh,
     const QString& rol,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
         throw RecursoNoEncontrado("Grupo " + codigo_gruplac.toStdString() + " no encontrado para vinculación");
@@ -489,6 +514,8 @@ dominio::IntegranteGrupo CatalogoInvestigacion::vincular_integrante(
     if (!inv) {
         throw RecursoNoEncontrado("Investigador " + codigo_rh.toStdString() + " no encontrado para vinculación");
     }
+    exigir_id_remoto(persistir, grupo->id, "El grupo");
+    exigir_id_remoto(persistir, inv->id, "El investigador");
 
     dominio::IntegranteGrupo integrante;
     integrante.grupo_id = grupo->id;
@@ -521,7 +548,7 @@ void CatalogoInvestigacion::desvincular_integrante(
     const QString& codigo_gruplac,
     const QString& codigo_rh,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     const auto* nodo = integrantes.buscar([&](const dominio::IntegranteGrupo& m) {
         return m.codigo_gruplac == codigo_gruplac && m.codigo_rh == codigo_rh;
     });
@@ -556,7 +583,7 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
     const std::vector<QString>& codigos_rh_autores,
     bool persistir) {
     if (!producto) return nullptr;
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
 
     auto existente = multilista_productos.buscar_producto(producto->codigo_identificador);
     if (existente) {
@@ -590,9 +617,10 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
                 inv_ids,
                 controlador_revision.revision_local()
             );
-            if (prod_id > 0) {
-                producto->id = prod_id;
+            if (prod_id <= 0) {
+                throw ErrorServidor("Supabase no devolvió el identificador del producto creado.");
             }
+            producto->id = prod_id;
             controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
         } catch (...) {
             multilista_productos.eliminar_producto(producto->codigo_identificador);
@@ -617,12 +645,102 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::buscar_producto(const 
     return multilista_productos.buscar_producto(codigo_identificador);
 }
 
+std::shared_ptr<dominio::Producto> CatalogoInvestigacion::actualizar_producto(
+    const QString& codigo_identificador,
+    const QJsonObject& datos,
+    bool persistir) {
+    verificar_autenticacion_si_aplica(persistir);
+    auto producto = buscar_producto(codigo_identificador);
+    if (!producto) {
+        throw RecursoNoEncontrado("Producto " + codigo_identificador.toStdString() + " no encontrado");
+    }
+    exigir_id_remoto(persistir, producto->id, "El producto");
+
+    QJsonObject anteriores;
+    for (auto it = datos.constBegin(); it != datos.constEnd(); ++it) {
+        const auto& campo = it.key();
+        const auto& valor = it.value();
+        if (campo == "titulo" || campo == "tipo_mayor" || campo == "subtipo" ||
+            campo == "pais" || campo == "estado_validacion") {
+            if (!valor.isString()) {
+                throw ErrorValidacion("El campo " + campo.toStdString() + " debe ser texto.");
+            }
+        } else if (campo == "ano") {
+            if (!valor.isDouble()) {
+                throw ErrorValidacion("El campo ano debe ser numérico.");
+            }
+        } else if (campo == "mes") {
+            if (!valor.isNull() && !valor.isDouble()) {
+                throw ErrorValidacion("El campo mes debe ser numérico o nulo.");
+            }
+        } else if (campo == "detalles") {
+            if (!valor.isObject()) {
+                throw ErrorValidacion("El campo detalles debe ser un objeto.");
+            }
+        } else {
+            throw ErrorValidacion("Campo de producto no actualizable: " + campo.toStdString());
+        }
+    }
+
+    if (datos.isEmpty()) {
+        throw ErrorValidacion("Debe indicar al menos un campo para actualizar.");
+    }
+    if (datos.contains("titulo")) anteriores["titulo"] = producto->titulo;
+    if (datos.contains("tipo_mayor")) anteriores["tipo_mayor"] = producto->tipo_mayor;
+    if (datos.contains("subtipo")) anteriores["subtipo"] = producto->subtipo;
+    if (datos.contains("ano")) anteriores["ano"] = producto->ano;
+    if (datos.contains("mes")) {
+        anteriores["mes"] = producto->mes.has_value()
+                                ? QJsonValue(*producto->mes)
+                                : QJsonValue(QJsonValue::Null);
+    }
+    if (datos.contains("pais")) anteriores["pais"] = producto->pais;
+    if (datos.contains("estado_validacion")) anteriores["estado_validacion"] = producto->estado_validacion;
+    if (datos.contains("detalles")) anteriores["detalles"] = producto->detalles;
+
+    const auto aplicar = [&producto](const QJsonObject& cambios) {
+        if (cambios.contains("titulo")) producto->titulo = cambios["titulo"].toString();
+        if (cambios.contains("tipo_mayor")) producto->tipo_mayor = cambios["tipo_mayor"].toString();
+        if (cambios.contains("subtipo")) producto->subtipo = cambios["subtipo"].toString();
+        if (cambios.contains("ano")) producto->ano = cambios["ano"].toInt();
+        if (cambios.contains("mes")) {
+            const auto mes = cambios["mes"];
+            producto->mes = mes.isNull() ? std::nullopt : std::optional<int>(mes.toInt());
+        }
+        if (cambios.contains("pais")) producto->pais = cambios["pais"].toString();
+        if (cambios.contains("estado_validacion")) {
+            producto->estado_validacion = cambios["estado_validacion"].toString();
+        }
+        if (cambios.contains("detalles")) producto->detalles = cambios["detalles"].toObject();
+    };
+
+    aplicar(datos);
+    if (persistir && m_cliente && m_repo_productos && producto->id.has_value()) {
+        try {
+            controlador_revision.verificar_consistencia(*m_cliente);
+            m_repo_productos->actualizar(codigo_identificador, datos);
+            controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
+        } catch (...) {
+            aplicar(anteriores);
+            sincronizarHipercubo();
+            throw;
+        }
+    }
+
+    pila_deshacer.apilar(estructuras::ComandoInverso(
+        "editar", "producto", codigo_identificador, anteriores,
+        "Editar producto " + codigo_identificador));
+    sincronizarHipercubo();
+    return producto;
+}
+
 void CatalogoInvestigacion::desactivar_producto(const QString& codigo_identificador, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto prod = buscar_producto(codigo_identificador);
     if (!prod) {
         throw RecursoNoEncontrado("Producto " + codigo_identificador.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, prod->id, "El producto");
 
     multilista_productos.desactivar_producto(codigo_identificador);
 
@@ -650,11 +768,12 @@ void CatalogoInvestigacion::desactivar_producto(const QString& codigo_identifica
 }
 
 void CatalogoInvestigacion::activar_producto(const QString& codigo_identificador, bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto prod = buscar_producto(codigo_identificador);
     if (!prod) {
         throw RecursoNoEncontrado("Producto " + codigo_identificador.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, prod->id, "El producto");
 
     multilista_productos.activar_producto(codigo_identificador);
 
@@ -687,11 +806,12 @@ void CatalogoInvestigacion::activar_producto(const QString& codigo_identificador
 std::shared_ptr<dominio::Producto> CatalogoInvestigacion::eliminar_producto(
     const QString& codigo_identificador,
     bool persistir) {
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(persistir);
     auto prod = buscar_producto(codigo_identificador);
     if (!prod) {
         throw RecursoNoEncontrado("Producto " + codigo_identificador.toStdString() + " no encontrado");
     }
+    exigir_id_remoto(persistir, prod->id, "El producto");
 
     auto* nodo = multilista_productos.buscar_nodo(codigo_identificador);
     std::shared_ptr<dominio::Grupo> grupo_asoc = nodo ? nodo->grupo : nullptr;
@@ -739,6 +859,7 @@ std::optional<estructuras::ComandoInverso> CatalogoInvestigacion::deshacer(bool 
         return std::nullopt;
     }
 
+    verificar_autenticacion_si_aplica(persistir);
     estructuras::ComandoInverso cmd = pila_deshacer.desapilar();
 
     if (cmd.tipo_operacion == "crear") {
@@ -770,6 +891,8 @@ std::optional<estructuras::ComandoInverso> CatalogoInvestigacion::deshacer(bool 
             actualizar_grupo(cmd.identificador, cmd.datos_reversion, persistir);
         } else if (cmd.tipo_entidad == "investigador") {
             actualizar_investigador(cmd.identificador, cmd.datos_reversion, persistir);
+        } else if (cmd.tipo_entidad == "producto") {
+            actualizar_producto(cmd.identificador, cmd.datos_reversion, persistir);
         }
     }
 
@@ -788,105 +911,120 @@ std::optional<estructuras::ComandoInverso> CatalogoInvestigacion::deshacer(bool 
 
 void CatalogoInvestigacion::recargar_todo() {
     if (!m_cliente) return;
-    verificar_autenticacion_si_aplica();
+    verificar_autenticacion_si_aplica(false);
 
-    // 1. Limpiar estructuras en memoria
-    grupos.limpiar();
-    investigadores.limpiar();
-    integrantes.limpiar();
-    multilista_productos.limpiar();
-    proyectos.limpiar();
+    auto grupos_anteriores = std::move(grupos);
+    auto investigadores_anteriores = std::move(investigadores);
+    auto integrantes_anteriores = std::move(integrantes);
+    auto productos_anteriores = std::move(multilista_productos);
+    auto proyectos_anteriores = std::move(proyectos);
+    auto hipercubo_anterior = std::move(hipercubo);
+    const qint64 revision_anterior = controlador_revision.revision_local();
 
-    // 2. Cargar grupos
-    if (m_repo_grupos) {
-        auto grupos_remotos = m_repo_grupos->listar();
-        for (const auto& g : grupos_remotos) {
-            grupos.insertar_final(std::make_shared<dominio::Grupo>(g));
-        }
-    }
-
-    // 3. Cargar investigadores
-    if (m_repo_investigadores) {
-        auto invs_remotos = m_repo_investigadores->listar();
-        for (const auto& inv : invs_remotos) {
-            investigadores.insertar_final(std::make_shared<dominio::Investigador>(inv));
-        }
-    }
-
-    // 4. Cargar integrantes
-    if (m_repo_integrantes) {
-        auto ints_remotos = m_repo_integrantes->listar();
-        for (const auto& m : ints_remotos) {
-            integrantes.insertar_final(m);
-        }
-    }
-
-    // 5. Cargar productos y relaciones
-    if (m_repo_productos) {
-        auto prods_remotos = m_repo_productos->listar();
-        QJsonArray rels_grupos = m_repo_productos->listar_relaciones_grupos();
-        QJsonArray rels_autores = m_repo_productos->listar_relaciones_autores();
-
-        std::unordered_map<qint64, std::shared_ptr<dominio::Producto>> prod_por_id;
-        for (const auto& p : prods_remotos) {
-            if (p.id.has_value()) {
-                prod_por_id[*p.id] = std::make_shared<dominio::Producto>(p);
+    try {
+        // 1. Cargar grupos
+        if (m_repo_grupos) {
+            auto grupos_remotos = m_repo_grupos->listar();
+            for (const auto& g : grupos_remotos) {
+                grupos.insertar_final(std::make_shared<dominio::Grupo>(g));
             }
         }
 
-        std::unordered_map<qint64, std::shared_ptr<dominio::Grupo>> grupo_por_id;
-        for (const auto& g : grupos) {
-            if (g && g->id.has_value()) {
-                grupo_por_id[*g->id] = g;
+        // 2. Cargar investigadores
+        if (m_repo_investigadores) {
+            auto invs_remotos = m_repo_investigadores->listar();
+            for (const auto& inv : invs_remotos) {
+                investigadores.insertar_final(std::make_shared<dominio::Investigador>(inv));
             }
         }
 
-        std::unordered_map<qint64, std::shared_ptr<dominio::Investigador>> inv_por_id;
-        for (const auto& inv : investigadores) {
-            if (inv && inv->id.has_value()) {
-                inv_por_id[*inv->id] = inv;
+        // 3. Cargar integrantes
+        if (m_repo_integrantes) {
+            auto ints_remotos = m_repo_integrantes->listar();
+            for (const auto& m : ints_remotos) {
+                integrantes.insertar_final(m);
             }
         }
 
-        std::unordered_map<qint64, std::shared_ptr<dominio::Grupo>> grupo_de_prod;
-        for (const auto& val : rels_grupos) {
-            if (val.isObject()) {
-                QJsonObject rg = val.toObject();
-                qint64 pid = rg["producto_id"].toVariant().toLongLong();
-                qint64 gid = rg["grupo_id"].toVariant().toLongLong();
-                if (prod_por_id.count(pid) && grupo_por_id.count(gid)) {
-                    grupo_de_prod[pid] = grupo_por_id[gid];
+        // 4. Cargar productos y relaciones
+        if (m_repo_productos) {
+            auto prods_remotos = m_repo_productos->listar();
+            QJsonArray rels_grupos = m_repo_productos->listar_relaciones_grupos();
+            QJsonArray rels_autores = m_repo_productos->listar_relaciones_autores();
+
+            std::unordered_map<qint64, std::shared_ptr<dominio::Producto>> prod_por_id;
+            for (const auto& p : prods_remotos) {
+                if (p.id.has_value()) {
+                    prod_por_id[*p.id] = std::make_shared<dominio::Producto>(p);
+                }
+            }
+
+            std::unordered_map<qint64, std::shared_ptr<dominio::Grupo>> grupo_por_id;
+            for (const auto& g : grupos) {
+                if (g && g->id.has_value()) {
+                    grupo_por_id[*g->id] = g;
+                }
+            }
+
+            std::unordered_map<qint64, std::shared_ptr<dominio::Investigador>> inv_por_id;
+            for (const auto& inv : investigadores) {
+                if (inv && inv->id.has_value()) {
+                    inv_por_id[*inv->id] = inv;
+                }
+            }
+
+            std::unordered_map<qint64, std::shared_ptr<dominio::Grupo>> grupo_de_prod;
+            for (const auto& val : rels_grupos) {
+                if (val.isObject()) {
+                    QJsonObject rg = val.toObject();
+                    qint64 pid = rg["producto_id"].toVariant().toLongLong();
+                    qint64 gid = rg["grupo_id"].toVariant().toLongLong();
+                    if (prod_por_id.count(pid) && grupo_por_id.count(gid)) {
+                        grupo_de_prod[pid] = grupo_por_id[gid];
+                    }
+                }
+            }
+
+            std::unordered_map<qint64, estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>>> autores_de_prod;
+            for (const auto& val : rels_autores) {
+                if (val.isObject()) {
+                    QJsonObject ra = val.toObject();
+                    qint64 pid = ra["producto_id"].toVariant().toLongLong();
+                    qint64 iid = ra["investigador_id"].toVariant().toLongLong();
+                    if (prod_por_id.count(pid) && inv_por_id.count(iid)) {
+                        autores_de_prod[pid].insertar_final(inv_por_id[iid]);
+                    }
+                }
+            }
+
+            for (const auto& p : prods_remotos) {
+                if (p.id.has_value() && prod_por_id.count(*p.id)) {
+                    auto prod_ptr = prod_por_id[*p.id];
+                    std::shared_ptr<dominio::Grupo> grp =
+                        grupo_de_prod.count(*p.id) ? grupo_de_prod[*p.id] : nullptr;
+                    estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>> auts =
+                        autores_de_prod.count(*p.id) ? autores_de_prod[*p.id]
+                                                     : estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>>();
+                    multilista_productos.agregar_producto(prod_ptr, grp, auts);
                 }
             }
         }
 
-        std::unordered_map<qint64, estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>>> autores_de_prod;
-        for (const auto& val : rels_autores) {
-            if (val.isObject()) {
-                QJsonObject ra = val.toObject();
-                qint64 pid = ra["producto_id"].toVariant().toLongLong();
-                qint64 iid = ra["investigador_id"].toVariant().toLongLong();
-                if (prod_por_id.count(pid) && inv_por_id.count(iid)) {
-                    autores_de_prod[pid].insertar_final(inv_por_id[iid]);
-                }
-            }
-        }
+        sincronizarHipercubo();
 
-        for (const auto& p : prods_remotos) {
-            if (p.id.has_value() && prod_por_id.count(*p.id)) {
-                auto prod_ptr = prod_por_id[*p.id];
-                std::shared_ptr<dominio::Grupo> grp = grupo_de_prod.count(*p.id) ? grupo_de_prod[*p.id] : nullptr;
-                estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>> auts =
-                    autores_de_prod.count(*p.id) ? autores_de_prod[*p.id] : estructuras::ListaDoble<std::shared_ptr<dominio::Investigador>>();
-                multilista_productos.agregar_producto(prod_ptr, grp, auts);
-            }
-        }
+        // 5. Sincronizar número de revisión
+        controlador_revision.sincronizar(*m_cliente);
+    } catch (...) {
+        grupos = std::move(grupos_anteriores);
+        investigadores = std::move(investigadores_anteriores);
+        integrantes = std::move(integrantes_anteriores);
+        multilista_productos = std::move(productos_anteriores);
+        proyectos = std::move(proyectos_anteriores);
+        hipercubo = std::move(hipercubo_anterior);
+        controlador_revision.actualizar_local(revision_anterior);
+        estadisticas.setHipercubo(&hipercubo);
+        throw;
     }
-
-    sincronizarHipercubo();
-
-    // 6. Sincronizar número de revisión
-    controlador_revision.sincronizar(*m_cliente);
 }
 
 bool CatalogoInvestigacion::verificar_revision() {

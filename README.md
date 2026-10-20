@@ -9,9 +9,9 @@
 ## 1. Descripción del Proyecto
 PEA-i (Programa Estadístico de Análisis de Investigación) es una solución integral diseñada para capturar, estructurar, persistir y analizar la producción académica y científica de grupos de investigación e investigadores, tomando como fuente de verdad normativa el **Modelo de Reconocimiento y Medición de Minciencias 2024** (M601PR04G01) y la plataforma **SCIENTI** (GrupLAC y CvLAC).
 
-El sistema consta de dos aplicaciones de escritorio independientes pero con paridad arquitectónica y visual:
-- **PEA-i Python**: Desarrollada en **Python 3.12** utilizando **PySide6** (Qt 6).
-- **PEA-i C++**: Desarrollada en **C++17** utilizando **Qt 6 Widgets**, compilada mediante **CMake** y **Ninja**.
+El sistema consta de dos aplicaciones con paridad arquitectónica:
+- **PEA-i Python**: Aplicación de escritorio desarrollada en **Python 3.12** con **PySide6** (Qt 6).
+- **PEA-i C++**: Aplicación de terminal desarrollada en **C++17** con **FTXUI**; usa **Qt Core y Network** exclusivamente para JSON y HTTPS.
 
 Ambas aplicaciones comparten una única base de datos relacional PostgreSQL alojada en la nube mediante **Supabase**, comunicándose de manera exclusiva a través de protocolos seguros **HTTPS** (REST y RPC), sin conexiones directas al puerto PostgreSQL y sin persistencia de credenciales en disco.
 
@@ -21,7 +21,7 @@ Ambas aplicaciones comparten una única base de datos relacional PostgreSQL aloj
 El proyecto implementa una arquitectura en capas estrictamente desacoplada:
 
 ```
-[ Capa de Presentación / GUI ]
+[ Presentación: GUI Python / TUI C++ ]
        ↓
 [ Capa de Servicios / Aplicación ]
        ↓
@@ -58,6 +58,10 @@ cmake -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build cpp/build
 ```
 
+Si FTXUI no está disponible como paquete del entorno, CMake descarga la versión
+fijada `v5.0.0` mediante FetchContent. La compilación requiere acceso a GitHub
+solo durante la configuración inicial si la dependencia aún no está en caché.
+
 ---
 
 ## 4. Ejecución y Pruebas
@@ -85,8 +89,10 @@ python -m pea.cli importar-url --archivo-grupos datos/fuentes/grupos_upc.txt --p
 Para la importación por lote, crea localmente `datos/fuentes/grupos_upc.txt` con un código GrupLAC autorizado por línea. Se omiten líneas vacías y comentarios que comiencen con `#`; los códigos repetidos se procesan una sola vez. No se incluyen códigos de grupos en el repositorio. `--privado` guarda las transcripciones completas en la carpeta privada de salida; si se van a compartir archivos, añade `--anonimizar`. La opción `--privado` no anonimiza por sí sola.
 
 ### PEA-i C++
-- **C++ CLI**: `.\cpp\build\pea-cpp.exe --version`
-- **C++ GUI**: `.\cpp\build\pea-cpp.exe`
+- **Terminal interactiva**: `.\cpp\build\pea-cpp.exe` (opcional `--demo`, `--ascii`, `--sin-color`).
+- **CLI no interactiva**: `.\cpp\build\pea-cpp.exe --version` o `.\cpp\build\pea-cpp.exe --help`.
+- **Autoprueba de pantallas**: `.\cpp\build\pea-cpp.exe --autoprueba` (escribe capturas en `datos/capturas/terminal/`).
+- La TUI actual incluye navegación, resumen y directorios; algunas vistas y acciones de gestión aún no están implementadas. Consulte la matriz de paridad antes de considerar C++ equivalente a Python.
 
 ---
 

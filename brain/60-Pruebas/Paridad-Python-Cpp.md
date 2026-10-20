@@ -15,7 +15,7 @@ origen: "Matriz de paridad funcional y operativa entre la lógica de Python y el
 
 ## Propósito
 
-Esta matriz documenta la equivalencia funcional entre la implementación de Python y la base C++ actual. Se sigue la convención del enunciado: una fila por operación pública relevante y columnas para `Python`, `C++ existente`, `Estado` (`igual` / `falta` / `distinto`) y la `Tarea` pendiente o ya resuelta.
+Esta matriz contrasta las operaciones públicas de Python con el código C++ inspeccionado. `igual` indica que existe una implementación equivalente y debe acompañarse de pruebas; no certifica por sí solo paridad byte a byte, persistencia remota ni aceptación de interfaz. La evidencia de la iteración se limita a los tests C++ indicados y a `pea-cpp --autoprueba`.
 
 ## Estado general
 
@@ -35,7 +35,7 @@ Esta matriz documenta la equivalencia funcional entre la implementación de Pyth
 | Eliminar investigador | `ServicioDominio.eliminar_investigador()` | `CatalogoInvestigacion::eliminar_investigador()` | igual | Comprobar dependencias y cascadas |
 | Crear producto | `ServicioDominio.crear_producto()` | `CatalogoInvestigacion::crear_producto()` | igual | Validaciones de categoría / validación |
 | Buscar producto | `ServicioDominio.buscar_producto()` | `CatalogoInvestigacion::buscar_producto()` | igual | Confirmar que devuelve producto activo e inactivo |
-| Actualizar producto | `ServicioDominio.actualizar_producto()` | `CatalogoInvestigacion::actualizar_producto()` | igual | Requiere pruebas de edición y deshacer |
+| Actualizar producto | `ServicioDominio.actualizar_producto()` | `CatalogoInvestigacion::actualizar_producto()` | distinto | C++ actualiza metadatos con compensación y undo; falta cambio de grupo y prueba diferencial |
 | Desactivar producto | `ServicioDominio.desactivar_producto()` | soporte en catálogo/estructura | igual | Confirmar ser reversible |
 | Activar producto | `ServicioDominio.activar_producto()` | soporte en catálogo | igual | Validar estado activo cuando se reanuda |
 | Eliminar producto | `ServicioDominio.eliminar_producto()` | `CatalogoInvestigacion::eliminar_producto()` | igual | Verificar remoción de multilista y relaciones |
@@ -51,6 +51,20 @@ Esta matriz documenta la equivalencia funcional entre la implementación de Pyth
 | Productos por año | `ServicioEstadisticas.productos_por_anio()` | `ServicioEstadisticas` | igual | Validar total y rangos por filtro |
 | Productos por categoría | `ServicioEstadisticas.productos_por_categoria()` | `ServicioEstadisticas` | igual | Comprobar orden y agregación |
 | Serie anual por categoría | `serie_anual_por_categoria` | `ServicioEstadisticas` | igual | Verificar sumas por año |
+| Productos por validación | `productos_por_validacion()` | `productosPorValidacion()` | igual | Comparar resultados diferenciales |
+| Productos por grupo | `productos_por_grupo()` | `productosPorGrupo()` | igual | Comparar resultados diferenciales |
+| Productos por investigador | `productos_por_investigador()` | `productosPorInvestigador()` | igual | Comparar resultados diferenciales |
+| Promedio por investigador | `promedio_por_investigador()` | `promedioPorInvestigador()` | igual | Verificar agrupación y redondeo con fixtures |
+| Top 5 investigadores | `top_5_investigadores()` | `top5Investigadores()` | igual | Comparar desempate y filtro de grupo |
+| Top 5 grupos | `top_5_grupos()` | `top5Grupos()` | igual | Comparar desempate |
+| Porcentajes por categoría | `porcentajes_por_categoria()` | `porcentajesPorCategoria()` | igual | Comparar precisión y totales |
+| Porcentajes por validación | `porcentajes_por_validacion()` | `porcentajesPorValidacion()` | igual | Comparar precisión y totales |
+| Vista institucional | `obtener_vista_institucional()` | `obtenerVistaInstitucional()` | igual | Falta prueba de contrato JSON diferencial |
+| Vista de grupo | `obtener_vista_grupo()` | `obtenerVistaGrupo()` | igual | Falta prueba de contrato JSON diferencial |
+| Vista de investigador | `obtener_vista_investigador()` | `obtenerVistaInvestigador()` | igual | Falta prueba de contrato JSON diferencial |
+| Vista de producto | No hay vista estadística pública equivalente | Sin función pública equivalente | falta | Definir una vista solo si está respaldada por el requisito; no inventar métricas |
+| Histograma productos por investigador | `distribucion_productos_por_investigador()` | `distribucionProductosPorInvestigador()` | igual | Casos de rangos cubiertos en `test_filtro_estadisticas.cpp`; falta comparación diferencial |
+| Histograma por año en vista de investigador | Cálculo en `vista_investigador()` | Sin función equivalente con filtro de investigador | falta | Añadir distribución por investigador/año |
 | Hipercubo rebanada | `Hipercubo.rebanada()` | `Hipercubo5D` / subcubo | igual | Probar ventana temporal y dimensiones |
 | Enrollar / enrollamiento | `Hipercubo.enrollar()` | `Hipercubo5D` | igual | Comprobar densidad y reagrupación |
 | Filtro de años TODOS | `FiltroAnios.TODOS` | equivalente de servicio | igual | Confirmar salida global |
@@ -60,13 +74,19 @@ Esta matriz documenta la equivalencia funcional entre la implementación de Pyth
 | Descripción textual del filtro | `descripcion()` | `FiltroAnios` / `ServicioEstadisticas` | igual | Mantener textos de pantalla |
 | Importación CSV | lector en Python | `ServicioIngesta` / `lector_csv` | igual | Probar filas omitidas y errores |
 | Importación URL | extractor URL / parseador | `ServicioIngesta` + `extractor_url` | igual | Validar política de scraping y límites |
-| Exportación CSV | exportador de catálogo | parte del CLI | distinto | C++ necesita completar por completo la salida de CSV |
-| Modo no interactivo / CLI | `pea.cli` | `pea-cpp` + `pea::cli::ejecutar` | igual | Validar en flujos reales y argumentos |
-| Modo TUI interactivo | no existe en Python | planeado para C++ | falta | Implementar terminal moderna con FTXUI |
+| Exportación CSV | `exportar_tabla_csv()` y CLI | `comandoExportarCsv()` | distinto | Alinear columnas/orden y probar byte a byte |
+| Exportación Markdown y JSON de vista | `ServicioAplicacion` | Sin salida equivalente comprobada | falta | Implementar los formatos exigidos |
+| Modo no interactivo / CLI | `pea.cli` | `pea-cpp` + `pea::cli::ejecutar` | distinto | Comparar salida, argumentos y códigos de salida |
+| Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | Faltan CRUD interactivo, fichas, filtros, gráficos, modales y estados completos |
+| Red de coautoría | `ServicioAplicacion.red_coautoria()` | Sin función equivalente | falta | Implementar datos y métricas de red desde las relaciones cargadas |
+| Escritura desconectada | Bloqueada en `ServicioAplicacion` | Servicios C++ sin cliente aceptan `persistir=true` como operación solo en memoria en varios flujos | distinto | Distinguir explícitamente modo demo/local y bloquear escrituras presentadas como remotas |
+| Revisión remota periódica | Verificación de aplicación Python | Solo consulta manual / antes de mutaciones en C++ | distinto | Añadir verificación periódica y acción de recarga |
 
-## Observaciones finales
+## Brechas confirmadas y evidencia
 
-- La paridad funcional del núcleo está consolidada en la mayoría de las operaciones del dominio, estadísticas y estructuras.
-- La diferencia más importante que queda abierta es la etapa de interfaz y la exportación CSV de C++.
-- El cambio de C++ a terminal no elimina la necesidad de mantener la lógica de negocio alineada con Python; la regla de Python como fuente de verdad sigue vigente.
-- La matriz debe actualizarse cada vez que se complete una operación o una diferencia funcional se resuelva.
+- La edición de producto añadida en esta iteración cubre metadatos y undo local; aún no permite cambiar su grupo, y no se ha probado contra un repositorio remoto.
+- La TUI es parcial y principalmente de lectura. Las secciones de redes e importación son informativas; no se presentan como flujos completos.
+- La autoprueba ejecutada renderizó 32 combinaciones y guardó capturas con cero hallazgos de ancho, reemplazo, salida vacía o escritura. No compara snapshots ni detecta todo truncamiento.
+- No se ejecutó verificación cruzada CLI contra Python ni conexión autenticada a `pea-prod`; sus conteos reales no se declaran coincidentes.
+- Los estados `igual` describen equivalencia de operación visible en los servicios, no una prueba diferencial exhaustiva. Las tareas de validación de cada fila permanecen pendientes mientras no exista esa prueba.
+- Toda discrepancia de comportamiento entre las implementaciones debe resolverse contra Python o registrarse explícitamente antes de cambiar la semántica.

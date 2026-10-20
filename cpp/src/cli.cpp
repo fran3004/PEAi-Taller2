@@ -5,9 +5,11 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
 #include "pea/ingesta/extractor_url.hpp"
 #include "pea/version.hpp"
+#include "pea/datos/configuracion_conexion.hpp"
 
 #include <iostream>
 #include <memory>
+#include <exception>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -19,17 +21,7 @@ namespace pea::cli {
 namespace {
 
 std::unique_ptr<ClienteHTTPSupabase> obtenerClienteDesdeEntorno() {
-    auto env = QProcessEnvironment::systemEnvironment();
-    QString url = env.value("PEA_SUPABASE_URL_PROD");
-    if (url.isEmpty()) url = env.value("PEA_SUPABASE_URL_TEST");
-
-    QString key = env.value("PEA_SUPABASE_ANON_PROD");
-    if (key.isEmpty()) key = env.value("PEA_SUPABASE_ANON_TEST");
-
-    if (!url.isEmpty() && !key.isEmpty()) {
-        return std::make_unique<ClienteHTTPSupabase>(url, key, 10000);
-    }
-    return nullptr;
+    return datos::crear_cliente_configurado();
 }
 
 void mostrarAyuda() {
@@ -46,7 +38,9 @@ void mostrarAyuda() {
               << "  cargar-ejemplo           Carga datos oficiales de prueba con prefijo PRUEBA-\n"
               << "  aplicar-escenario        Ejecuta escenario de mutación y reversión (Undo LIFO)\n"
               << "  -v, --version            Muestra la versión de la aplicación y sale\n"
-              << "  -h, --help               Muestra este mensaje de ayuda y sale\n";
+              << "  -h, --help               Muestra este mensaje de ayuda y sale\n"
+              << "Opciones de terminal: --demo, --sin-color, --ascii, --sin-animacion\n"
+              << "Terminal recomendada: Windows Terminal.\n";
 }
 
 int comandoInfo() {
@@ -61,9 +55,8 @@ int comandoInfo() {
 int comandoVerificar() {
     auto cliente = obtenerClienteDesdeEntorno();
     if (!cliente) {
-        std::cout << "Aviso: Variables PEA_SUPABASE_URL y PEA_SUPABASE_ANON no configuradas en el entorno.\n";
-        std::cout << "Estado local: " << obtener_version() << " operando en modo desconectado.\n";
-        return 0;
+        std::cerr << "Error: configure la URL y la clave publicable de pea-prod para verificar la conexión.\n";
+        return 1;
     }
 
     try {
@@ -91,9 +84,9 @@ int comandoResumen(bool salidaJson) {
         try {
             catalogo.recargar_todo();
         } catch (const std::exception& err) {
-            if (!salidaJson) {
-                std::cout << "Aviso: no se pudo recargar de la base remota (" << err.what() << "). Mostrando estado local.\n";
-            }
+            std::cerr << "Error: no se pudo recargar de Supabase; se cancela el resumen para evitar mostrar datos obsoletos ("
+                      << err.what() << ").\n";
+            return 1;
         }
     }
 
@@ -116,11 +109,14 @@ int comandoResumen(bool salidaJson) {
 
 int comandoImportarCsv(const QString& rutaArchivo, const QString& tipo) {
     auto cliente = obtenerClienteDesdeEntorno();
+    if (!cliente) {
+        std::cerr << "Error: conectar con Supabase antes de importar; no se guardaron datos locales como si fueran actuales.\n";
+        return 1;
+    }
     auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(cliente.get());
-    bool persistir = (cliente != nullptr);
 
     ingesta::ServicioIngesta servicio(catalogo);
-    servicio.encolar_csv(rutaArchivo, tipo, persistir);
+    servicio.encolar_csv(rutaArchivo, tipo, true);
     auto informe = servicio.procesar_siguiente();
 
     if (!informe || !informe->exito) {
@@ -138,10 +134,11 @@ int comandoImportarCsv(const QString& rutaArchivo, const QString& tipo) {
 
 int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
     auto cliente = obtenerClienteDesdeEntorno();
-    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(cliente.get());
-    if (!cliente) {
-        persistir = false;
+    if (persistir && !cliente) {
+        std::cerr << "Error: se solicitó persistir la importación, pero no hay conexión a Supabase.\n";
+        return 1;
     }
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(cliente.get());
 
     ingesta::ServicioIngesta servicio(catalogo);
     try {
@@ -160,7 +157,9 @@ int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
         std::cout << "Grupos procesados:        " << informe->grupos_procesados << "\n";
         std::cout << "Investigadores procesados: " << informe->investigadores_procesados << "\n";
         std::cout << "Productos procesados:      " << informe->productos_procesados << "\n";
-        std::cout << "Estado:                   Extracción completada con éxito.\n";
+        std::cout << "Estado:                   "
+                  << (persistir ? "Importación guardada en Supabase.\n"
+                                : "Extracción completada; no se guardó en Supabase.\n");
         std::cout << "============================================================\n";
         return 0;
     } catch (const std::exception& err) {
@@ -176,13 +175,17 @@ int comandoExportarCsv(const QString& dirDestino) {
     }
 
     auto cliente = obtenerClienteDesdeEntorno();
+    if (!cliente) {
+        std::cerr << "Error: conectar con Supabase antes de exportar el catálogo.\n";
+        return 1;
+    }
     servicios::CatalogoInvestigacion catalogo(cliente.get());
-    if (cliente) {
-        try {
-            catalogo.recargar_todo();
-        } catch (const std::exception& err) {
-            std::cout << "Aviso al recargar datos remotos: " << err.what() << "\n";
-        }
+    try {
+        catalogo.recargar_todo();
+    } catch (const std::exception& err) {
+        std::cerr << "Error: no se pudo recargar el catálogo remoto; exportación cancelada ("
+                  << err.what() << ").\n";
+        return 1;
     }
 
     // 1. Exportar Grupos
@@ -234,8 +237,12 @@ int comandoExportarCsv(const QString& dirDestino) {
 
 int comandoCargarEjemplo() {
     auto cliente = obtenerClienteDesdeEntorno();
+    if (!cliente) {
+        std::cerr << "Error: conectar con Supabase antes de cargar los datos de ejemplo PRUEBA-.\n";
+        return 1;
+    }
     servicios::CatalogoInvestigacion catalogo(cliente.get());
-    bool persistir = (cliente != nullptr);
+    constexpr bool persistir = true;
 
     auto g = std::make_shared<dominio::Grupo>(
         "PRUEBA-GRP-CLI-01",
@@ -337,7 +344,7 @@ int comandoAplicarEscenario() {
 
 } // namespace
 
-int ejecutar(const QStringList& args) {
+static int ejecutar_interno(const QStringList& args) {
     if (args.isEmpty()) {
         mostrarAyuda();
         return 0;
@@ -426,6 +433,15 @@ int ejecutar(const QStringList& args) {
 
     mostrarAyuda();
     return 1;
+}
+
+int ejecutar(const QStringList& args) {
+    try {
+        return ejecutar_interno(args);
+    } catch (const std::exception& error) {
+        std::cerr << "Error: " << error.what() << '\n';
+        return 1;
+    }
 }
 
 } // namespace pea::cli

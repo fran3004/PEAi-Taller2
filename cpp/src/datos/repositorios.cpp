@@ -254,6 +254,25 @@ std::optional<dominio::Producto> RepositorioProductos::obtener_por_codigo(const 
     return std::nullopt;
 }
 
+dominio::Producto RepositorioProductos::actualizar(
+    const QString& codigo_identificador,
+    const QJsonObject& datos) {
+    const QString filtros = QString("codigo_identificador=eq.%1").arg(codigo_identificador);
+    const QJsonDocument respuesta = m_cliente.patch("productos", QJsonDocument(datos), filtros);
+    if (respuesta.isArray()) {
+        const QJsonArray filas = respuesta.array();
+        if (!filas.isEmpty() && filas.at(0).isObject()) {
+            return dominio::Producto::desdeJson(filas.at(0).toObject());
+        }
+    }
+    const auto producto = obtener_por_codigo(codigo_identificador);
+    if (!producto.has_value()) {
+        throw RecursoNoEncontrado(
+            "Producto con código " + codigo_identificador.toStdString() + " no encontrado tras actualizar");
+    }
+    return *producto;
+}
+
 qint64 RepositorioProductos::crear_con_rpc(
     const dominio::Producto& producto,
     std::optional<qint64> grupo_id,

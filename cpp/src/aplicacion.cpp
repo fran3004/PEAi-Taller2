@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "pea/cli.hpp"
+#include "pea/tui/aplicacion_tui.hpp"
 #include "pea/version.hpp"
 
 namespace pea {
@@ -20,9 +21,14 @@ int ejecutar_aplicacion(int argc, char* argv[]) {
     aplicacion.setApplicationVersion(APP_VERSION);
     aplicacion.setOrganizationName(INSTITUCION);
 
-    if (argumentos.isEmpty()) {
-        std::cout << "PEA-i ejecuta modo terminal. Use -h o --help para ver la CLI disponible.\n";
-        return pea::cli::ejecutar(QStringList{"-h"});
+    const bool demo = argumentos.removeAll("--demo") > 0;
+    const bool sin_color = argumentos.removeAll("--sin-color") > 0;
+    const bool ascii = argumentos.removeAll("--ascii") > 0;
+    argumentos.removeAll("--sin-animacion");
+    const bool autoprueba = argumentos.removeAll("--autoprueba") > 0;
+
+    if (argumentos.isEmpty() || demo || autoprueba) {
+        return pea::tui::ejecutar(demo, autoprueba, sin_color, ascii);
     }
 
     return pea::cli::ejecutar(argumentos);

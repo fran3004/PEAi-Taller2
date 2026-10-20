@@ -92,6 +92,10 @@ public:
         const std::vector<QString>& codigos_rh_autores = {},
         bool persistir = true);
     [[nodiscard]] std::shared_ptr<dominio::Producto> buscar_producto(const QString& codigo_identificador) const;
+    std::shared_ptr<dominio::Producto> actualizar_producto(
+        const QString& codigo_identificador,
+        const QJsonObject& datos,
+        bool persistir = true);
     void desactivar_producto(const QString& codigo_identificador, bool persistir = true);
     void activar_producto(const QString& codigo_identificador, bool persistir = true);
     std::shared_ptr<dominio::Producto> eliminar_producto(const QString& codigo_identificador, bool persistir = true);
@@ -115,7 +119,7 @@ private:
     std::unique_ptr<datos::RepositorioProductos> m_repo_productos;
     std::unique_ptr<datos::RepositorioProyectos> m_repo_proyectos;
 
-    void verificar_autenticacion_si_aplica();
+    void verificar_autenticacion_si_aplica(bool persistir);
 };
 
 } // namespace pea::servicios

@@ -7,6 +7,21 @@
 #include <QJsonParseError>
 
 namespace pea {
+namespace {
+
+struct LimpiadorCredencial {
+    QString& texto;
+    QByteArray& bytes;
+
+    ~LimpiadorCredencial() {
+        texto.fill(QChar('\0'));
+        texto.clear();
+        bytes.fill('\0');
+        bytes.clear();
+    }
+};
+
+} // namespace
 
 ClienteHTTPSupabase::ClienteHTTPSupabase(const QString& baseUrl, const QString& anonKey, int timeoutMs)
     : m_baseUrl(baseUrl),
@@ -28,6 +43,30 @@ void ClienteHTTPSupabase::cerrarSesion() {
 
 QString ClienteHTTPSupabase::tokenAcceso() const {
     return m_tokenAcceso;
+}
+
+QJsonObject ClienteHTTPSupabase::autenticar(const QString& correo, QString clave) {
+    QJsonObject credenciales;
+    credenciales["email"] = correo;
+    credenciales["password"] = clave;
+    QByteArray cuerpo = QJsonDocument(credenciales).toJson(QJsonDocument::Compact);
+    credenciales["password"] = QString();
+    clave.fill(QChar('\0'));
+    clave.clear();
+    LimpiadorCredencial limpiar{clave, cuerpo};
+
+    QNetworkRequest solicitud(QUrl(m_baseUrl + "/auth/v1/token?grant_type=password"));
+    solicitud.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    solicitud.setRawHeader("apikey", m_anonKey.toUtf8());
+    const QJsonDocument respuesta = ejecutarSolicitud(solicitud, "POST", cuerpo);
+    if (!respuesta.isObject()) {
+        throw ErrorAutenticacion("Supabase Auth devolvió una respuesta inválida.");
+    }
+    const QJsonObject objeto = respuesta.object();
+    if (objeto.value("access_token").toString().isEmpty()) {
+        throw ErrorAutenticacion("Supabase Auth no devolvió un token de sesión.");
+    }
+    return objeto;
 }
 
 bool ClienteHTTPSupabase::soportaTLS() {

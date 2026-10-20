@@ -7,8 +7,10 @@
 #include <QList>
 #include <QMap>
 #include <QPair>
+#include <QSet>
 #include <QString>
 #include "pea/estructuras/hipercubo.hpp"
+#include "pea/servicios/filtro_anios.hpp"
 
 namespace pea::servicios {
 
@@ -27,6 +29,9 @@ public:
 
     [[nodiscard]] QMap<int, int> productosPorAnio(const estructuras::Hipercubo5D* cubo = nullptr) const;
 
+    [[nodiscard]] QMap<int, QMap<QString, int>> serieAnualPorCategoria(
+        const estructuras::Hipercubo5D* cubo = nullptr) const;
+
     [[nodiscard]] QMap<QString, int> productosPorCategoria(const estructuras::Hipercubo5D* cubo = nullptr) const;
 
     [[nodiscard]] QMap<QString, int> productosPorValidacion(const estructuras::Hipercubo5D* cubo = nullptr) const;
@@ -34,6 +39,18 @@ public:
     [[nodiscard]] QMap<QString, int> productosPorGrupo(const estructuras::Hipercubo5D* cubo = nullptr) const;
 
     [[nodiscard]] QMap<QString, int> productosPorInvestigador(const estructuras::Hipercubo5D* cubo = nullptr) const;
+
+    [[nodiscard]] QMap<QString, int> distribucionProductosPorInvestigador(
+        const QSet<QString>& codigosInvestigadores = {},
+        const estructuras::Hipercubo5D* cubo = nullptr) const;
+
+    [[nodiscard]] QMap<QString, int> distribucionProductosPorAnio(
+        const estructuras::Hipercubo5D* cubo = nullptr) const;
+
+    [[nodiscard]] estructuras::Hipercubo5D aplicarFiltro(
+        const FiltroAnios& filtro,
+        int anioActual,
+        const estructuras::Hipercubo5D* cubo = nullptr) const;
 
     [[nodiscard]] double promedioPorInvestigador(const QString& idGrupo = "", const estructuras::Hipercubo5D* cubo = nullptr) const;
 

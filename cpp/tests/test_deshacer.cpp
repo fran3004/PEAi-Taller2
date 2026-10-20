@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include "pea/excepciones.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
 
 using namespace pea::servicios;
@@ -68,4 +69,42 @@ TEST_CASE("Deshacer - Reversión de edición de grupo") {
     CHECK(cmd->tipo_operacion == "editar");
     CHECK(g->nombre == "Nombre Original");
     CHECK(g->categoria == "B");
+}
+
+TEST_CASE("Deshacer - Reversión de edición de producto y sincronización del hipercubo") {
+    CatalogoInvestigacion catalogo;
+    auto prod = std::make_shared<Producto>("PRD-EDIT-01", "Título anterior", "GNC", "Artículo", 2024);
+    catalogo.crear_producto(prod, QString(), {}, false);
+
+    QJsonObject cambios;
+    cambios["titulo"] = "Título actualizado";
+    cambios["ano"] = 2023;
+    cambios["mes"] = 8;
+    catalogo.actualizar_producto(prod->codigo_identificador, cambios, false);
+    CHECK(prod->titulo == "Título actualizado");
+    CHECK(prod->ano == 2023);
+    REQUIRE(prod->mes.has_value());
+    CHECK(*prod->mes == 8);
+    CHECK(catalogo.estadisticas.productosPorAnio().value(2023) == 1);
+
+    const auto comando = catalogo.deshacer(false);
+    REQUIRE(comando.has_value());
+    CHECK(comando->tipo_operacion == "editar");
+    CHECK(prod->titulo == "Título anterior");
+    CHECK(prod->ano == 2024);
+    CHECK_FALSE(prod->mes.has_value());
+    CHECK(catalogo.estadisticas.productosPorAnio().value(2024) == 1);
+}
+
+TEST_CASE("Actualizar producto rechaza campos desconocidos sin mutar datos") {
+    CatalogoInvestigacion catalogo;
+    auto prod = std::make_shared<Producto>("PRD-INVALID-01", "Sin cambios", "ASC", "Artículo", 2024);
+    catalogo.crear_producto(prod, QString(), {}, false);
+
+    QJsonObject cambios;
+    cambios["titulo"] = "Cambio parcial";
+    cambios["campo_no_permitido"] = "valor";
+    CHECK_THROWS_AS(catalogo.actualizar_producto(prod->codigo_identificador, cambios, false),
+                    pea::ErrorValidacion);
+    CHECK(prod->titulo == "Sin cambios");
 }

@@ -1,12 +1,23 @@
 #include <doctest/doctest.h>
 #include "pea/datos/sesion.hpp"
 #include "pea/datos/revision.hpp"
-#include "pea/servicios/catalogo_investigacion.hpp"
 #include "pea/excepciones.hpp"
+#include "pea/servicios/catalogo_investigacion.hpp"
 
 using namespace pea::datos;
 using namespace pea::servicios;
 using namespace pea::dominio;
+
+TEST_CASE("Las escrituras persistentes sin cliente Supabase se bloquean antes de mutar") {
+    CatalogoInvestigacion catalogo;
+    auto grupo = std::make_shared<Grupo>("PRUEBA-OFFLINE-01", "Grupo fuera de línea");
+
+    CHECK_THROWS_AS(catalogo.crear_grupo(grupo), pea::ErrorConexion);
+    CHECK(catalogo.grupos.estaVacia());
+
+    CHECK_NOTHROW(catalogo.crear_grupo(grupo, false));
+    CHECK(catalogo.grupos.tamano() == 1);
+}
 
 TEST_CASE("Sesión - ciclo de vida en memoria y expiración") {
     Sesion sesion;

@@ -32,6 +32,23 @@ QMap<int, int> ServicioEstadisticas::productosPorAnio(const estructuras::Hipercu
     return c->enrollarAnio();
 }
 
+QMap<int, QMap<QString, int>> ServicioEstadisticas::serieAnualPorCategoria(
+    const estructuras::Hipercubo5D* cubo) const {
+    const estructuras::Hipercubo5D* base = cubo ? cubo : m_hipercubo;
+    QMap<int, QMap<QString, int>> resultado;
+    if (!base) {
+        return resultado;
+    }
+    const auto anios = productosPorAnio(base);
+    for (auto anio = anios.constBegin(); anio != anios.constEnd(); ++anio) {
+        const auto por_anio = base->rebanada(
+            estructuras::Hipercubo5D::DIM_ANIO, QString::number(anio.key()));
+        const auto categorias = productosPorCategoria(&por_anio);
+        resultado.insert(anio.key(), categorias);
+    }
+    return resultado;
+}
+
 QMap<QString, int> ServicioEstadisticas::productosPorCategoria(const estructuras::Hipercubo5D* cubo) const {
     const estructuras::Hipercubo5D* c = cubo ? cubo : m_hipercubo;
     QMap<QString, int> resultado;
@@ -82,6 +99,66 @@ QMap<QString, int> ServicioEstadisticas::productosPorInvestigador(const estructu
     const estructuras::Hipercubo5D* c = cubo ? cubo : m_hipercubo;
     if (!c) return {};
     return c->enrollar(estructuras::Hipercubo5D::DIM_INVESTIGADOR);
+}
+
+QMap<QString, int> ServicioEstadisticas::distribucionProductosPorInvestigador(
+    const QSet<QString>& codigosInvestigadores,
+    const estructuras::Hipercubo5D* cubo) const {
+    QSet<QString> codigos = codigosInvestigadores;
+    const auto conteos = productosPorInvestigador(cubo);
+    for (auto it = conteos.constBegin(); it != conteos.constEnd(); ++it) {
+        if (it.key() != "SIN_INVESTIGADOR") {
+            codigos.insert(it.key());
+        }
+    }
+    codigos.remove("SIN_INVESTIGADOR");
+
+    QMap<QString, int> resultado{
+        {"0", 0}, {"1–2", 0}, {"3–5", 0}, {"6–10", 0}, {"11+", 0},
+    };
+    for (const auto& codigo : codigos) {
+        const int cantidad = conteos.value(codigo, 0);
+        if (cantidad == 0) {
+            ++resultado["0"];
+        } else if (cantidad <= 2) {
+            ++resultado["1–2"];
+        } else if (cantidad <= 5) {
+            ++resultado["3–5"];
+        } else if (cantidad <= 10) {
+            ++resultado["6–10"];
+        } else {
+            ++resultado["11+"];
+        }
+    }
+    return resultado;
+}
+
+QMap<QString, int> ServicioEstadisticas::distribucionProductosPorAnio(
+    const estructuras::Hipercubo5D* cubo) const {
+    const auto conteos = productosPorAnio(cubo);
+    QMap<QString, int> resultado;
+    for (auto it = conteos.constBegin(); it != conteos.constEnd(); ++it) {
+        resultado.insert(QString::number(it.key()), it.value());
+    }
+    return resultado;
+}
+
+estructuras::Hipercubo5D ServicioEstadisticas::aplicarFiltro(
+    const FiltroAnios& filtro,
+    int anioActual,
+    const estructuras::Hipercubo5D* cubo) const {
+    const estructuras::Hipercubo5D* base = cubo ? cubo : m_hipercubo;
+    if (!base) {
+        return {};
+    }
+    const auto rango = filtro.resolver(anioActual);
+    if (rango.modelo_2024) {
+        return base->subcuboModelo2024(2023);
+    }
+    if (rango.inicio.has_value() || rango.fin.has_value()) {
+        return base->subcuboPorVentana(rango.inicio, rango.fin);
+    }
+    return *base;
 }
 
 double ServicioEstadisticas::promedioPorInvestigador(const QString& idGrupo, const estructuras::Hipercubo5D* cubo) const {

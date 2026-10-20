@@ -8,6 +8,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(doctest REQUIRED)
 
+find_package(ftxui QUIET)
+if(NOT TARGET ftxui::component)
+    include(FetchContent)
+    set(FTXUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(FTXUI_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+    set(FTXUI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        ftxui
+        GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
+        GIT_TAG v5.0.0
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(ftxui)
+endif()
+
 if(MSVC)
     add_compile_options(/W4 /WX)
 else()
@@ -20,6 +35,7 @@ add_library(pea_core STATIC
     include/pea/cliente_http.hpp
     include/pea/cli.hpp
     include/pea/aplicacion.hpp
+    include/pea/tui/aplicacion_tui.hpp
     include/pea/estructuras/nodo.hpp
     include/pea/estructuras/lista_doble.hpp
     include/pea/estructuras/multilista.hpp
@@ -33,9 +49,11 @@ add_library(pea_core STATIC
     include/pea/dominio/proyecto.hpp
     include/pea/dominio/plan.hpp
     include/pea/datos/sesion.hpp
+    include/pea/datos/configuracion_conexion.hpp
     include/pea/datos/revision.hpp
     include/pea/datos/repositorios.hpp
     include/pea/servicios/catalogo_investigacion.hpp
+    include/pea/servicios/filtro_anios.hpp
     include/pea/servicios/servicio_estadisticas.hpp
     include/pea/ingesta/modelos.hpp
     include/pea/ingesta/parser_html.hpp
@@ -43,8 +61,10 @@ add_library(pea_core STATIC
     include/pea/ingesta/extractor_url.hpp
     include/pea/ingesta/servicio_ingesta.hpp
     src/aplicacion.cpp
+    src/tui/aplicacion_tui.cpp
     src/cliente_http.cpp
     src/datos/sesion.cpp
+    src/datos/configuracion_conexion.cpp
     src/datos/revision.cpp
     src/datos/repositorios.cpp
     src/servicios/catalogo_investigacion.cpp
@@ -59,6 +79,7 @@ add_library(pea_core STATIC
 target_link_libraries(pea_core PUBLIC
     Qt6::Core
     Qt6::Network
+    ftxui::component
 )
 
 target_include_directories(pea_core PUBLIC
@@ -85,6 +106,7 @@ add_executable(pruebas_cpp
     tests/test_resiliencia.cpp
     tests/test_ingesta.cpp
     tests/test_hipercubo.cpp
+    tests/test_filtro_estadisticas.cpp
 )
 
 target_link_libraries(pruebas_cpp PRIVATE

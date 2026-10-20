@@ -14,14 +14,14 @@ relacionado:
   - "[[ADR-0002-Unico-proyecto-Supabase]]"
   - "[[ADR-0007-Compensacion-de-persistencia-reversion]]"
   - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"
-origen: "Contrato AGENTS.md y A4-D1 Auditoría de Diseño"
+origen: "Contrato AGENTS.md y A4-D1 Auditoría de Diseño, actualizado por ADR-0019"
 ---
 
 # Diseño · Arquitectura Canónica del Sistema
 
 ## 1. Propósito
 
-Esta nota formaliza la arquitectura por capas desacoplada que rige tanto la implementación en **Python 3.12 (PySide6)** como en **C++17 (Qt 6 Widgets)** para el sistema **PEA-i**. Define el flujo de datos unidireccional, las responsabilidades por nivel y las garantías de aislamiento entre la interfaz de usuario, las estructuras de datos en memoria y la persistencia remota en Supabase.
+Esta nota formaliza la arquitectura por capas desacoplada que rige la implementación **Python 3.12 (PySide6)** y la aplicación **C++17 de terminal (FTXUI)** para el sistema **PEA-i**. Define el flujo de datos unidireccional, las responsabilidades por nivel y las garantías de aislamiento entre la presentación, las estructuras de datos en memoria y la persistencia remota en Supabase. La decisión de retirar Qt Widgets/Gui de C++ consta en [[ADR-0019-Cpp-terminal-con-ftxui]].
 
 ---
 
@@ -29,8 +29,8 @@ Esta nota formaliza la arquitectura por capas desacoplada que rige tanto la impl
 
 ```mermaid
 graph TD
-    subgraph Cliente ["Cliente de Escritorio (Python / C++)"]
-        GUI["1. Capa de Presentación (GUI Qt 6)"]
+    subgraph Cliente ["Aplicaciones PEA-i (Python / C++)"]
+        GUI["1. Presentación (GUI Python / TUI C++)"]
         Servicios["2. Capa de Servicios (Casos de Uso)"]
         Estructuras["3. Estructuras Hechas a Mano (Memoria)"]
         Repositorios["4. Repositorios de Persistencia (REST / RPC)"]
@@ -64,11 +64,11 @@ graph TD
 
 ## 3. Responsabilidades por Capa
 
-### Capa 1: Presentación (GUI)
-- **Tecnologías**: PySide6 (Python) y Qt 6 Widgets (C++).
-- **Regla Estricta**: La GUI desconoce absolutamente la existencia de SQL, PostgreSQL, PostgREST o la red. No almacena estado de dominio ni manipula directamente punteros de las estructuras de datos.
+### Capa 1: Presentación
+- **Tecnologías**: PySide6 (Python) y FTXUI (C++).
+- **Regla Estricta**: La presentación desconoce absolutamente la existencia de SQL, PostgreSQL, PostgREST o la red. No almacena estado de dominio ni manipula directamente punteros de las estructuras de datos.
 - **Interacción**: Captura eventos del usuario (clic, texto, selección), invoca métodos asíncronos o sincrónicos de la capa de Servicios, y renderiza modelos de vista (tablas, tarjetas, gráficos de tipología y grafos de coautoría).
-- **Manejo de Errores**: Presenta cuadros de diálogo informativos, barras de advertencia no bloqueantes y diálogos de resolución de conflictos de concurrencia.
+- **Manejo de Errores**: Python presenta diálogos; C++ debe ofrecer mensajes y acciones de resolución compatibles con el flujo terminal. La TUI C++ actual es parcial, según [[TUI-Diseno-Cpp]].
 
 ### Capa 2: Servicios (Lógica de Negocio y Coordinación)
 - **Componentes**: `ServicioGrupos`, `ServicioInvestigadores`, `ServicioProductos`, `ServicioEstadisticas`, `ServicioIngesta`, `ServicioSincronizacion`.

@@ -15,6 +15,7 @@ relacionado:
   - "[[Ingesta]]"
   - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
+  - "[[TUI-Diseno-Cpp]]"
   - "[[Seguridad-y-credenciales]]"
   - "[[Despliegue]]"
   - "[[Trazabilidad]]"
@@ -82,13 +83,13 @@ graph TD
 - **Interoperabilidad y Paridad Python / C++**: [[Interoperabilidad]]
 - **Pipeline de Ingesta (Web SCIENTI / CSV)**: [[Ingesta]]
 - **Diseño de la interfaz de Python (fuente de verdad visual)**: [[GUI-Diseno-Python]]
-- **Contrato visual para C++ (pendiente)**: [[GUI-paridad]]
+- **Paridad visual y estado de terminal C++**: [[GUI-paridad]], [[TUI-Diseno-Cpp]]
 - **Seguridad, Credenciales y Entorno Único**: [[Seguridad-y-credenciales]]
 - **Estrategia de Despliegue y Empaquetado Windows**: [[Despliegue]]
 
 ### 30. Registro de Decisiones de Arquitectura (ADR)
 - **Índice de Decisiones**: [[30-Decisiones/_Indice|_Indice de Decisiones]]
-- Decisiones (ADR-0001 a ADR-0017):
+- Decisiones (ADR-0001 a ADR-0019):
   - [[ADR-0001-Boveda-viva]]: Bóveda viva Obsidian como única fuente documental.
   - [[ADR-0002-Unico-proyecto-Supabase]]: Proyecto único con particionamiento lógico para pruebas.
   - [[ADR-0003-Corpus-fiel-del-Modelo]]: Corpus fiel e inmutable del Modelo Minciencias 2024.
@@ -106,6 +107,8 @@ graph TD
   - [[ADR-0015-Analisis-de-red-nativo]]: Renderizado nativo del grafo de red de coautoría.
   - [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]: Qué se adopta del boceto y qué se reemplaza por datos reales.
   - [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]: Qt Widgets, QSS, QPainter y QtSvg.
+  - [[ADR-0018-Histogramas-desde-hipercubo]]: histogramas derivados del hipercubo para la GUI Python.
+  - [[ADR-0019-Cpp-terminal-con-ftxui]]: C++ como terminal FTXUI sin Qt Widgets/Gui.
 
 ### 40. Fuentes de Verdad y Corpus Normativo
 - **Índice de Fuentes**: [[40-Fuentes/_Indice|_Indice de Fuentes]]

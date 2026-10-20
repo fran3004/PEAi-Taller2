@@ -21,11 +21,13 @@ origen: "Contrato de Taller 2 (AGENTS.md), Modelo Minciencias 2024 y Plataforma 
 
 El **Programa Estadístico de Análisis de Investigación (PEA-i)** es una plataforma de software diseñada para el Taller 2 de la asignatura Estructuras de Datos de la Universidad Popular del Cesar (UPC). Su objetivo es modelar, consultar, procesar, analizar y visualizar la actividad investigativa (grupos de investigación, investigadores y productos categorizados) a partir del marco normativo del **Modelo Minciencias 2024** (Código M601PR04G01) y los datos de la plataforma **SCIENTI** (GrupLAC y CvLAC).
 
-El sistema consta de dos aplicaciones de escritorio nativas con interfaz gráfica de usuario:
-- Implementación en **Python 3.12** utilizando **PySide6** (Qt for Python).
-- Implementación en **C++17** utilizando **Qt 6 Widgets**.
+El sistema consta de dos aplicaciones cliente con arquitectura compartida:
+- Implementación en **Python 3.12** utilizando **PySide6** (Qt for Python) y GUI.
+- Implementación en **C++17** con interfaz de terminal **FTXUI**, conservando Qt Core/Network únicamente para JSON y HTTPS, conforme a [[ADR-0019-Cpp-terminal-con-ftxui]].
 
 Ambas aplicaciones comparten de manera concurrente una única base de datos relacional PostgreSQL alojada en la nube mediante **Supabase**, accediendo estrictamente vía HTTPS a través de su API PostgREST y RPC.
+
+La especificación funcional no se reduce por el cambio de presentación C++: la paridad con los servicios Python sigue siendo un criterio objetivo y las diferencias implementadas o pendientes se registran en [[Paridad-Python-Cpp]]. La TUI actual no se considera completa mientras sus criterios pendientes de [[TUI-Diseno-Cpp]] no estén satisfechos.
 
 ---
 

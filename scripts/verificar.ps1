@@ -4,7 +4,7 @@ param (
 
 # scripts/verificar.ps1
 # Script central de verificación para PEA-i (Universidad Popular del Cesar)
-# Ejecuta verificación de la bóveda Obsidian, pruebas de Python y pruebas de C++.
+# Ejecuta verificación de la bóveda, pruebas Python/C++ y autoprueba de la TUI.
 
 $ErrorActionPreference = "Continue"
 $codigo_salida = 0
@@ -15,7 +15,7 @@ Write-Host "PEA-i · VERIFICACION INTEGRAL DEL SISTEMA" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # 1. Verificación de la Bóveda de Obsidian
-Write-Host "`n[1/3] Verificando boveda Obsidian (brain/)..." -ForegroundColor Yellow
+Write-Host "`n[1/4] Verificando boveda Obsidian (brain/)..." -ForegroundColor Yellow
 $py_cmd = if (Test-Path ".venv\Scripts\python.exe") { ".venv\Scripts\python.exe" } else { "python" }
 
 & $py_cmd tools\brain\verificar_brain.py
@@ -27,7 +27,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # 2. Pruebas de Python
-Write-Host "`n[2/3] Ejecutando pruebas de Python..." -ForegroundColor Yellow
+Write-Host "`n[2/4] Ejecutando pruebas de Python..." -ForegroundColor Yellow
 $pytest_args = @("-v")
 if (-not $ConRed) {
     $pytest_args += @("-m", "not red")
@@ -42,7 +42,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # 3. Pruebas de C++
-Write-Host "`n[3/3] Verificando nucleo C++..." -ForegroundColor Yellow
+Write-Host "`n[3/4] Verificando nucleo C++..." -ForegroundColor Yellow
 if (Test-Path "C:\msys64\ucrt64\bin") {
     $env:PATH = "C:\msys64\ucrt64\bin;" + $env:PATH
 }
@@ -59,12 +59,29 @@ if ($cpp_build_dir -ne "") {
             $tabla_resultados += [PSCustomObject]@{ Componente = "Pruebas C++"; Estado = "FALLA"; Detalle = "Fallos en CTest" }
             $codigo_salida = 1
         }
+        if ($LASTEXITCODE -eq 0) {
+            $ejecutable_cpp = Join-Path $cpp_build_dir "pea-cpp.exe"
+            if (Test-Path $ejecutable_cpp) {
+                & $ejecutable_cpp --autoprueba
+                if ($LASTEXITCODE -eq 0) {
+                    $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "OK"; Detalle = "32 pantallas renderizadas y capturadas" }
+                } else {
+                    $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "FALLA"; Detalle = "Hallazgos de renderizado o captura" }
+                    $codigo_salida = 1
+                }
+            } else {
+                $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "FALLA"; Detalle = "No existe pea-cpp.exe" }
+                $codigo_salida = 1
+            }
+        }
     } else {
         $tabla_resultados += [PSCustomObject]@{ Componente = "Compilación C++"; Estado = "FALLA"; Detalle = "Error de compilación" }
         $codigo_salida = 1
     }
 } else {
     $tabla_resultados += [PSCustomObject]@{ Componente = "Compilacion/Pruebas C++"; Estado = "sin pruebas aun"; Detalle = "No se encontró directorio cpp/build" }
+    $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "FALLA"; Detalle = "No se encontró compilación C++" }
+    $codigo_salida = 1
 }
 
 # Resumen Final

@@ -2,7 +2,7 @@
 tipo: indice
 estado: aprobado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-20
 relacionado:
   - "[[00-Inicio]]"
   - "[[SPEC]]"
@@ -19,6 +19,7 @@ relacionado:
   - "[[GUI-Diseno-Python]]"
   - "[[Plan-de-prompts-GUI-Python]]"
   - "[[GUI-paridad]]"
+  - "[[TUI-Diseno-Cpp]]"
   - "[[Seguridad-y-credenciales]]"
   - "[[Despliegue]]"
 origen: "Módulo 20-Diseno del proyecto PEA-i"
@@ -26,7 +27,7 @@ origen: "Módulo 20-Diseno del proyecto PEA-i"
 
 # Índice de Arquitectura y Diseño Formal · PEA-i
 
-Este módulo formaliza las especificaciones arquitecturales, técnicas, de datos y algorítmicas de **PEA-i**. Define rigurosamente la separación de capas, el diseño de estructuras de datos hechas a mano, la persistencia en Supabase, el protocolo de sincronización y la paridad de la interfaz gráfica entre Python y C++.
+Este módulo formaliza las especificaciones arquitecturales, técnicas, de datos y algorítmicas de **PEA-i**. Define rigurosamente la separación de capas, el diseño de estructuras de datos hechas a mano, la persistencia en Supabase, el protocolo de sincronización y la paridad de presentación entre la GUI Python y la terminal C++.
 
 ---
 
@@ -46,7 +47,8 @@ Este módulo formaliza las especificaciones arquitecturales, técnicas, de datos
 | [[Ingesta]] | Pipeline de scraping web responsable (SCIENTI) y procesador de archivos CSV canónicos. | `nota-de-diseno` | Aprobado |
 | [[GUI-Diseno-Python]] | **Fuente de verdad visual** de la interfaz de Python: tokens, ventana, siete pantallas, componentes, gráficos, estados y criterios de aceptación. | `nota-de-diseno` | Revisado |
 | [[Plan-de-prompts-GUI-Python]] | Secuencia de prompts (00 a 15) para rehacer la interfaz de Python con el agente. | `nota-de-diseno` | Revisado |
-| [[GUI-paridad]] | Contrato visual y funcional que C++ deberá igualar cuando se rediseñe (pendiente). | `nota-de-diseno` | Revisado |
+| [[GUI-paridad]] | Contrato de paridad visual/funcional y decisión vigente de TUI para C++. | `nota-de-diseno` | Revisado |
+| [[TUI-Diseno-Cpp]] | Diseño y estado real de implementación de la terminal FTXUI C++. | `nota-de-diseno` | Borrador |
 | [[Seguridad-y-credenciales]] | Conexión HTTPS TLS 1.3, clave publishable, políticas de Row Level Security (RLS) y aislamiento de pruebas. | `nota-de-diseno` | Aprobado |
 | [[Despliegue]] | Empaquetado Windows desatendido (PyInstaller para Python, CMake + windeployqt para C++) y configuración. | `nota-de-diseno` | Aprobado |
 
@@ -66,6 +68,7 @@ graph TD
     Dominio --> Contrato["Contrato-de-datos (Supabase)"]
     Arq --> GUIPy["GUI-Diseno-Python"]
     GUIPy --> GUI["GUI-paridad"]
+    GUI --> TUI["TUI-Diseno-Cpp"]
     Arq --> Ingesta["Ingesta"]
     Arq --> Interop["Interoperabilidad"]
     Arq --> Seg["Seguridad-y-credenciales"]

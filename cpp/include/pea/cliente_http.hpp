@@ -22,6 +22,7 @@ public:
     void establecerTokenAcceso(const QString& token);
     void cerrarSesion();
     QString tokenAcceso() const;
+    QJsonObject autenticar(const QString& correo, QString clave);
 
     // Métodos REST principales
     QJsonDocument get(const QString& tabla, const QString& queryParams = QString());

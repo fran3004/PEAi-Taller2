@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 #include "pea/cliente_http.hpp"
+#include "pea/datos/configuracion_conexion.hpp"
 #include "pea/excepciones.hpp"
 
 TEST_CASE("ClienteHTTPSupabase - Configuración y gestión de tokens en memoria") {
@@ -22,6 +23,22 @@ TEST_CASE("ClienteHTTPSupabase - Verificación de capacidades TLS") {
     // La biblioteca QtNetwork debe tener soporte TLS compilado
     CHECK(pea::ClienteHTTPSupabase::soportaTLS() == true);
     CHECK(!pea::ClienteHTTPSupabase::backendTLS().isEmpty());
+}
+
+TEST_CASE("Configuración C++ acepta solo HTTPS y el host oficial de pea-prod") {
+    pea::datos::ConfiguracionConexion configuracion{
+        "https://wdmchsncexayqbjueamb.supabase.co", "sb_publishable_ejemplo", {}, true, true};
+    CHECK_NOTHROW(pea::datos::validar_configuracion_conexion(configuracion));
+
+    configuracion.url = "http://wdmchsncexayqbjueamb.supabase.co";
+    CHECK_THROWS_AS(pea::datos::validar_configuracion_conexion(configuracion), pea::ErrorValidacion);
+
+    configuracion.url = "https://otro-proyecto.supabase.co";
+    CHECK_THROWS_AS(pea::datos::validar_configuracion_conexion(configuracion), pea::ErrorValidacion);
+
+    configuracion.url = "https://wdmchsncexayqbjueamb.supabase.co";
+    configuracion.clave_publicable = "sb_secret_ejemplo";
+    CHECK_THROWS_AS(pea::datos::validar_configuracion_conexion(configuracion), pea::ErrorValidacion);
 }
 
 TEST_CASE("Excepciones PEA - Jerarquía y mensajes de error") {
