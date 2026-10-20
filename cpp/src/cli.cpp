@@ -45,7 +45,6 @@ void mostrarAyuda() {
               << "  exportar-csv -d <dir>    Exporta entidades del catálogo a archivos CSV\n"
               << "  cargar-ejemplo           Carga datos oficiales de prueba con prefijo PRUEBA-\n"
               << "  aplicar-escenario        Ejecuta escenario de mutación y reversión (Undo LIFO)\n"
-              << "  --autoprueba             Ejecuta verificación de GUI offscreen\n"
               << "  -v, --version            Muestra la versión de la aplicación y sale\n"
               << "  -h, --help               Muestra este mensaje de ayuda y sale\n";
 }
@@ -54,7 +53,7 @@ int comandoInfo() {
     std::cout << "Nombre: " << APP_NAME << "\n";
     std::cout << "Versión: " << APP_VERSION << "\n";
     std::cout << "Institución: " << INSTITUCION << "\n";
-    std::cout << "Arquitectura: C++17 / Qt6 Widgets / HTTPS PostgREST / Estructuras Hechas a Mano\n";
+    std::cout << "Arquitectura: C++17 / Qt6 Core + Network / terminal TUI / Estructuras Hechas a Mano\n";
     return 0;
 }
 

@@ -2,72 +2,58 @@
 tipo: nota-de-diseno
 estado: revisado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-20
 relacionado:
   - "[[_Indice]]"
   - "[[GUI-Diseno-Python]]"
   - "[[Arquitectura]]"
   - "[[Interoperabilidad]]"
   - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"
-  - "[[ADR-0012-Diseno-GUI-y-navegacion]]"
-  - "[[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]"
+  - "[[ADR-0019-Cpp-terminal-con-ftxui]]"
   - "[[SPEC]]"
-origen: "Rediseño de la interfaz de Python (2026-10-03); contrato para el rediseño posterior de C++"
+origen: "Cambio de rumbo de C++: dejar la GUI Qt y volver a una terminal moderna (2026-10-20)"
 ---
 
-# Diseño · Contrato visual entre Python y C++
+# Diseño · Contrato de paridad entre Python y C++ terminal
 
 ## Propósito
 
-Esta nota responde una sola pregunta: **qué deberá igualar la interfaz de C++ cuando se rediseñe**, tomando como modelo la de Python.
+Esta nota redefine la relación entre la versión Python y la versión C++ tras el cambio de rumbo del proyecto.
 
-- La **fuente de verdad visual** es [[GUI-Diseno-Python]]. Esta nota no describe pantallas; solo fija el contrato.
-- La interfaz de **C++ todavía no está rediseñada** y se hará con prompts aparte. Mientras tanto, `cpp/src/gui/` conserva su primera versión y **no debe usarse como referencia visual**.
-- La paridad **arquitectónica y funcional** (mismas capas, mismas estructuras, mismos resultados) sigue vigente por [[ADR-0011-Paridad-arquitectural-Python-Cpp]].
+- La **fuente de verdad funcional** sigue siendo la lógica de Python y sus servicios, no la primera versión de la GUI de C++.
+- La interfaz de C++ ya no intenta emular una ventana gráfica con Qt Widgets; ahora es una **aplicación de terminal** moderna con pestañas, paneles, tablas, avisos y teclado/mouse.
+- La paridad arquitectónica y funcional persiste: mismas capas, mismas estructuras, mismos resultados y la misma base de datos de Supabase.
 
 ## Estado
 
 | Elemento | Python | C++ |
 |---|---|---|
-| Diseño visual | Definido en [[GUI-Diseno-Python]] | **Pendiente** (prompts aparte) |
-| Navegación | Barra superior con 7 pestañas | Pendiente |
-| Gráficos | `QPainter` | Pendiente (`QPainter` previsto) |
-| Red de coautoría | `QGraphicsView` ([[ADR-0015-Analisis-de-red-nativo]]) | Pendiente |
-| Pruebas de interfaz | `tests/unit/test_gui_completa.py` | `cpp/tests/test_gui.cpp` (a actualizar) |
+| Interfaz principal | PySide6 / GUI | Terminal TUI (FTXUI o equivalente) |
+| Red de datos | HTTPS + cliente Supabase | HTTPS + cliente Supabase |
+| Estruturas | Lista doble, multilista, pila, cola, hipercubo | Mismas estructuras escritas a mano |
+| Pruebas funcionales | Python | C++ CLI y pruebas unitarias |
+| Referencia visual | [[GUI-Diseno-Python]] | Reubicada en las pantallas TUI, no en `Qt Widgets` |
 
-## Lo que C++ deberá igualar
+## Lo que C++ debe igualar
 
-1. **Navegación y textos**: mismas siete pestañas, en el mismo orden y con el mismo texto; mismos botones y mensajes de la sección 7.2 de [[GUI-Diseno-Python]].
-2. **Tokens**: mismos colores (hex), escala tipográfica, radios y espaciados de la sección 4 de [[GUI-Diseno-Python]].
-3. **Colores de datos**: la misma tipología, validación y categoría con el mismo color en todas las pantallas.
-4. **Estructura de ventana**: barra superior con degradado y filete institucional UPC, zona de contenido y pie institucional.
-5. **Tablas**: mismas columnas, mismo orden y mismos encabezados que en Python.
-6. **Formato de números**: miles con punto, decimales con coma, porcentajes con espacio fino.
-7. **Cálculos nuevos**: la serie por año y tipología, el grafo de coautoría y sus métricas deben dar **el mismo resultado** que Python, verificado con el oráculo canónico descrito en [[Interoperabilidad]].
-8. **Atajos**: los de la sección 12 de [[GUI-Diseno-Python]].
+1. **Lógica funcional**: CRUD completo, estadísticas, filtros, persistencia, deshacer y validaciones del dominio.
+2. **Misma fuente de datos**: Supabase mediante HTTPS, REST/RPC y control de revisión.
+3. **Mismas reglas de negocio**: cascadas, desactivación reversible, eliminación de estructuras y respaldo en memoria al error de persistencia.
+4. **Estadísticas desde el hipercubo**: la agregación vuelve a derivarse del `Hipercubo5D`, no desde consultas SQL.
+5. **Salida y navegación terminal**: pantallas, tablas, menús, visibilidad de estado y atajos de teclado equivalentes a los de la GUI de Python, aunque la implementación se haga en consola.
 
-## Lo que C++ no tiene que igualar
+## Lo que C++ no debe intentar
 
-- La implementación (cada lenguaje usa su API de Qt).
-- Los detalles de animación y sombra, mientras el resultado se vea cuidado y consistente.
-- El efecto de barra de título oscura de Windows.
-
-## Deuda de paridad funcional que deja el rediseño de Python
-
-Servicios nuevos creados para la interfaz de Python que C++ deberá replicar:
-
-| Servicio | Para qué sirve | Verificación |
-|---|---|---|
-| `serie_anual_por_categoria` | Barras apiladas por año y tipología (calculado desde el [[Hipercubo]] con rebanada y enrollar) | Comparar contra el oráculo; suma por año coincide con `productos_por_anio` |
-| `red_coautoria` (con grado, intermediación y densidad) | Análisis de redes (calculado desde la [[Multilista]], con algoritmo de Brandes escrito a mano, determinista y coautores externos) | Mismo grafo y mismas métricas con datos canónicos |
-| `actualizar_producto` | Editar cualquier dato de un producto (título, tipología, subtipo, año, validación, grupo) con compensación y deshacer | Pruebas de edición, reversión en memoria y pila de deshacer |
-| `datos_ficha_grupo` / `datos_ficha_investigador` | Métricas para fichas: estudiantes del grupo, productos avalados, años con producción, coautores y aporte institucional | Comparar valores escalares contra la suite de pruebas unitarias |
+- Reusar la vieja GUI de Qt Widgets como referencia.
+- Duplicar la lógica de pantallas en la capa de renderizado.
+- Mezclar SQL directo, estructuras nativas de contenedor como almacenamiento principal de entidades y datos inventados.
 
 ## Decisiones relacionadas
 - [[ADR-0011-Paridad-arquitectural-Python-Cpp]]
-- [[ADR-0012-Diseno-GUI-y-navegacion]]
-- [[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]
+- [[ADR-0019-Cpp-terminal-con-ftxui]]
+- [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]] (quedó reemplazada por la terminal)
 
 ## Riesgos y casos borde
-- Si C++ se rediseña sin leer esta nota, puede reproducir el diseño anterior; por eso `AGENTS.md` apunta a [[GUI-Diseno-Python]].
-- Las diferencias de renderizado de fuentes entre lenguajes son aceptables; las de colores, textos y orden de columnas no.
+- Si se mantiene la referencia a Qt Widgets, se reintroduce una dependencia visual que ya no corresponde al proyecto.
+- La terminal debe conservar la misma información que la GUI de Python sin perder consistencia en textos o columnas.
+- Cualquier diferencia funcional entre Python y C++ debe registrarse y no corregirse en silencio.

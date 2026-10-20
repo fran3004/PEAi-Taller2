@@ -3,12 +3,9 @@ project(pea-cpp VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(doctest REQUIRED)
 
 if(MSVC)
@@ -22,7 +19,7 @@ add_library(pea_core STATIC
     include/pea/excepciones.hpp
     include/pea/cliente_http.hpp
     include/pea/cli.hpp
-    include/pea/gui/ventana_principal.hpp
+    include/pea/aplicacion.hpp
     include/pea/estructuras/nodo.hpp
     include/pea/estructuras/lista_doble.hpp
     include/pea/estructuras/multilista.hpp
@@ -45,8 +42,8 @@ add_library(pea_core STATIC
     include/pea/ingesta/lector_csv.hpp
     include/pea/ingesta/extractor_url.hpp
     include/pea/ingesta/servicio_ingesta.hpp
+    src/aplicacion.cpp
     src/cliente_http.cpp
-    src/gui/ventana_principal.cpp
     src/datos/sesion.cpp
     src/datos/revision.cpp
     src/datos/repositorios.cpp
@@ -61,8 +58,6 @@ add_library(pea_core STATIC
 
 target_link_libraries(pea_core PUBLIC
     Qt6::Core
-    Qt6::Gui
-    Qt6::Widgets
     Qt6::Network
 )
 
@@ -84,7 +79,6 @@ enable_testing()
 add_executable(pruebas_cpp
     tests/test_version.cpp
     tests/test_cliente_http.cpp
-    tests/test_gui.cpp
     tests/test_estructuras.cpp
     tests/test_cascadas.cpp
     tests/test_deshacer.cpp

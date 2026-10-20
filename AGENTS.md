@@ -1,7 +1,7 @@
 # PEA-i · Contrato del proyecto
 
 ## Misión
-Construir el Taller 2 de Estructura de Datos (Universidad Popular del Cesar): PEA-i, Programa Estadístico de Análisis de Investigación (grupos, investigadores y productos, con datos de SCIENTI). Son dos aplicaciones de escritorio con interfaz gráfica, Python (PySide6) y C++ (Qt 6 Widgets), que comparten UNA base de datos PostgreSQL alojada en Supabase y accedida por HTTPS (REST/RPC). El proyecto es modular, escalable y mantenible; no se optimiza para "un solo archivo".
+Construir el Taller 2 de Estructura de Datos (Universidad Popular del Cesar): PEA-i, Programa Estadístico de Análisis de Investigación (grupos, investigadores y productos, con datos de SCIENTI). La base funcional se implementa en Python con interfaz gráfica PySide6, mientras la variante C++ se reorienta a una aplicación de terminal moderna y completa, que comparte la misma base de datos PostgreSQL alojada en Supabase y accedida por HTTPS (REST/RPC). El proyecto es modular, escalable y mantenible; no se optimiza para "un solo archivo".
 
 ## Fuente de verdad (en este orden)
 1. docs/entrada/: el enunciado del taller y el documento "Modelo" (docs/entrada/Modelo-2024.md, extraído del PDF oficial M601PR04G01).
@@ -11,7 +11,7 @@ Construir el Taller 2 de Estructura de Datos (Universidad Popular del Cesar): PE
 No inventes requisitos, campos ni categorías. Lo que no esté en las fuentes se marca como "supuesto" en un ADR o se pregunta.
 
 ## Arquitectura
-- Capas iguales en los dos lenguajes: GUI → servicios → estructuras propias → repositorios REST/RPC → HTTPS → Supabase → PostgreSQL. La GUI nunca toca estructuras, red ni SQL directamente.
+- Capas iguales en los dos lenguajes: Python GUI o C++ TUI/CLI → servicios → estructuras propias → repositorios REST/RPC → HTTPS → Supabase → PostgreSQL. La capa de presentación nunca toca estructuras, red ni SQL directamente.
 - Las colecciones de entidades se guardan en estructuras HECHAS A MANO: lista doblemente enlazada, multilista, pila, cola e hipercubo. No uses list/dict/vector/map/deque nativos como almacenamiento principal de entidades (sí para variables temporales o índices auxiliares documentados en un ADR).
 - Las estadísticas se calculan desde el hipercubo, no con consultas SQL (SQL solo se usa en pruebas para verificar).
 - Los servicios aplican el cambio en las estructuras y luego lo persisten; si persistir falla, revierten la estructura y muestran el error.
@@ -54,12 +54,12 @@ Existe UN solo proyecto: pea-prod. NO existe pea-test. Cuando un prompt, una not
 - Ramas: main (entrega) ← dev (integración) ← feat/<área>-<persona>. Nunca commits directos a main.
 - Las skills viven en .agent/skills/ (una sola copia, la leen los dos agentes). Las reglas y flujos de Antigravity están en .agent/rules/ y .agent/workflows/.
 
-## Interfaz gráfica de Python
-- Fuente de verdad visual: brain/20-Diseno/GUI-Diseno-Python.md (tokens, siete pantallas, componentes, gráficos, estados y criterios de aceptación). Las imágenes de referencia están en brain/_adjuntos/ (ref-*.png / .jpg) y se mira antes de construir cada pantalla.
-- Navegación: barra superior con siete pestañas (Inicio, Investigadores, Grupos, Productos, Análisis de redes, Importar, Configuración), más Deshacer, avatar, "Cerrar sesión" y "Acerca de". Directorios con tabla y ficha lateral. No hay barra lateral.
-- Se imita la estructura del boceto, no sus datos: nada de H-Index, ORCID, semilleros, centros, convocatorias ni logos de terceros (ADR-0016). Todo número sale de los servicios.
-- Tecnología: Qt Widgets + QSS + QPainter + QtSvg (ADR-0017). Prohibido QML, QtWebEngine, matplotlib y QtCharts.
-- La interfaz de C++ NO sigue este diseño hasta que se rehaga con prompts aparte; no se usa como referencia visual (brain/20-Diseno/GUI-paridad.md).
+## Interfaz de terminal de C++
+- La interfaz funcional de Python sigue siendo la fuente de verdad visual del producto: brain/20-Diseno/GUI-Diseno-Python.md (tokens, siete pantallas, componentes, gráficos, estados y criterios de aceptación). La aplicación C++ no reutiliza ese diseño como referencia visible; se reimplementa como terminal moderna con la misma lógica funcional.
+- C++ pasa a ser una aplicación de terminal completa, con pestanas, tablas, tarjetas, resumenes, atajos de teclado y soporte de mouse, sin ventanas gráficas de Qt Widgets. La capa de presentación se apoya en FTXUI y en renderizado ASCII/Unicode con trazado de datos y widgets de consola.
+- La infraestructura de red se conserva en Qt6 Core + Qt6 Network para HTTPS/TLS/JSON, porque ya funciona y está validada; no se elimina la capa HTTP ni los repositorios REST/RPC de Supabase.
+- Se prohíben Qt Widgets, QPainter de GUI, QML, QtWebEngine, matplotlib y QtCharts en C++. Si FTXUI no se ajusta a una necesidad concreta, se registra la alternativa en un ADR antes de cambiar la decisión.
+- La interfaz de C++ se documenta en brain/20-Diseno/GUI-paridad.md y en el ADR-0019 correspondiente; no debe confundirse con una GUI de escritorio.
 
 ## Cerebro (Obsidian)
 - brain/ es la bóveda y la ÚNICA casa de la documentación viva. Toda nota tiene las propiedades: tipo, estado (borrador|revisado|aprobado), creado, actualizado, relacionado (enlaces [[...]] entre comillas) y origen.
