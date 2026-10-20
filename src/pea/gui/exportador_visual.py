@@ -42,8 +42,8 @@ def renderizar_widget_imagen(widget: QWidget, escala: float = 2.0) -> QImage:
     # renderizar en proporción panorámica ejecutiva (740x460 lógico -> 1480x920 px)
     objetivo_dibujo = getattr(widget, "_lienzo", widget)
     if hasattr(objetivo_dibujo, "_dibujar"):
-        ancho_logico = 740.0
-        alto_logico = 460.0
+        ancho_logico = 640.0
+        alto_logico = 398.0
         w_px = int(round(ancho_logico * escala))
         h_px = int(round(alto_logico * escala))
         img = QImage(w_px, h_px, QImage.Format.Format_ARGB32_Premultiplied)
@@ -106,6 +106,32 @@ def renderizar_widget_imagen(widget: QWidget, escala: float = 2.0) -> QImage:
     return img
 
 
+def _fuente_ajustada(
+    texto: str,
+    ancho: float,
+    tam: float,
+    *,
+    minimo: float = 6.0,
+    negrita: bool = False,
+) -> QFont:
+    """Devuelve una fuente cuyo tamaño se reduce (hasta un mínimo) para que el texto quepa sin cortarse."""
+    fuente = QFont(estilo.FAMILIA_FUENTE)
+    fuente.setBold(negrita)
+    actual = float(tam)
+    while actual > minimo:
+        fuente.setPointSizeF(actual)
+        if QFontMetricsF(fuente).horizontalAdvance(texto) <= ancho:
+            return fuente
+        actual -= 0.25
+    fuente.setPointSizeF(minimo)
+    return fuente
+
+
+def _elidir(fuente: QFont, texto: str, ancho: float) -> str:
+    """Recorta con puntos suspensivos solo cuando el texto no cabe en el ancho dado."""
+    return QFontMetricsF(fuente).elidedText(texto, Qt.TextElideMode.ElideRight, ancho)
+
+
 def _normalizar_imagenes(
     imagenes: Sequence[QImage | tuple[str, QImage]],
 ) -> list[tuple[str, QImage]]:
@@ -120,6 +146,21 @@ def _normalizar_imagenes(
     return resultado
 
 
+def _preparar_destino(ruta: object, extension: str) -> Path:
+    """Valida la ruta de salida, garantiza su extensión y crea la carpeta contenedora.
+
+    Rechaza valores que no son rutas (por ejemplo, el booleano que emiten las señales de Qt), para
+    que nunca se cree un archivo llamado «False».
+    """
+    if isinstance(ruta, bool) or not isinstance(ruta, (str, Path)) or not str(ruta).strip():
+        raise ValueError("La ruta de exportación no es válida. Elija un archivo de destino.")
+    destino = Path(ruta)
+    if destino.suffix.lower() != extension.lower():
+        destino = destino.with_name(destino.name + extension)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    return destino
+
+
 def guardar_csv_profesional(
     ruta: str | Path,
     columnas: Sequence[str] = (),
@@ -129,8 +170,7 @@ def guardar_csv_profesional(
     metadatos: Sequence[tuple[str, str]] = (),
 ) -> Path:
     """Guarda una tabla en formato CSV con BOM UTF-8 (utf-8-sig) y delimitador ';' para Excel."""
-    destino = Path(ruta)
-    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino = _preparar_destino(ruta, ".csv")
     with destino.open("w", encoding="utf-8-sig", newline="") as archivo:
         escritor = csv.writer(archivo, delimiter=";", quoting=csv.QUOTE_MINIMAL)
         if titulo or metadatos:
@@ -161,12 +201,11 @@ def exportar_png_institucional(
     pie_extra: str = "",
 ) -> Path:
     """Compone una imagen PNG de alta resolución con encabezado y pie institucional UPC / PEA-i."""
-    destino = Path(ruta)
-    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino = _preparar_destino(ruta, ".png")
 
     imgs_validas = _normalizar_imagenes(imagenes)
-    alto_cab = 120
-    alto_pie = 56
+    alto_cab = 150
+    alto_pie = 72
     espaciado = 32
     usar_rejilla_2col = len(imgs_validas) >= 2
 
@@ -176,13 +215,13 @@ def exportar_png_institucional(
         filas_rejilla = [imgs_validas[i : i + 2] for i in range(0, len(imgs_validas), 2)]
         alto_imgs = 0
         for fila_im in filas_rejilla:
-            h_fila = max(img.height() + (38 if etq else 0) for etq, img in fila_im) + 20
+            h_fila = max(img.height() + (50 if etq else 0) for etq, img in fila_im) + 20
             alto_imgs += h_fila
         alto_imgs += max(0, len(filas_rejilla) - 1) * espaciado
     else:
         ancho_contenido = max((img.width() for _, img in imgs_validas), default=1600)
         ancho_out = max(1840, ancho_contenido + 96)
-        alto_imgs = sum(img.height() + (38 if etq else 0) for etq, img in imgs_validas) + max(
+        alto_imgs = sum(img.height() + (50 if etq else 0) for etq, img in imgs_validas) + max(
             0, len(imgs_validas) - 1
         ) * espaciado
 
@@ -203,34 +242,34 @@ def exportar_png_institucional(
         grad.setColorAt(0.55, QColor(estilo.ENCABEZADO_MEDIO))
         grad.setColorAt(1.0, QColor(estilo.ENCABEZADO_FIN))
         painter.fillRect(QRectF(0, 0, ancho_out, alto_cab), grad)
-        painter.fillRect(QRectF(0, alto_cab - 5, ancho_out, 5), QColor(estilo.UPC_VERDE))
+        painter.fillRect(QRectF(0, alto_cab - 7, ancho_out, 7), QColor(estilo.UPC_VERDE))
 
-        f_marca = QFont(estilo.FAMILIA_FUENTE, 18)
+        f_marca = QFont(estilo.FAMILIA_FUENTE, 26)
         f_marca.setBold(True)
         painter.setFont(f_marca)
         painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO))
         painter.drawText(
-            QRectF(36, 18, ancho_out - 460, 38),
+            QRectF(44, 22, ancho_out - 700, 58),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
             f"{APP_NAME} · {titulo}",
         )
 
-        f_sub = QFont(estilo.FAMILIA_FUENTE, 11)
+        f_sub = QFont(estilo.FAMILIA_FUENTE, 15)
         painter.setFont(f_sub)
         painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO_SUAVE))
         painter.drawText(
-            QRectF(36, 60, ancho_out - 460, 34),
+            QRectF(44, 86, ancho_out - 700, 44),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
             subtitulo,
         )
 
         fecha_txt = datetime.now().strftime("%Y-%m-%d %H:%M")
-        f_inst = QFont(estilo.FAMILIA_FUENTE, 10)
+        f_inst = QFont(estilo.FAMILIA_FUENTE, 13)
         f_inst.setBold(True)
         painter.setFont(f_inst)
         painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO))
         painter.drawText(
-            QRectF(ancho_out - 440, 18, 404, 76),
+            QRectF(ancho_out - 640, 20, 596, 106),
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
             f"{INSTITUCION}\n{PROGRAMA}\nGenerado: {fecha_txt}",
         )
@@ -246,19 +285,19 @@ def exportar_png_institucional(
                     x_inicio = (ancho_out - w_total_fila) / 2.0
                     x_actual = x_inicio
                     for etiqueta_sec, img in fila_im:
-                        alto_etq = 34.0 if etiqueta_sec else 0.0
+                        alto_etq = 46.0 if etiqueta_sec else 0.0
                         rect_marco = QRectF(x_actual - 12, y_cursor - 10, img.width() + 24, img.height() + alto_etq + 20)
                         painter.setPen(QPen(QColor(estilo.LINEA), 1.5))
                         painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
                         painter.drawRoundedRect(rect_marco, 12.0, 12.0)
                         y_im = y_cursor
                         if etiqueta_sec:
-                            f_sec = QFont(estilo.FAMILIA_FUENTE, 12)
+                            f_sec = QFont(estilo.FAMILIA_FUENTE, 16)
                             f_sec.setBold(True)
                             painter.setFont(f_sec)
                             painter.setPen(QColor(estilo.PRIMARIO))
                             painter.drawText(
-                                QRectF(x_actual + 4, y_im, img.width() - 8, 28.0),
+                                QRectF(x_actual + 4, y_im, img.width() - 8, 38.0),
                                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                                 etiqueta_sec,
                             )
@@ -269,19 +308,19 @@ def exportar_png_institucional(
                 else:
                     etiqueta_sec, img = fila_im[0]
                     x_img = (ancho_out - img.width()) / 2.0
-                    alto_etq = 34.0 if etiqueta_sec else 0.0
+                    alto_etq = 46.0 if etiqueta_sec else 0.0
                     rect_marco = QRectF(x_img - 12, y_cursor - 10, img.width() + 24, img.height() + alto_etq + 20)
                     painter.setPen(QPen(QColor(estilo.LINEA), 1.5))
                     painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
                     painter.drawRoundedRect(rect_marco, 12.0, 12.0)
                     y_im = y_cursor
                     if etiqueta_sec:
-                        f_sec = QFont(estilo.FAMILIA_FUENTE, 12)
+                        f_sec = QFont(estilo.FAMILIA_FUENTE, 16)
                         f_sec.setBold(True)
                         painter.setFont(f_sec)
                         painter.setPen(QColor(estilo.PRIMARIO))
                         painter.drawText(
-                            QRectF(x_img + 4, y_im, img.width() - 8, 28.0),
+                            QRectF(x_img + 4, y_im, img.width() - 8, 38.0),
                             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                             etiqueta_sec,
                         )
@@ -292,19 +331,19 @@ def exportar_png_institucional(
         else:
             for etiqueta_sec, img in imgs_validas:
                 x_img = (ancho_out - img.width()) / 2.0
-                alto_etq = 34.0 if etiqueta_sec else 0.0
+                alto_etq = 46.0 if etiqueta_sec else 0.0
                 rect_marco = QRectF(x_img - 10, y_cursor - 8, img.width() + 20, img.height() + alto_etq + 16)
                 painter.setPen(QPen(QColor(estilo.LINEA), 1.5))
                 painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
                 painter.drawRoundedRect(rect_marco, 12.0, 12.0)
 
                 if etiqueta_sec:
-                    f_sec = QFont(estilo.FAMILIA_FUENTE, 11)
+                    f_sec = QFont(estilo.FAMILIA_FUENTE, 15)
                     f_sec.setBold(True)
                     painter.setFont(f_sec)
                     painter.setPen(QColor(estilo.PRIMARIO))
                     painter.drawText(
-                        QRectF(x_img + 4, y_cursor, img.width() - 8, 28.0),
+                        QRectF(x_img + 4, y_cursor, img.width() - 8, 38.0),
                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
                         etiqueta_sec,
                     )
@@ -319,25 +358,26 @@ def exportar_png_institucional(
         painter.setPen(QPen(QColor(estilo.LINEA), 1.0))
         painter.drawLine(0, int(y_pie), ancho_out, int(y_pie))
 
-        f_pie = QFont(estilo.FAMILIA_FUENTE, 9)
+        f_pie = QFont(estilo.FAMILIA_FUENTE, 12)
         painter.setFont(f_pie)
         painter.setPen(QColor(estilo.TEXTO_SECUNDARIO))
         texto_izq = f"{INSTITUCION} — {FACULTAD} · {APP_NAME} v{APP_VERSION}"
         painter.drawText(
-            QRectF(36, y_pie, ancho_out / 2.0, alto_pie),
+            QRectF(44, y_pie, ancho_out / 2.0, alto_pie),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
             texto_izq,
         )
         if pie_extra:
             painter.drawText(
-                QRectF(ancho_out / 2.0, y_pie, ancho_out / 2.0 - 36, alto_pie),
+                QRectF(ancho_out / 2.0, y_pie, ancho_out / 2.0 - 44, alto_pie),
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                 pie_extra,
             )
     finally:
         painter.end()
 
-    lienzo.save(str(destino), "PNG")
+    if not lienzo.save(str(destino), "PNG"):
+        raise PermissionError(f"No se pudo escribir la imagen en {destino}")
     return destino
 
 
@@ -357,8 +397,7 @@ def exportar_reporte_pdf(
     orientacion_horizontal: bool = True,
 ) -> Path:
     """Genera un reporte PDF ejecutivo multipágina con membrete institucional, KPIs, gráficos y tabla."""
-    destino = Path(ruta)
-    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino = _preparar_destino(ruta, ".pdf")
 
     cols_finales = tuple(columnas_tabla) if columnas_tabla else tuple(columnas)
     filas_finales = tuple(filas_tabla) if filas_tabla else tuple(filas)
@@ -398,9 +437,6 @@ def exportar_reporte_pdf(
         fecha_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         num_pagina = 1
         sub_completo = subtitulo
-        if metadatos:
-            meta_str = " · ".join(f"{k}: {v}" for k, v in metadatos)
-            sub_completo = f"{subtitulo} ({meta_str})" if subtitulo else meta_str
 
         def _dibujar_marco_pagina(pag: int) -> float:
             painter.fillRect(QRectF(0, 0, ancho_p, alto_p), QColor(estilo.SUPERFICIE))
@@ -412,31 +448,32 @@ def exportar_reporte_pdf(
             painter.fillRect(QRectF(0, 0, ancho_p, alto_cab), grad)
             painter.fillRect(QRectF(0, alto_cab - 8.0, ancho_p, 8.0), QColor(estilo.UPC_VERDE))
 
-            f_tit = QFont(estilo.FAMILIA_FUENTE, 13)
-            f_tit.setBold(True)
+            ancho_izq = ancho_util * 0.64
+            texto_tit = f"{APP_NAME} · {titulo}"
+            f_tit = _fuente_ajustada(texto_tit, ancho_izq, 14, minimo=10, negrita=True)
             painter.setFont(f_tit)
             painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO))
             painter.drawText(
-                QRectF(margen_x, alto_cab * 0.14, ancho_util * 0.65, alto_cab * 0.42),
+                QRectF(margen_x, alto_cab * 0.14, ancho_izq, alto_cab * 0.42),
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                f"{APP_NAME} · {titulo}",
+                texto_tit,
             )
 
-            f_sub = QFont(estilo.FAMILIA_FUENTE, 9)
+            f_sub = _fuente_ajustada(sub_completo, ancho_izq, 10, minimo=7.5)
             painter.setFont(f_sub)
             painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO_SUAVE))
             painter.drawText(
-                QRectF(margen_x, alto_cab * 0.54, ancho_util * 0.65, alto_cab * 0.34),
+                QRectF(margen_x, alto_cab * 0.56, ancho_izq, alto_cab * 0.30),
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                sub_completo,
+                _elidir(f_sub, sub_completo, ancho_izq),
             )
 
-            f_der = QFont(estilo.FAMILIA_FUENTE, 8)
+            f_der = QFont(estilo.FAMILIA_FUENTE, 9)
             f_der.setBold(True)
             painter.setFont(f_der)
             painter.setPen(QColor(estilo.TEXTO_SOBRE_OSCURO))
             painter.drawText(
-                QRectF(margen_x + ancho_util * 0.65, alto_cab * 0.14, ancho_util * 0.35, alto_cab * 0.72),
+                QRectF(margen_x + ancho_util * 0.66, alto_cab * 0.14, ancho_util * 0.34, alto_cab * 0.72),
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                 f"{INSTITUCION}\n{PROGRAMA}\nFecha: {fecha_str}",
             )
@@ -446,25 +483,55 @@ def exportar_reporte_pdf(
             painter.setPen(QPen(QColor(estilo.LINEA), 2.0))
             painter.drawLine(0, int(y_pie), int(ancho_p), int(y_pie))
 
-            f_pie = QFont(estilo.FAMILIA_FUENTE, 8)
-            painter.setFont(f_pie)
-            painter.setPen(QColor(estilo.TEXTO_SECUNDARIO))
             pie_izq = f"{INSTITUCION} — {FACULTAD} · Reporte oficial {APP_NAME} v{APP_VERSION}"
             if nota_pie:
                 pie_izq = f"{pie_izq} · {nota_pie}"
+            f_pie = _fuente_ajustada(pie_izq, ancho_util * 0.80, 8, minimo=6.5)
+            painter.setFont(f_pie)
+            painter.setPen(QColor(estilo.TEXTO_SECUNDARIO))
             painter.drawText(
-                QRectF(margen_x, y_pie, ancho_util * 0.78, alto_pie),
+                QRectF(margen_x, y_pie, ancho_util * 0.80, alto_pie),
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                pie_izq,
+                _elidir(f_pie, pie_izq, ancho_util * 0.80),
             )
             painter.drawText(
-                QRectF(margen_x + ancho_util * 0.78, y_pie, ancho_util * 0.22, alto_pie),
+                QRectF(margen_x + ancho_util * 0.80, y_pie, ancho_util * 0.20, alto_pie),
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                 f"Página {pag}",
             )
             return alto_cab + 36.0
 
         y_cursor = _dibujar_marco_pagina(num_pagina)
+
+        # 0. Banda de metadatos (ámbito, filtros, ventana temporal) con ajuste de línea
+        if metadatos:
+            f_meta = QFont(estilo.FAMILIA_FUENTE, 8)
+            fm_meta = QFontMetricsF(f_meta)
+            texto_meta = "   ·   ".join(f"{k}: {v}" for k, v in metadatos)
+            ancho_texto = ancho_util - 48.0
+            rect_medido = fm_meta.boundingRect(
+                QRectF(0, 0, ancho_texto, 10000.0), Qt.TextFlag.TextWordWrap.value, texto_meta
+            )
+            alto_meta = rect_medido.height() + 28.0
+            rect_meta = QRectF(margen_x, y_cursor - 12.0, ancho_util, alto_meta)
+            painter.setPen(QPen(QColor(estilo.LINEA), 2.0))
+            painter.setBrush(QBrush(QColor(estilo.SUPERFICIE_SELECCIONADA)))
+            painter.drawRoundedRect(rect_meta, 12.0, 12.0)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(QColor(estilo.UPC_VERDE)))
+            painter.drawRoundedRect(QRectF(margen_x, y_cursor - 12.0, 8.0, alto_meta), 4.0, 4.0)
+            painter.setFont(f_meta)
+            painter.setPen(QColor(estilo.TEXTO))
+            painter.drawText(
+                QRectF(margen_x + 24.0, y_cursor, ancho_texto, rect_medido.height() + 4.0),
+                (
+                    Qt.AlignmentFlag.AlignLeft.value
+                    | Qt.AlignmentFlag.AlignVCenter.value
+                    | Qt.TextFlag.TextWordWrap.value
+                ),
+                texto_meta,
+            )
+            y_cursor += alto_meta + 4.0
 
         # 1. Tarjetas KPI de resumen si fueron provistas
         if kpis:
@@ -488,18 +555,16 @@ def exportar_reporte_pdf(
                 painter.setBrush(QBrush(QColor(estilo.PRIMARIO)))
                 painter.drawRoundedRect(QRectF(xk, y_cursor + 12.0, 8.0, alto_kpi - 24.0), 4.0, 4.0)
 
-                f_klbl = QFont(estilo.FAMILIA_FUENTE, 8)
-                f_klbl.setBold(True)
+                f_klbl = _fuente_ajustada(etiqueta_k.upper(), ancho_kpi - 40.0, 8, minimo=5.5, negrita=True)
                 painter.setFont(f_klbl)
                 painter.setPen(QColor(estilo.TEXTO_SECUNDARIO))
                 painter.drawText(
                     QRectF(xk + 22.0, y_cursor + alto_kpi * 0.10, ancho_kpi - 32.0, alto_kpi * 0.26),
                     Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                    etiqueta_k.upper(),
+                    _elidir(f_klbl, etiqueta_k.upper(), ancho_kpi - 32.0),
                 )
 
-                f_kval = QFont(estilo.FAMILIA_FUENTE, 14)
-                f_kval.setBold(True)
+                f_kval = _fuente_ajustada(valor_k, ancho_kpi - 40.0, 14, minimo=8, negrita=True)
                 painter.setFont(f_kval)
                 painter.setPen(QColor(estilo.PRIMARIO))
                 painter.drawText(
@@ -509,13 +574,13 @@ def exportar_reporte_pdf(
                 )
 
                 if sub_k:
-                    f_ksub = QFont(estilo.FAMILIA_FUENTE, 8)
+                    f_ksub = _fuente_ajustada(sub_k, ancho_kpi - 40.0, 8, minimo=6)
                     painter.setFont(f_ksub)
                     painter.setPen(QColor(estilo.TEXTO_SECUNDARIO))
                     painter.drawText(
                         QRectF(xk + 22.0, y_cursor + alto_kpi * 0.72, ancho_kpi - 32.0, alto_kpi * 0.22),
                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-                        sub_k,
+                        _elidir(f_ksub, sub_k, ancho_kpi - 32.0),
                     )
 
             y_cursor += alto_kpi + 36.0
@@ -528,21 +593,42 @@ def exportar_reporte_pdf(
                 alto_disp_img = y_max_contenido - y_cursor - 16.0
 
             if len(imgs_validas) >= 2 and orientacion_horizontal:
-                n_par = min(len(imgs_validas), 3)
-                ancho_celda = (ancho_util - 28.0 * (n_par - 1)) / n_par
-                alto_max_par = 0.0
-                for idx_im, (_etq, im) in enumerate(imgs_validas[:n_par]):
-                    escala = min(ancho_celda / max(1, im.width()), alto_disp_img / max(1, im.height()))
-                    w_d = im.width() * escala
-                    h_d = im.height() * escala
-                    x_d = margen_x + idx_im * (ancho_celda + 28.0) + (ancho_celda - w_d) / 2.0
-                    rect_im = QRectF(x_d, y_cursor, w_d, h_d)
-                    painter.setPen(QPen(QColor(estilo.LINEA), 2.0))
-                    painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
-                    painter.drawRoundedRect(rect_im.adjusted(-6, -6, 6, 6), 12.0, 12.0)
-                    painter.drawImage(rect_im, im)
-                    alto_max_par = max(alto_max_par, h_d)
-                y_cursor += alto_max_par + 36.0
+                esp_col = 40.0
+                ancho_celda = (ancho_util - esp_col) / 2.0
+                f_etq = QFont(estilo.FAMILIA_FUENTE, 9)
+                f_etq.setBold(True)
+                alto_etq = 64.0
+                for inicio_fila in range(0, len(imgs_validas), 2):
+                    fila_imgs = imgs_validas[inicio_fila : inicio_fila + 2]
+                    dims = []
+                    for _etq, im in fila_imgs:
+                        escala = ancho_celda / max(1, im.width())
+                        dims.append((im.width() * escala, im.height() * escala))
+                    alto_fila_img = max(h for _w, h in dims) + alto_etq
+                    if y_cursor + alto_fila_img > y_max_contenido:
+                        writer.newPage()
+                        num_pagina += 1
+                        y_cursor = _dibujar_marco_pagina(num_pagina)
+                    ancho_fila = len(fila_imgs) * ancho_celda + (len(fila_imgs) - 1) * esp_col
+                    x_ini = margen_x + (ancho_util - ancho_fila) / 2.0
+                    for idx_im, ((etq, im), (w_d, h_d)) in enumerate(zip(fila_imgs, dims, strict=True)):
+                        x_d = x_ini + idx_im * (ancho_celda + esp_col)
+                        rect_marco = QRectF(x_d - 8.0, y_cursor - 8.0, ancho_celda + 16.0, h_d + alto_etq)
+                        painter.setPen(QPen(QColor(estilo.LINEA), 2.0))
+                        painter.setBrush(QBrush(QColor(estilo.SUPERFICIE)))
+                        painter.drawRoundedRect(rect_marco, 14.0, 14.0)
+                        y_im = y_cursor
+                        if etq:
+                            painter.setFont(f_etq)
+                            painter.setPen(QColor(estilo.PRIMARIO))
+                            painter.drawText(
+                                QRectF(x_d + 10.0, y_cursor, ancho_celda - 20.0, alto_etq - 8.0),
+                                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                                _elidir(f_etq, etq, ancho_celda - 20.0),
+                            )
+                            y_im += alto_etq - 8.0
+                        painter.drawImage(QRectF(x_d, y_im, w_d, h_d), im)
+                    y_cursor += alto_fila_img + 28.0
             else:
                 for _etq, im in imgs_validas:
                     if y_cursor + alto_p * 0.25 > y_max_contenido:

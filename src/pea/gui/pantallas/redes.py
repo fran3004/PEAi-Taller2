@@ -35,7 +35,6 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QComboBox,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -55,6 +54,14 @@ from pea.gui.componentes.filtro_anios import ChipVentana, texto_resumen_filtro
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
 from pea.gui.componentes.toast import GestorAvisos
+from pea.gui.dialogos_exportacion import (
+    FILTRO_CSV,
+    FILTRO_PDF,
+    FILTRO_PNG,
+    describir_ubicacion,
+    mensaje_error,
+    resolver_archivo_destino,
+)
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     ACENTO,
@@ -272,7 +279,7 @@ class PantallaRedes(QWidget):
             f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 7px 14px; font-size: {estilo.TAMANO_AUXILIAR}pt; }}"
             f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
-        self.btn_exportar.clicked.connect(self.exportar_png)
+        self.btn_exportar.clicked.connect(lambda _marcado=False: self.exportar_png())
         layout.addWidget(self.btn_exportar)
 
         # Menú Exportar reporte (PDF y CSV)
@@ -287,11 +294,11 @@ class PantallaRedes(QWidget):
         )
         menu_rep = QMenu(self.btn_exportar_reporte)
         act_pdf = menu_rep.addAction("Exportar reporte de red a PDF")
-        act_pdf.triggered.connect(self.exportar_pdf)
+        act_pdf.triggered.connect(lambda _marcado=False: self.exportar_pdf())
         act_csv = menu_rep.addAction("Exportar métricas de centralidad a CSV")
-        act_csv.triggered.connect(self.exportar_csv)
+        act_csv.triggered.connect(lambda _marcado=False: self.exportar_csv())
         act_png2 = menu_rep.addAction("Exportar imagen de red a PNG (2x)")
-        act_png2.triggered.connect(self.exportar_png)
+        act_png2.triggered.connect(lambda _marcado=False: self.exportar_png())
         self.btn_exportar_reporte.setMenu(menu_rep)
         layout.addWidget(self.btn_exportar_reporte)
 
@@ -945,15 +952,47 @@ class PantallaRedes(QWidget):
             )
         return imagen
 
-    def exportar_png(self) -> None:
-        """Exporta la vista actual de la red como imagen PNG institucional a doble resolución (2x)."""
-        ruta, _ = QFileDialog.getSaveFileName(
-            self,
-            "Exportar Red de Colaboración (PNG)",
-            "red_colaboracion.png",
-            "Imágenes PNG (*.png)",
+    def _filas_centralidad(self, columnas_largas: bool) -> tuple[tuple[str, ...], list[tuple[Any, ...]]]:
+        """Columnas y filas de la tabla de centralidad ordenadas por grado e intermediación."""
+        nodos = sorted(
+            self._datos_red_actual.get("nodos", ()),
+            key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
         )
-        if not ruta:
+        columnas = (
+            "Código CvLAC",
+            "Investigador" if columnas_largas else "Nombre",
+            "Categoría",
+            "Grupo Principal",
+            "Grado (Coautores)" if columnas_largas else "Grado",
+            "Intermediación",
+        )
+        filas = [
+            (
+                nd.get("codigo", ""),
+                normalizar_nombre_investigador(str(nd.get("nombre", ""))),
+                nd.get("categoria", "Sin categoría"),
+                nd.get("grupo_principal", "Sin grupo"),
+                int(nd.get("grado", 0)),
+                f"{float(nd.get('intermediacion', 0.0)):.4f}",
+            )
+            for nd in nodos
+        ]
+        return columnas, filas
+
+    def _nombre_base_red(self, tema: str) -> str:
+        return f"pea_{tema}_red_{self.combo_grupo.currentText()}"
+
+    def exportar_png(self, ruta_destino: str | Path | None = None) -> None:
+        """Exporta la vista actual de la red como imagen PNG institucional a doble resolución (2x)."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar imagen de la red de colaboración (PNG)",
+            nombre_base=self._nombre_base_red("imagen"),
+            filtro=FILTRO_PNG,
+            extension=".png",
+        )
+        if ruta is None:
             return
 
         try:
@@ -971,19 +1010,26 @@ class PantallaRedes(QWidget):
                 imagenes=[img_red],
                 pie_extra=f"Investigadores: {n_inv} · Enlaces: {n_vinc} · Densidad: {dens:.4f}",
             )
-            GestorAvisos.mostrar_desde(self, f"Red exportada exitosamente a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Imagen guardada: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PNG",
+            )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar imagen de red: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PNG")
 
-    def exportar_pdf(self) -> None:
+    def exportar_pdf(self, ruta_destino: str | Path | None = None) -> None:
         """Exporta el reporte ejecutivo de la red de colaboración (grafo + tabla de centralidad) en PDF."""
-        ruta, _ = QFileDialog.getSaveFileName(
+        ruta = resolver_archivo_destino(
             self,
-            "Exportar Reporte de Red (PDF)",
-            "reporte_red_colaboracion.pdf",
-            "Documentos PDF (*.pdf)",
+            ruta_destino,
+            titulo="Guardar reporte de la red de colaboración (PDF)",
+            nombre_base=self._nombre_base_red("reporte"),
+            filtro=FILTRO_PDF,
+            extension=".pdf",
         )
-        if not ruta:
+        if ruta is None:
             return
 
         try:
@@ -1000,22 +1046,7 @@ class PantallaRedes(QWidget):
                 ("Enlaces de coautoría", formatear_entero(n_vinc), f"Mín. {self._min_coautorias_actual} coautoría(s)"),
                 ("Densidad topológica", f"{dens:.4f}", f"Ventana: {vent_txt}"),
             ]
-            nodos = sorted(
-                self._datos_red_actual.get("nodos", ()),
-                key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
-            )
-            columnas = ("Código CvLAC", "Investigador", "Categoría", "Grupo Principal", "Grado (Coautores)", "Intermediación")
-            filas = [
-                (
-                    nd.get("codigo", ""),
-                    normalizar_nombre_investigador(str(nd.get("nombre", ""))),
-                    nd.get("categoria", "Sin categoría"),
-                    nd.get("grupo_principal", "Sin grupo"),
-                    int(nd.get("grado", 0)),
-                    f"{float(nd.get('intermediacion', 0.0)):.4f}",
-                )
-                for nd in nodos
-            ]
+            columnas, filas = self._filas_centralidad(columnas_largas=True)
             exportar_reporte_pdf(
                 ruta=ruta,
                 titulo="Análisis de Redes de Colaboración Científica",
@@ -1026,39 +1057,50 @@ class PantallaRedes(QWidget):
                 filas=filas,
                 orientacion_horizontal=True,
             )
-            GestorAvisos.mostrar_desde(self, f"Reporte PDF de red exportado a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Reporte guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PDF",
+            )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF de red: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PDF")
 
-    def exportar_csv(self) -> None:
+    def exportar_csv(self, ruta_destino: str | Path | None = None) -> None:
         """Exporta las métricas de centralidad de la red a un archivo CSV UTF-8 con BOM."""
-        ruta, _ = QFileDialog.getSaveFileName(
+        ruta = resolver_archivo_destino(
             self,
-            "Exportar Métricas de Centralidad (CSV)",
-            "metricas_red_colaboracion.csv",
-            "Archivos CSV (*.csv)",
+            ruta_destino,
+            titulo="Guardar métricas de centralidad (CSV)",
+            nombre_base=self._nombre_base_red("metricas"),
+            filtro=FILTRO_CSV,
+            extension=".csv",
         )
-        if not ruta:
+        if ruta is None:
             return
 
         try:
-            nodos = sorted(
-                self._datos_red_actual.get("nodos", ()),
-                key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
+            resumen = self._datos_red_actual.get("resumen", {})
+            columnas, filas = self._filas_centralidad(columnas_largas=False)
+            guardar_csv_profesional(
+                ruta,
+                columnas,
+                filas,
+                titulo="Métricas de centralidad de la red de colaboración",
+                metadatos=[
+                    ("Ámbito", self.combo_grupo.currentText()),
+                    ("Ventana temporal", texto_resumen_filtro(self._filtro_actual)),
+                    ("Mínimo de coautorías", str(self._min_coautorias_actual)),
+                    ("Investigadores en red", str(int(resumen.get("investigadores", 0)))),
+                    ("Enlaces de coautoría", str(int(resumen.get("vinculos", 0)))),
+                    ("Densidad topológica", f"{float(resumen.get('densidad', 0.0)):.4f}"),
+                ],
             )
-            columnas = ("Código CvLAC", "Nombre", "Categoría", "Grupo Principal", "Grado", "Intermediación")
-            filas = [
-                (
-                    nd.get("codigo", ""),
-                    normalizar_nombre_investigador(str(nd.get("nombre", ""))),
-                    nd.get("categoria", "Sin categoría"),
-                    nd.get("grupo_principal", "Sin grupo"),
-                    int(nd.get("grado", 0)),
-                    f"{float(nd.get('intermediacion', 0.0)):.4f}",
-                )
-                for nd in nodos
-            ]
-            guardar_csv_profesional(ruta, columnas, filas)
-            GestorAvisos.mostrar_desde(self, f"Métricas de red exportadas a {Path(ruta).name}", tipo="exito")
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Métricas guardadas: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV de red: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")

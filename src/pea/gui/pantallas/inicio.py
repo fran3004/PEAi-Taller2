@@ -25,7 +25,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QResizeEvent
 from PySide6.QtWidgets import (
     QComboBox,
-    QFileDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -52,6 +51,16 @@ from pea.gui.componentes.selector_segmentado import SelectorSegmentado
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
 from pea.gui.componentes.toast import GestorAvisos
+from pea.gui.dialogos_exportacion import (
+    FILTRO_CSV,
+    FILTRO_PDF,
+    FILTRO_PNG,
+    describir_ubicacion,
+    mensaje_error,
+    nombre_archivo_seguro,
+    resolver_archivo_destino,
+    resolver_carpeta_destino,
+)
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     COLOR_DTI,
@@ -72,6 +81,7 @@ from pea.gui.exportador_visual import (
     renderizar_widget_imagen,
 )
 from pea.gui.formato import (
+    formatear_decimal,
     formatear_entero,
     formatear_porcentaje,
 )
@@ -305,16 +315,20 @@ class PantallaInicio(QWidget):
             f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; border-color: {COLOR_DTI}; }}"
         )
         self._menu_exportar = QMenu(self._btn_exportar)
-        act_pdf = QAction("Exportar reporte ejecutivo (PDF)", self._menu_exportar)
-        act_pdf.triggered.connect(self.exportar_pdf)
+        act_pdf = QAction("Reporte ejecutivo (PDF)…", self._menu_exportar)
+        act_pdf.triggered.connect(lambda _marcado=False: self.exportar_pdf())
         self._menu_exportar.addAction(act_pdf)
 
-        act_png = QAction("Exportar gráficos a PNG", self._menu_exportar)
-        act_png.triggered.connect(self.exportar_png)
+        act_png = QAction("Lámina del panorama (PNG)…", self._menu_exportar)
+        act_png.triggered.connect(lambda _marcado=False: self.exportar_png())
         self._menu_exportar.addAction(act_png)
 
-        act_csv = QAction("Exportar datos a CSV", self._menu_exportar)
-        act_csv.triggered.connect(self.exportar_csv)
+        act_png_ind = QAction("Gráficos por separado (PNG)…", self._menu_exportar)
+        act_png_ind.triggered.connect(lambda _marcado=False: self.exportar_png_individuales())
+        self._menu_exportar.addAction(act_png_ind)
+
+        act_csv = QAction("Datos del panorama (CSV)…", self._menu_exportar)
+        act_csv.triggered.connect(lambda _marcado=False: self.exportar_csv())
         self._menu_exportar.addAction(act_csv)
 
         self._btn_exportar.setMenu(self._menu_exportar)
@@ -916,20 +930,37 @@ class PantallaInicio(QWidget):
     # Exportaciones (PDF, PNG y CSV)
     # -----------------------------------------------------------------------
 
+    def _serie_anual_exportable(self) -> list[tuple[Any, ...]]:
+        """Serie anual por tipología del ámbito actual, lista para tablas de PDF y CSV."""
+        if self._modo_ambito == "institucion":
+            serie = self._servicio.serie_anual_por_categoria(self._filtro_actual)
+        else:
+            serie = self._servicio.serie_anual_por_categoria(
+                self._filtro_actual, codigo_grupo=self._codigo_grupo_seleccionado
+            )
+        filas: list[tuple[Any, ...]] = []
+        for anio in sorted(serie.keys()):
+            d = serie[anio]
+            filas.append((anio, d.get("GNC", 0), d.get("DTI", 0), d.get("ASC", 0), d.get("FRH", 0), sum(d.values())))
+        return filas
+
+    def _nombre_base_exportacion(self, tema: str) -> str:
+        """Nombre sugerido coherente con el ámbito, el grupo y la ventana temporal activa."""
+        ambito = "institucion" if self._modo_ambito == "institucion" else f"grupo_{self._codigo_grupo_seleccionado or ''}"
+        return f"pea_{tema}_{ambito}_{self._filtro_actual.modo.value}"
+
     def exportar_pdf(self, ruta_destino: str | Path | None = None) -> None:
         """Exporta un reporte ejecutivo completo del panorama estadístico a PDF."""
-        nombre_def = f"reporte_panorama_{self._modo_ambito}_{self._filtro_actual.modo.value}.pdf"
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar reporte ejecutivo a PDF",
-                nombre_def,
-                "Documento PDF (*.pdf)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar reporte ejecutivo (PDF)",
+            nombre_base=self._nombre_base_exportacion("reporte"),
+            filtro=FILTRO_PDF,
+            extension=".pdf",
+        )
+        if ruta is None:
+            return
 
         try:
             desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
@@ -946,64 +977,47 @@ class PantallaInicio(QWidget):
                 ("Distribución por tipología y validación", renderizar_widget_imagen(self._grafico_dona)),
                 ("Vista sintética de la red de coautoría", renderizar_widget_imagen(self._mini_red)),
             ]
-
-            serie = (
-                self._servicio.serie_anual_por_categoria(self._filtro_actual)
-                if self._modo_ambito == "institucion"
-                else self._servicio.serie_anual_por_categoria(
-                    self._filtro_actual, codigo_grupo=self._codigo_grupo_seleccionado
-                )
-            )
-            filas_serie: list[tuple[Any, ...]] = []
-            for anio in sorted(serie.keys()):
-                d = serie[anio]
-                tot = sum(d.values())
-                filas_serie.append((anio, d.get("GNC", 0), d.get("DTI", 0), d.get("ASC", 0), d.get("FRH", 0), tot))
-
             titulo_rep = (
                 "Panorama Estadístico Institucional"
                 if self._modo_ambito == "institucion"
                 else f"Panorama de Grupo · {self._lbl_titulo_ambito.text()}"
             )
+            ambito_txt = "Institución" if self._modo_ambito == "institucion" else "Grupo de investigación"
             exportar_reporte_pdf(
                 ruta,
                 titulo=titulo_rep,
-                subtitulo=f"Universidad Popular del Cesar · {self._lbl_subtitulo_ambito.text()}",
+                subtitulo=f"Universidad Popular del Cesar · {self._lbl_lineas_ambito.text()}",
                 metadatos=[
-                    ("Ámbito", self._modo_ambito.capitalize()),
+                    ("Ámbito", ambito_txt),
                     ("Filtro temporal", desc_f),
                 ],
                 kpis=kpis,
                 imagenes=imagenes,
                 columnas_tabla=["Año", "GNC", "DTI", "ASC", "FRH", "Total anual"],
-                filas_tabla=filas_serie,
+                filas_tabla=self._serie_anual_exportable(),
                 nota_pie="Cálculos obtenidos en memoria desde el Hipercubo 4D y la Multilista de Productos.",
             )
             GestorAvisos.mostrar_desde(
                 self,
-                f"Reporte ejecutivo PDF guardado en {Path(ruta).name}",
+                f"Reporte guardado: {describir_ubicacion(ruta)}.",
                 tipo="exito",
                 titulo="Exportación PDF",
             )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {err}", tipo="error", titulo="Exportar")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PDF")
 
     def exportar_csv(self, ruta_destino: str | Path | None = None) -> None:
         """Exporta un resumen tabular detallado a formato CSV con metadatos ejecutivos."""
-        nombre_def = (
-            f"resumen_{self._modo_ambito}_{self._filtro_actual.modo.value}.csv"
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar datos del panorama (CSV)",
+            nombre_base=self._nombre_base_exportacion("resumen"),
+            filtro=FILTRO_CSV,
+            extension=".csv",
         )
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar datos a CSV",
-                nombre_def,
-                "Archivos CSV (*.csv);;Todos los archivos (*.*)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        if ruta is None:
+            return
 
         try:
             desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
@@ -1015,9 +1029,8 @@ class PantallaInicio(QWidget):
                     ("Grupos activos", str(res.get("grupos_activos", 0))),
                     ("Investigadores activos", str(res.get("investigadores_activos", 0))),
                     ("Total productos en período", str(res.get("total_productos", 0))),
-                    ("Promedio por investigador", str(res.get("promedio_por_investigador", 0.0))),
+                    ("Promedio por investigador", formatear_decimal(res.get("promedio_por_investigador", 0.0))),
                 ]
-                serie = self._servicio.serie_anual_por_categoria(self._filtro_actual)
             else:
                 cod = self._codigo_grupo_seleccionado or ""
                 vg = self._servicio.vista_grupo(cod, self._filtro_actual)
@@ -1030,78 +1043,105 @@ class PantallaInicio(QWidget):
                     ("Total productos", str(vg.get("total_productos", 0))),
                     ("Productos avalados", str(vg.get("productos_avalados", 0))),
                 ]
-                serie = self._servicio.serie_anual_por_categoria(self._filtro_actual, codigo_grupo=cod)
-
-            filas_csv: list[tuple[Any, ...]] = []
-            for a in sorted(serie.keys()):
-                d = serie[a]
-                tot = sum(d.values())
-                filas_csv.append((a, d.get("GNC", 0), d.get("DTI", 0), d.get("ASC", 0), d.get("FRH", 0), tot))
 
             guardar_csv_profesional(
                 ruta,
                 titulo=f"Resumen estadístico ({self._modo_ambito})",
                 metadatos=metadatos,
                 columnas=["Año", "GNC", "DTI", "ASC", "FRH", "Total"],
-                filas=filas_csv,
+                filas=self._serie_anual_exportable(),
             )
-
             GestorAvisos.mostrar_desde(
-                self, f"Resumen exportado exitosamente a {Path(ruta).name}", tipo="exito", titulo="Exportación CSV"
+                self,
+                f"Datos guardados: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación CSV",
             )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Fallo al exportar CSV: {err}", tipo="error", titulo="Exportar")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")
 
-    def exportar_png(self, directorio_destino: str | Path | None = None) -> None:
-        """Exporta los gráficos a archivos PNG de alta resolución con lámina institucional."""
-        if directorio_destino is None:
-            directorio = QFileDialog.getExistingDirectory(
-                self, "Seleccionar carpeta para guardar gráficos"
-            )
-            if not directorio:
-                return
-        else:
-            directorio = str(directorio_destino)
+    def exportar_png(self, ruta_destino: str | Path | None = None) -> None:
+        """Exporta el panel completo (barras, dona y red) como una lámina PNG institucional."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar lámina del panorama (PNG)",
+            nombre_base=self._nombre_base_exportacion("panel"),
+            filtro=FILTRO_PNG,
+            extension=".png",
+        )
+        if ruta is None:
+            return
 
-        dir_path = Path(directorio)
-        prefijo = f"inicio_{self._modo_ambito}"
-        desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
         try:
-            img_barras = renderizar_widget_imagen(self._grafico_barras)
-            img_dona = renderizar_widget_imagen(self._grafico_dona)
-            img_red = renderizar_widget_imagen(self._mini_red)
-
+            desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
             exportar_png_institucional(
-                dir_path / f"{prefijo}_barras_apiladas.png",
-                titulo="Producción anual por tipología (GNC · DTI · ASC · FRH)",
-                subtitulo=f"{self._lbl_titulo_ambito.text()} · Filtro: {desc_f}",
-                imagenes=[("Evolución anual por gran categoría Minciencias", img_barras)],
-            )
-            exportar_png_institucional(
-                dir_path / f"{prefijo}_tipologia_dona.png",
-                titulo="Distribución por tipología y validación",
-                subtitulo=f"{self._lbl_titulo_ambito.text()} · Filtro: {desc_f}",
-                imagenes=[("Anillo exterior: Tipología · Anillo interior: Validación", img_dona)],
-            )
-            exportar_png_institucional(
-                dir_path / f"{prefijo}_mini_red.png",
-                titulo="Red sintética de coautoría científica",
-                subtitulo=f"{self._lbl_titulo_ambito.text()} · Filtro: {desc_f}",
-                imagenes=[("Subgrafo principal de colaboración", img_red)],
-            )
-            exportar_png_institucional(
-                dir_path / f"{prefijo}_panel_completo.png",
+                ruta,
                 titulo=f"Panorama Estadístico · {self._lbl_titulo_ambito.text()}",
                 subtitulo=f"Filtro temporal: {desc_f}",
                 imagenes=[
-                    ("Producción anual por tipología", img_barras),
-                    ("Distribución por tipología y validación", img_dona),
-                    ("Red sintética de coautoría", img_red),
+                    ("Producción anual por tipología", renderizar_widget_imagen(self._grafico_barras)),
+                    ("Distribución por tipología y validación", renderizar_widget_imagen(self._grafico_dona)),
+                    ("Red sintética de coautoría", renderizar_widget_imagen(self._mini_red)),
                 ],
             )
-
             GestorAvisos.mostrar_desde(
-                self, f"Gráficos institucionales exportados en {dir_path.name}", tipo="exito", titulo="Exportación PNG"
+                self,
+                f"Lámina guardada: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PNG",
             )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PNG: {err}", tipo="error", titulo="Exportar")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PNG")
+
+    def exportar_png_individuales(self, directorio_destino: str | Path | None = None) -> None:
+        """Exporta cada gráfico como un PNG independiente dentro de la carpeta que elija el usuario."""
+        carpeta = resolver_carpeta_destino(
+            self,
+            directorio_destino,
+            titulo="Elegir la carpeta donde guardar los gráficos (PNG)",
+        )
+        if carpeta is None:
+            return
+
+        prefijo = nombre_archivo_seguro(self._nombre_base_exportacion("grafico"), ".png").removesuffix(".png")
+        try:
+            desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
+            ambito = self._lbl_titulo_ambito.text()
+            piezas = (
+                (
+                    "barras",
+                    "Producción anual por tipología (GNC · DTI · ASC · FRH)",
+                    "Evolución anual por gran categoría Minciencias",
+                    self._grafico_barras,
+                ),
+                (
+                    "dona",
+                    "Distribución por tipología y validación",
+                    "Anillo exterior: Tipología · Anillo interior: Validación",
+                    self._grafico_dona,
+                ),
+                (
+                    "red",
+                    "Red sintética de coautoría científica",
+                    "Subgrafo principal de colaboración",
+                    self._mini_red,
+                ),
+            )
+            for sufijo, titulo, leyenda, widget in piezas:
+                exportar_png_institucional(
+                    carpeta / f"{prefijo}_{sufijo}.png",
+                    titulo=titulo,
+                    subtitulo=f"{ambito} · Filtro: {desc_f}",
+                    imagenes=[(leyenda, renderizar_widget_imagen(widget))],
+                )
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Se guardaron {len(piezas)} gráficos PNG en la carpeta «{carpeta.name or carpeta}».",
+                tipo="exito",
+                titulo="Exportación PNG",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(
+                self, mensaje_error(err, carpeta), tipo="error", titulo="No se pudieron exportar los gráficos"
+            )

@@ -48,7 +48,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -76,6 +75,15 @@ from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
 from pea.gui.componentes.toast import GestorAvisos
 from pea.gui.dialogos import DialogoInvestigador
+from pea.gui.dialogos_exportacion import (
+    FILTRO_CSV,
+    FILTRO_PDF,
+    FILTRO_PNG,
+    describir_ubicacion,
+    mensaje_error,
+    pedir_carpeta,
+    resolver_archivo_destino,
+)
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     AVISO,
@@ -583,16 +591,32 @@ class DialogoFichaCompletaInvestigador(QDialog):
         layout.addLayout(fila_pie)
 
     def _exportar_csv(self, servicio: ServicioAplicacion, vista: dict[str, Any]) -> None:
-        directorio = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta para exportar tablas")
-        if not directorio:
+        carpeta = pedir_carpeta(self, "Elegir la carpeta donde guardar las tablas del investigador (CSV)")
+        if carpeta is None:
             return
-        p_dir = Path(directorio)
         cod = vista["codigo"]
-        r_ap = p_dir / f"investigador_{cod}_aportes.csv"
-        r_prd = p_dir / f"investigador_{cod}_productos.csv"
-        servicio.exportar_tabla_csv(vista["aportes"], r_ap)
-        servicio.exportar_tabla_csv(vista["productos"], r_prd)
-        GestorAvisos.mostrar_desde(self, "Tablas exportadas a CSV con éxito.", tipo="exito")
+        try:
+            for clave, sufijo, etiqueta in (
+                ("aportes", "aportes", "Aportes"),
+                ("productos", "productos", "Productos"),
+            ):
+                tabla = vista[clave]
+                guardar_csv_profesional(
+                    carpeta / f"investigador_{cod}_{sufijo}.csv",
+                    titulo=f"{etiqueta} del investigador {cod}",
+                    columnas=[str(c) for c in tabla.columnas],
+                    filas=[tuple(fila) for fila in tabla.filas],
+                )
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Se guardaron 2 tablas CSV en la carpeta «{carpeta.name or carpeta}».",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(
+                self, mensaje_error(err, carpeta), tipo="error", titulo="No se pudo exportar el CSV"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -724,11 +748,11 @@ class PantallaInvestigadores(QWidget):
             f"QMenu::item:selected {{ background-color: {estilo.FONDO_APP}; color: {PRIMARIO}; }}"
         )
         act_pdf = menu_exp.addAction("Directorio actual (PDF)")
-        act_pdf.triggered.connect(self._al_exportar_directorio_pdf)
+        act_pdf.triggered.connect(lambda _marcado=False: self._al_exportar_directorio_pdf())
         act_png = menu_exp.addAction("Ficha de investigador seleccionado (PNG)")
-        act_png.triggered.connect(self._al_exportar_ficha_png)
+        act_png.triggered.connect(lambda _marcado=False: self._al_exportar_ficha_png())
         act_csv = menu_exp.addAction("Directorio actual (CSV)")
-        act_csv.triggered.connect(self._al_exportar_directorio_csv)
+        act_csv.triggered.connect(lambda _marcado=False: self._al_exportar_directorio_csv())
         self._btn_exportar.setMenu(menu_exp)
         layout.addWidget(self._btn_exportar)
 
@@ -1167,19 +1191,22 @@ class PantallaInvestigadores(QWidget):
             filas.append((nom, grp, cat, frm, prd, cv))
         return filas
 
+    def exportar_csv(self) -> None:
+        """Atajo Ctrl+S: exporta el directorio visible a CSV eligiendo el destino con el explorador."""
+        self._al_exportar_directorio_csv()
+
     def _al_exportar_directorio_pdf(self, ruta_destino: str | Path | None = None) -> None:
         """Exporta el directorio visible de investigadores a un reporte PDF institucional."""
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar Directorio de Investigadores a PDF",
-                "directorio_investigadores.pdf",
-                "Documento PDF (*.pdf)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar directorio de investigadores (PDF)",
+            nombre_base="pea_directorio_investigadores",
+            filtro=FILTRO_PDF,
+            extension=".pdf",
+        )
+        if ruta is None:
+            return
 
         try:
             filas = self._obtener_filas_visibles()
@@ -1211,24 +1238,31 @@ class PantallaInvestigadores(QWidget):
                 filas_tabla=filas,
             )
             GestorAvisos.mostrar_desde(
-                self, f"Directorio PDF guardado en {Path(ruta).name}.", tipo="exito", titulo="Exportación PDF"
+                self,
+                f"Directorio guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PDF",
             )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PDF")
 
     def _al_exportar_ficha_png(self, ruta_destino: str | Path | None = None) -> None:
-        """Exporta la ficha lateral y gráficos del investigador seleccionado a PNG."""
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar ficha de investigador a PNG",
-                "ficha_investigador.png",
-                "Imagen PNG (*.png)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta la lámina PNG del investigador seleccionado (o del directorio si no hay selección)."""
+        nombre_base = (
+            f"pea_investigador_{self._investigador_seleccionado_nom}"
+            if self._investigador_seleccionado_nom
+            else "pea_investigadores"
+        )
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar ficha del investigador (PNG)",
+            nombre_base=nombre_base,
+            filtro=FILTRO_PNG,
+            extension=".png",
+        )
+        if ruta is None:
+            return
 
         try:
             desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
@@ -1243,30 +1277,44 @@ class PantallaInvestigadores(QWidget):
                 ],
             )
             GestorAvisos.mostrar_desde(
-                self, f"Ficha PNG exportada a {Path(ruta).name}.", tipo="exito", titulo="Exportación PNG"
+                self,
+                f"Ficha guardada: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PNG",
             )
         except Exception as err:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PNG: {err}", tipo="error")
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PNG")
 
     def _al_exportar_directorio_csv(self, ruta_destino: str | Path | None = None) -> None:
-        """Exporta la vista filtrada del directorio a un archivo CSV."""
-        if ruta_destino is None:
-            directorio = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta para exportar directorio")
-            if not directorio:
-                return
-            ruta = Path(directorio) / "directorio_investigadores.csv"
-        else:
-            ruta = Path(ruta_destino)
-
-        filas = self._obtener_filas_visibles()
-        guardar_csv_profesional(
-            ruta,
-            titulo="Directorio de Investigadores",
-            metadatos=[
-                ("Filtro temporal", self._servicio.descripcion_filtro(self._filtro_actual)),
-                ("Registros exportados", str(len(filas))),
-            ],
-            columnas=("Nombre", "Grupo(s)", "Categoría", "Formación", "Productos", "Código CvLAC"),
-            filas=filas,
+        """Exporta el directorio visible de investigadores a un CSV compatible con Excel."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar directorio de investigadores (CSV)",
+            nombre_base="pea_directorio_investigadores",
+            filtro=FILTRO_CSV,
+            extension=".csv",
         )
-        GestorAvisos.mostrar_desde(self, f"Directorio exportado a {ruta.name} con éxito.", tipo="exito")
+        if ruta is None:
+            return
+
+        try:
+            filas = self._obtener_filas_visibles()
+            guardar_csv_profesional(
+                ruta,
+                titulo="Directorio de Investigadores",
+                metadatos=[
+                    ("Filtro temporal", self._servicio.descripcion_filtro(self._filtro_actual)),
+                    ("Registros exportados", str(len(filas))),
+                ],
+                columnas=("Nombre", "Grupo(s)", "Categoría", "Formación", "Productos", "Código CvLAC"),
+                filas=filas,
+            )
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Directorio guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")

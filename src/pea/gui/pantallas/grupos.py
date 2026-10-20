@@ -46,7 +46,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -74,6 +73,15 @@ from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
 from pea.gui.componentes.toast import GestorAvisos
 from pea.gui.dialogos import DialogoGrupo
+from pea.gui.dialogos_exportacion import (
+    FILTRO_CSV,
+    FILTRO_PDF,
+    FILTRO_PNG,
+    describir_ubicacion,
+    mensaje_error,
+    pedir_carpeta,
+    resolver_archivo_destino,
+)
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     AVISO,
@@ -464,16 +472,32 @@ class DialogoFichaCompletaGrupo(QDialog):
         layout.addLayout(fila_pie)
 
     def _exportar_csv(self, servicio: ServicioAplicacion, vista: dict[str, Any]) -> None:
-        directorio = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta para exportar tablas")
-        if not directorio:
+        carpeta = pedir_carpeta(self, "Elegir la carpeta donde guardar las tablas del grupo (CSV)")
+        if carpeta is None:
             return
-        p_dir = Path(directorio)
         cod = vista["codigo"]
-        r_int = p_dir / f"grupo_{cod}_integrantes.csv"
-        r_prd = p_dir / f"grupo_{cod}_productos.csv"
-        servicio.exportar_tabla_csv(vista["integrantes"], r_int)
-        servicio.exportar_tabla_csv(vista["productos"], r_prd)
-        GestorAvisos.mostrar_desde(self, "Tablas de grupo exportadas a CSV con éxito.", tipo="exito")
+        try:
+            for clave, sufijo, etiqueta in (
+                ("integrantes", "integrantes", "Integrantes"),
+                ("productos", "productos", "Productos"),
+            ):
+                tabla = vista[clave]
+                guardar_csv_profesional(
+                    carpeta / f"grupo_{cod}_{sufijo}.csv",
+                    titulo=f"{etiqueta} del grupo {cod}",
+                    columnas=[str(c) for c in tabla.columnas],
+                    filas=[tuple(fila) for fila in tabla.filas],
+                )
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Se guardaron 2 tablas CSV en la carpeta «{carpeta.name or carpeta}».",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(
+                self, mensaje_error(err, carpeta), tipo="error", titulo="No se pudo exportar el CSV"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -749,11 +773,11 @@ class PantallaGrupos(QWidget):
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
         act_pdf = menu_exp.addAction("Exportar directorio visible a PDF")
-        act_pdf.triggered.connect(self._exportar_directorio_pdf)
+        act_pdf.triggered.connect(lambda _marcado=False: self._exportar_directorio_pdf())
         act_png = menu_exp.addAction("Exportar gráfico del grupo a PNG")
-        act_png.triggered.connect(self._exportar_grupo_png)
+        act_png.triggered.connect(lambda _marcado=False: self._exportar_grupo_png())
         act_csv = menu_exp.addAction("Exportar directorio visible a CSV")
-        act_csv.triggered.connect(self._exportar_directorio_csv)
+        act_csv.triggered.connect(lambda _marcado=False: self._exportar_directorio_csv())
         self.btn_exportar.setMenu(menu_exp)
         layout.addWidget(self.btn_exportar)
 
@@ -1105,18 +1129,22 @@ class PantallaGrupos(QWidget):
             filas_visibles.append(fila_datos)
         return cols, filas_visibles
 
+    def exportar_csv(self) -> None:
+        """Atajo Ctrl+S: exporta el directorio visible a CSV eligiendo el destino con el explorador."""
+        self._exportar_directorio_csv()
+
     def _exportar_directorio_pdf(self, ruta_destino: str | Path | None = None) -> None:
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar Directorio de Grupos a PDF",
-                "directorio_grupos.pdf",
-                "Documento PDF (*.pdf)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta el directorio visible de grupos a un reporte PDF institucional."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar directorio de grupos (PDF)",
+            nombre_base="pea_directorio_grupos",
+            filtro=FILTRO_PDF,
+            extension=".pdf",
+        )
+        if ruta is None:
+            return
 
         try:
             cols, filas = self._obtener_tabla_visible()
@@ -1147,23 +1175,27 @@ class PantallaGrupos(QWidget):
                 filas_tabla=filas,
             )
             GestorAvisos.mostrar_desde(
-                self, f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PDF"
+                self,
+                f"Directorio guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PDF",
             )
-        except Exception as e:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {e}", tipo="error")
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PDF")
 
     def _exportar_grupo_png(self, ruta_destino: str | Path | None = None) -> None:
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar gráfico del grupo a PNG",
-                "grupo_produccion.png",
-                "Imagen PNG (*.png)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta la lámina PNG del grupo seleccionado (o del directorio si no hay selección)."""
+        nombre_base = f"pea_grupo_{self._grupo_seleccionado_nom}" if self._grupo_seleccionado_nom else "pea_grupos"
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar lámina del grupo (PNG)",
+            nombre_base=nombre_base,
+            filtro=FILTRO_PNG,
+            extension=".png",
+        )
+        if ruta is None:
+            return
 
         try:
             desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
@@ -1177,23 +1209,26 @@ class PantallaGrupos(QWidget):
                 ],
             )
             GestorAvisos.mostrar_desde(
-                self, f"Gráfico del grupo exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PNG"
+                self,
+                f"Lámina guardada: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PNG",
             )
-        except Exception as e:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PNG: {e}", tipo="error")
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PNG")
 
     def _exportar_directorio_csv(self, ruta_destino: str | Path | None = None) -> None:
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar Directorio de Grupos",
-                "directorio_grupos.csv",
-                "Archivos CSV (*.csv)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta el directorio visible de grupos a un CSV compatible con Excel."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar directorio de grupos (CSV)",
+            nombre_base="pea_directorio_grupos",
+            filtro=FILTRO_CSV,
+            extension=".csv",
+        )
+        if ruta is None:
+            return
 
         try:
             cols, filas_visibles = self._obtener_tabla_visible()
@@ -1207,6 +1242,11 @@ class PantallaGrupos(QWidget):
                 columnas=cols,
                 filas=filas_visibles,
             )
-            GestorAvisos.mostrar_desde(self, f"Directorio de grupos exportado a {Path(ruta).name}", tipo="exito")
-        except Exception as e:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Directorio guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")

@@ -43,7 +43,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
-    QFileDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -70,6 +69,13 @@ from pea.gui.componentes.tabla import (
 from pea.gui.componentes.tarjeta import Tarjeta
 from pea.gui.componentes.toast import GestorAvisos
 from pea.gui.dialogos import DialogoEditarProducto, DialogoProducto
+from pea.gui.dialogos_exportacion import (
+    FILTRO_CSV,
+    FILTRO_PDF,
+    describir_ubicacion,
+    mensaje_error,
+    resolver_archivo_destino,
+)
 from pea.gui.ejecutor import EjecutorHilos
 from pea.gui.estilo import (
     AVISO,
@@ -766,9 +772,9 @@ class PantallaProductos(QWidget):
         self._btn_exportar = self.btn_exportar
         menu_exp = QMenu(self.btn_exportar)
         act_pdf = menu_exp.addAction("Exportar catálogo visible a PDF")
-        act_pdf.triggered.connect(self._exportar_catalogo_pdf)
+        act_pdf.triggered.connect(lambda _marcado=False: self._exportar_catalogo_pdf())
         act_csv = menu_exp.addAction("Exportar catálogo visible a CSV")
-        act_csv.triggered.connect(self._exportar_catalogo_csv)
+        act_csv.triggered.connect(lambda _marcado=False: self._exportar_catalogo_csv())
         self.btn_exportar.setMenu(menu_exp)
         layout.addWidget(self.btn_exportar)
 
@@ -1139,18 +1145,22 @@ class PantallaProductos(QWidget):
             filas_visibles.append(fila_datos)
         return cols, filas_visibles
 
+    def exportar_csv(self) -> None:
+        """Atajo Ctrl+S: exporta el catálogo visible a CSV eligiendo el destino con el explorador."""
+        self._exportar_catalogo_csv()
+
     def _exportar_catalogo_pdf(self, ruta_destino: str | Path | None = None) -> None:
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar Catálogo de Productos a PDF",
-                "catalogo_productos.pdf",
-                "Documento PDF (*.pdf)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta el catálogo visible de productos a un reporte PDF institucional."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar catálogo de productos (PDF)",
+            nombre_base="pea_catalogo_productos",
+            filtro=FILTRO_PDF,
+            extension=".pdf",
+        )
+        if ruta is None:
+            return
 
         try:
             cols, filas_visibles = self._obtener_tabla_visible()
@@ -1174,23 +1184,26 @@ class PantallaProductos(QWidget):
                 nota_pie="Catálogo enlazado en memoria mediante Multilista (Grupo ↔ Producto ↔ Autores).",
             )
             GestorAvisos.mostrar_desde(
-                self, f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito", titulo="Exportación PDF"
+                self,
+                f"Catálogo guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación PDF",
             )
-        except Exception as e:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar PDF: {e}", tipo="error")
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el PDF")
 
     def _exportar_catalogo_csv(self, ruta_destino: str | Path | None = None) -> None:
-        if ruta_destino is None:
-            ruta, _ = QFileDialog.getSaveFileName(
-                self,
-                "Exportar Catálogo de Productos",
-                "catalogo_productos.csv",
-                "Archivos CSV (*.csv)",
-            )
-            if not ruta:
-                return
-        else:
-            ruta = str(ruta_destino)
+        """Exporta el catálogo visible de productos a un CSV compatible con Excel."""
+        ruta = resolver_archivo_destino(
+            self,
+            ruta_destino,
+            titulo="Guardar catálogo de productos (CSV)",
+            nombre_base="pea_catalogo_productos",
+            filtro=FILTRO_CSV,
+            extension=".csv",
+        )
+        if ruta is None:
+            return
 
         try:
             cols, filas_visibles = self._obtener_tabla_visible()
@@ -1204,6 +1217,11 @@ class PantallaProductos(QWidget):
                 columnas=cols,
                 filas=filas_visibles,
             )
-            GestorAvisos.mostrar_desde(self, f"Catálogo de productos exportado a {Path(ruta).name}", tipo="exito")
-        except Exception as e:
-            GestorAvisos.mostrar_desde(self, f"Error al exportar CSV: {e}", tipo="error")
+            GestorAvisos.mostrar_desde(
+                self,
+                f"Catálogo guardado: {describir_ubicacion(ruta)}.",
+                tipo="exito",
+                titulo="Exportación CSV",
+            )
+        except Exception as err:
+            GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")
