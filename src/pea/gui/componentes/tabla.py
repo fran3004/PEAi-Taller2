@@ -71,6 +71,7 @@ from pea.gui.formato import formatear_decimal, formatear_entero, iniciales_nombr
 # Rol de modelo para estado activo/inactivo (60% opacidad en delegados)
 # ---------------------------------------------------------------------------
 ROL_ACTIVO = int(Qt.ItemDataRole.UserRole) + 10
+ROL_FORMATO_NUMERO = int(Qt.ItemDataRole.UserRole) + 11
 
 
 # ---------------------------------------------------------------------------
@@ -336,9 +337,20 @@ class EnlaceDelegate(QStyledItemDelegate):
 class NumeroDelegate(QStyledItemDelegate):
     """Alinea a la derecha y formatea enteros o decimales con separador de miles colombiano."""
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    @staticmethod
+    def texto_formateado(index: QModelIndex) -> str:
+        """Formatea solo valores marcados explícitamente como cantidades."""
         val = index.data(Qt.ItemDataRole.DisplayRole)
+        if val is None or val == "—":
+            return "—"
+        if index.data(ROL_FORMATO_NUMERO) is True:
+            if isinstance(val, int):
+                return formatear_entero(val)
+            if isinstance(val, float):
+                return formatear_decimal(val)
+        return str(val)
 
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         painter.save()
         if option.state & QStyle.StateFlag.State_Selected:
             painter.fillRect(option.rect, QColor(estilo.SUPERFICIE_SELECCIONADA))
@@ -353,14 +365,7 @@ class NumeroDelegate(QStyledItemDelegate):
         if index.data(ROL_ACTIVO) is False:
             painter.setOpacity(0.60)
 
-        if val is None or val == "—":
-            texto_formateado = "—"
-        elif isinstance(val, int):
-            texto_formateado = formatear_entero(val)
-        elif isinstance(val, float):
-            texto_formateado = formatear_decimal(val)
-        else:
-            texto_formateado = str(val)
+        texto_formateado = self.texto_formateado(index)
 
         fuente = QFont()
         fuente.setPointSize(estilo.TAMANO_CUERPO)

@@ -63,6 +63,7 @@ from pea.gui.componentes.filtro_anios import ChipVentana
 from pea.gui.componentes.pildora import Pildora
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ROL_FORMATO_NUMERO,
     ColumnSpecification,
     TablaEstilizada,
 )
@@ -151,6 +152,9 @@ class ModeloCatalogoProductos(QAbstractTableModel):
             return None
 
         reg = self._registros[fila]
+
+        if role == ROL_FORMATO_NUMERO:
+            return False
 
         if role == Qt.ItemDataRole.DisplayRole:
             if col == 0:

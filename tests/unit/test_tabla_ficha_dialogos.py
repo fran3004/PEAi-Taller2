@@ -14,6 +14,7 @@ from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.popover_historial import PopoverHistorial
 from pea.gui.componentes.tabla import (
     ColumnSpecification,
+    NumeroDelegate,
     TablaEstilizada,
 )
 from pea.gui.componentes.tarjeta_kpi import FichaKPI
@@ -78,6 +79,20 @@ def test_tabla_estilizada_y_delegados(qapp: QApplication, qtbot: Any) -> None:
         qtbot.mouseClick(tabla_widget.vista.viewport(), Qt.MouseButton.LeftButton, pos=tabla_widget.vista.visualRect(idx_enlace).center())
 
     assert len(bloque_copia.args) == 1
+
+
+def test_delegado_numero_distingue_anios_de_cantidades(qapp: QApplication) -> None:
+    """Los años se conservan y las cantidades se formatean según el rol del modelo."""
+    tabla = TablaDatos(
+        columnas=("Año", "Productos"),
+        filas=((2022, 1234),),
+        claves=("fila-1",),
+    )
+    modelo = ModeloTabla(tabla)
+    delegado = NumeroDelegate()
+
+    assert delegado.texto_formateado(modelo.index(0, 0)) == "2022"
+    assert delegado.texto_formateado(modelo.index(0, 1)) == "1.234"
 
 
 @pytest.mark.parametrize(("ancho", "ancho_ficha"), [(1100, 320), (1366, 380), (1920, 440)])

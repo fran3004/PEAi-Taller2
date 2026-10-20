@@ -66,6 +66,7 @@ from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ROL_FORMATO_NUMERO,
     ColumnSpecification,
     TablaEstilizada,
 )
@@ -158,6 +159,9 @@ class ModeloDirectorioGrupos(QAbstractTableModel):
             return None
 
         reg = self._registros[fila]
+
+        if role == ROL_FORMATO_NUMERO:
+            return col in (4, 5) and isinstance(reg[self.COLUMNAS[col].lower()], (int, float))
 
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             if col == 0:

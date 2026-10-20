@@ -68,6 +68,7 @@ from pea.gui.componentes.graficos.serie_anual import GraficoSerieAnual
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import (
     ROL_ACTIVO,
+    ROL_FORMATO_NUMERO,
     ColumnSpecification,
     TablaEstilizada,
 )
@@ -157,6 +158,9 @@ class ModeloDirectorioInvestigadores(QAbstractTableModel):
             return None
 
         reg = self._registros[fila]
+
+        if role == ROL_FORMATO_NUMERO:
+            return col == 4 and isinstance(reg["productos"], (int, float))
 
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.ToolTipRole):
             if col == 0:

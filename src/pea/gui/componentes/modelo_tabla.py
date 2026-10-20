@@ -6,7 +6,24 @@ from typing import Any
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt
 
+from pea.gui.componentes.tabla import ROL_FORMATO_NUMERO
 from pea.servicios.vistas import TablaDatos
+
+COLUMNAS_CANTIDAD = frozenset(
+    {
+        "Productos",
+        "Integrantes",
+        "Total",
+        "Total anual",
+        "Cantidad",
+        "Investigadores",
+        "Grupos",
+        "GNC",
+        "DTI",
+        "ASC",
+        "FRH",
+    }
+)
 
 
 class ModeloTabla(QAbstractTableModel):
@@ -52,11 +69,20 @@ class ModeloTabla(QAbstractTableModel):
 
         valor = self._tabla.filas[fila][col]
 
+        if role == ROL_FORMATO_NUMERO:
+            return (
+                self._tabla.columnas[col] in COLUMNAS_CANTIDAD
+                and isinstance(valor, (int, float))
+                and not isinstance(valor, bool)
+            )
+
         if role == Qt.ItemDataRole.DisplayRole:
             if valor is None:
                 return "—"
             if isinstance(valor, bool):
                 return "Sí" if valor else "No"
+            if isinstance(valor, (int, float)):
+                return valor
             return str(valor)
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
