@@ -563,10 +563,10 @@ class VentanaPrincipal(QMainWindow):
         lbl_marca.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {estilo.SUPERFICIE};")
         fila_marca.addWidget(lbl_marca)
 
-        # Píldora de datos de demostración compacta junto al logo
-        self._pildora_demo = Pildora("Datos de demostración", variante="aviso", parent=self._zona_marca)
-        self._pildora_demo.setVisible(False)
-        fila_marca.addWidget(self._pildora_demo)
+        # Píldora que identifica la fuente de los datos actualmente cargados.
+        self._pildora_datos = Pildora("Datos de demostración", variante="aviso", parent=self._zona_marca)
+        self._pildora_datos.setVisible(False)
+        fila_marca.addWidget(self._pildora_datos)
         fila_marca.addStretch()
 
         caja_textos_marca.addLayout(fila_marca)
@@ -1213,9 +1213,17 @@ class VentanaPrincipal(QMainWindow):
         """Sincroniza todos los indicadores visuales con ServicioAplicacion.estado()."""
         estado = self._servicio.estado()
 
-        # 1. Píldora de demostración y avatar
+        # 1. Fuente de datos y avatar
         es_demo = estado.modo == ModoConexion.DEMOSTRACION
-        self._pildora_demo.setVisible(es_demo)
+        es_supabase = estado.modo == ModoConexion.SUPABASE
+        if es_demo:
+            self._pildora_datos.establecer_texto("Datos de demostración", variante="aviso")
+            self._pildora_datos.setVisible(True)
+        elif es_supabase:
+            self._pildora_datos.establecer_texto("Datos de Supabase", variante="exito")
+            self._pildora_datos.setVisible(True)
+        else:
+            self._pildora_datos.setVisible(False)
 
         if estado.correo:
             self._avatar_usuario.establecer_nombre(estado.correo)
@@ -1321,13 +1329,13 @@ class VentanaPrincipal(QMainWindow):
         if getattr(self, "_marca_compacta_actual", None) == compacto:
             return
         if compacto:
-            self._fila_marca.removeWidget(self._pildora_demo)
-            self._caja_textos_marca.addWidget(self._pildora_demo)
-            self._pildora_demo.establecer_margen_horizontal(8)
+            self._fila_marca.removeWidget(self._pildora_datos)
+            self._caja_textos_marca.addWidget(self._pildora_datos)
+            self._pildora_datos.establecer_margen_horizontal(8)
         else:
-            self._caja_textos_marca.removeWidget(self._pildora_demo)
-            self._fila_marca.insertWidget(1, self._pildora_demo)
-            self._pildora_demo.establecer_margen_horizontal(10)
+            self._caja_textos_marca.removeWidget(self._pildora_datos)
+            self._fila_marca.insertWidget(1, self._pildora_datos)
+            self._pildora_datos.establecer_margen_horizontal(10)
         self._marca_compacta_actual = compacto
 
 

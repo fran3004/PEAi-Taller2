@@ -144,3 +144,22 @@ def test_paginacion_multiples_lotes() -> None:
     filas = cliente.get_paginado("investigadores", lote_tamano=2)
     assert len(filas) == 5
     assert [f["codigo_rh"] for f in filas] == ["RH-1", "RH-2", "RH-3", "RH-4", "RH-5"]
+
+
+@responses.activate
+def test_paginacion_supera_el_limite_de_1000_filas() -> None:
+    cliente = ClienteHTTPSupabase("https://ejemplo.supabase.co", "anon-key")
+    url = "https://ejemplo.supabase.co/rest/v1/investigadores"
+    respuestas = (
+        [{"id": indice} for indice in range(1000)],
+        [{"id": indice} for indice in range(1000, 1500)],
+    )
+    for filas in respuestas:
+        responses.add(responses.GET, url, json=filas, status=200)
+
+    filas = cliente.get_paginado("investigadores")
+
+    assert len(filas) == 1500
+    assert filas[0]["id"] == 0
+    assert filas[-1]["id"] == 1499
+    assert [llamada.request.headers["Range"] for llamada in responses.calls] == ["0-999", "1000-1999"]

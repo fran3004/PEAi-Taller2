@@ -29,9 +29,11 @@ from pea.gui.componentes.filtro_anios import texto_resumen_filtro
 from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
 from pea.gui.ventana_principal import Pantalla, VentanaPrincipal
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
+from pea.servicios.servicio_dominio import CatalogoInvestigacion
 from pea.servicios.servicio_exportacion import ServicioExportacion
 from pea.servicios.vistas import (
     FiltroAnios,
+    ModoConexion,
     ModoFiltroAnios,
     TablaDatos,
 )
@@ -95,6 +97,26 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
     assert "Revisión:" in ventana._chip_revision.text()
     assert "Deshacer:" in ventana._chip_deshacer.text()
     assert "Cola:" in ventana._chip_cola.text()
+
+
+def test_insignia_fuente_datos_y_separacion_entre_demostracion_y_supabase(
+    ventana: VentanaPrincipal,
+) -> None:
+    """La insignia sigue el catálogo instalado y la navegación no conserva filas demo."""
+    assert ventana._pildora_datos.isVisible()
+    assert ventana._pildora_datos.text() == "Datos de demostración"
+    assert len(ventana._servicio._catalogo.investigadores) > 0
+
+    catalogo_supabase = CatalogoInvestigacion()
+    ventana._servicio._instalar_catalogo(catalogo_supabase, ModoConexion.SUPABASE)
+    ventana.seleccionar_pantalla(Pantalla.INVESTIGADORES)
+
+    pantalla_investigadores = ventana._pantalla_investigadores_modulo
+    assert ventana._pildora_datos.isVisible()
+    assert ventana._pildora_datos.text() == "Datos de Supabase"
+    assert ventana._servicio._catalogo is catalogo_supabase
+    assert len(catalogo_supabase.investigadores) == 0
+    assert pantalla_investigadores._modelo.rowCount() == 0
 
 
 def test_pestanas_superiores_distribuyen_espacio_disponible(ventana: VentanaPrincipal) -> None:
@@ -549,8 +571,8 @@ def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) 
         assert btn_cerrar.height() >= 24
         assert btn_acerca.width() >= QFontMetrics(btn_acerca.font()).horizontalAdvance(btn_acerca.text())
         assert btn_acerca.height() >= 18
-        assert ventana._pildora_demo.isVisible()
-        assert ventana._pildora_demo.width() >= ventana._pildora_demo.minimumWidth()
+        assert ventana._pildora_datos.isVisible()
+        assert ventana._pildora_datos.width() >= ventana._pildora_datos.minimumWidth()
 
 
 def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> None:
