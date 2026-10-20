@@ -20,6 +20,8 @@ from typing import Any
 
 from PySide6.QtCore import (
     QEvent,
+    QPoint,
+    QRect,
     QRectF,
     QSize,
     Qt,
@@ -37,17 +39,21 @@ from PySide6.QtGui import (
     QPainter,
     QPaintEvent,
     QPen,
+    QTextDocument,
 )
 from PySide6.QtWidgets import (
+    QAbstractButton,
     QAbstractScrollArea,
     QApplication,
     QButtonGroup,
     QFrame,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
@@ -1331,6 +1337,161 @@ class VentanaPrincipal(QMainWindow):
 # ---------------------------------------------------------------------------
 
 
+def _nombre_widget(widget: QWidget) -> str:
+    return widget.objectName() or widget.metaObject().className()
+
+
+def _eje_alcanzable_con_scroll(
+    inicio: int,
+    tamano: int,
+    inicio_visible: int,
+    tamano_visible: int,
+    valor_actual: int,
+    valor_minimo: int,
+    valor_maximo: int,
+) -> bool:
+    inicio_minimo = inicio + valor_actual - valor_maximo
+    inicio_maximo = inicio + valor_actual - valor_minimo
+    return inicio_minimo < inicio_visible + tamano_visible and inicio_maximo + tamano > inicio_visible
+
+
+def _widget_alcanzable_con_scroll(widget: QWidget, ventana: QWidget) -> bool:
+    padre = widget.parentWidget()
+    while padre is not None and padre is not ventana:
+        if isinstance(padre, QScrollArea):
+            contenido = padre.widget()
+            if contenido is not None and (contenido is widget or contenido.isAncestorOf(widget)):
+                rect_contenido = QRect(widget.mapTo(contenido, QPoint(0, 0)), widget.size())
+                if contenido.rect().contains(rect_contenido):
+                    viewport = padre.viewport()
+                    rect_visible = QRect(viewport.mapTo(ventana, QPoint(0, 0)), viewport.size())
+                    rect_visible = rect_visible.intersected(ventana.rect())
+                    ancestro = viewport.parentWidget()
+                    while ancestro is not None and ancestro is not ventana and not rect_visible.isEmpty():
+                        rect_ancestro = QRect(ancestro.mapTo(ventana, QPoint(0, 0)), ancestro.size())
+                        rect_visible = rect_visible.intersected(rect_ancestro)
+                        ancestro = ancestro.parentWidget()
+                    if rect_visible.isEmpty():
+                        padre = padre.parentWidget()
+                        continue
+
+                    clip_visible = QRect(
+                        viewport.mapFrom(ventana, rect_visible.topLeft()),
+                        rect_visible.size(),
+                    )
+                    rect_viewport = QRect(widget.mapTo(viewport, QPoint(0, 0)), widget.size())
+                    barra_h = padre.horizontalScrollBar()
+                    barra_v = padre.verticalScrollBar()
+                    maximo_h = barra_h.maximum()
+                    maximo_v = barra_v.maximum()
+                    if padre.horizontalScrollBarPolicy() != Qt.ScrollBarPolicy.ScrollBarAlwaysOff:
+                        maximo_h = max(maximo_h, contenido.width() - viewport.width())
+                    if padre.verticalScrollBarPolicy() != Qt.ScrollBarPolicy.ScrollBarAlwaysOff:
+                        maximo_v = max(maximo_v, contenido.height() - viewport.height())
+                    if _eje_alcanzable_con_scroll(
+                        rect_viewport.x(),
+                        rect_viewport.width(),
+                        clip_visible.x(),
+                        clip_visible.width(),
+                        barra_h.value(),
+                        barra_h.minimum(),
+                        maximo_h,
+                    ) and _eje_alcanzable_con_scroll(
+                        rect_viewport.y(),
+                        rect_viewport.height(),
+                        clip_visible.y(),
+                        clip_visible.height(),
+                        barra_v.value(),
+                        barra_v.minimum(),
+                        maximo_v,
+                    ):
+                        return True
+        padre = padre.parentWidget()
+    return False
+
+
+def _widgets_fuera_de_ventana(ventana: QWidget) -> list[str]:
+    rect_ventana = ventana.rect()
+    fuera: list[str] = []
+    for widget in ventana.findChildren(QWidget):
+        if not widget.isVisibleTo(ventana) or widget.size().isEmpty():
+            continue
+        rect_widget = QRect(widget.mapTo(ventana, QPoint(0, 0)), widget.size())
+        if not rect_ventana.contains(rect_widget) and not _widget_alcanzable_con_scroll(widget, ventana):
+            fuera.append(_nombre_widget(widget))
+    return fuera
+
+
+def _etiqueta_elidida(etiqueta: QLabel) -> bool:
+    texto = etiqueta.text().strip()
+    if not texto:
+        return False
+
+    area = etiqueta.contentsRect()
+    ancho_disponible = max(0, area.width() - 2 * etiqueta.margin())
+    if etiqueta.textFormat() == Qt.TextFormat.RichText or texto.startswith("<"):
+        documento = QTextDocument()
+        documento.setDefaultFont(etiqueta.font())
+        documento.setDocumentMargin(0)
+        documento.setHtml(texto)
+        if etiqueta.wordWrap():
+            documento.setTextWidth(ancho_disponible)
+            return documento.size().height() > area.height()
+        return documento.idealWidth() > ancho_disponible
+
+    if etiqueta.wordWrap():
+        return etiqueta.hasHeightForWidth() and etiqueta.heightForWidth(etiqueta.width()) > etiqueta.height()
+
+    metricas = QFontMetrics(etiqueta.font())
+    lineas = texto.splitlines() or [texto]
+    ancho_texto = max(metricas.horizontalAdvance(linea) for linea in lineas)
+    alto_texto = metricas.height() * len(lineas)
+    return ancho_texto > ancho_disponible or alto_texto > area.height()
+
+
+def _textos_elididos_sin_tooltip(ventana: QWidget) -> list[str]:
+    hallazgos: list[str] = []
+    for widget in ventana.findChildren(QWidget):
+        if not widget.isVisibleTo(ventana) or widget.toolTip().strip():
+            continue
+        if isinstance(widget, QLabel):
+            texto = widget.text().strip()
+            if texto and _etiqueta_elidida(widget):
+                hallazgos.append(f"{_nombre_widget(widget)} «{texto[:36]}»")
+        elif isinstance(widget, QAbstractButton):
+            texto = widget.text().strip()
+            medida = widget.sizeHint()
+            if texto and (medida.width() > widget.width() or medida.height() > widget.height()):
+                hallazgos.append(f"{_nombre_widget(widget)} «{texto[:36]}»")
+
+    for encabezado in ventana.findChildren(QHeaderView):
+        if (
+            not encabezado.isVisibleTo(ventana)
+            or encabezado.orientation() != Qt.Orientation.Horizontal
+            or encabezado.model() is None
+        ):
+            continue
+        modelo = encabezado.model()
+        manejador_tooltip = "helpEvent" in type(encabezado).__dict__
+        metricas = QFontMetrics(encabezado.font())
+        for seccion in range(encabezado.count()):
+            if encabezado.isSectionHidden(seccion):
+                continue
+            texto = str(
+                modelo.headerData(seccion, encabezado.orientation(), Qt.ItemDataRole.DisplayRole) or ""
+            ).strip()
+            if not texto or metricas.horizontalAdvance(texto) <= max(0, encabezado.sectionSize(seccion) - 16):
+                continue
+            tooltip = modelo.headerData(
+                seccion,
+                encabezado.orientation(),
+                Qt.ItemDataRole.ToolTipRole,
+            )
+            if not tooltip and not encabezado.toolTip() and not manejador_tooltip:
+                hallazgos.append(f"{_nombre_widget(encabezado)} «{texto[:36]}»")
+    return hallazgos
+
+
 def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     """Ejecuta el recorrido visual, valida geometrías y genera capturas oficiales."""
     import os
@@ -1351,8 +1512,6 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
     # Cargar demostración
     ventana._servicio.cargar_demostracion()
     ventana.actualizar_estado_global()
-    if hasattr(ventana._pantalla_inicio, "refrescar"):
-        ventana._pantalla_inicio.refrescar()
     ventana.show()
     app.processEvents()
 
@@ -1374,15 +1533,14 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         (Pantalla.ACERCA, "07_acerca"),
     ]
 
-    resumen: list[tuple[str, str, int, int, str]] = []
+    resumen: list[tuple[str, str, int, int, int, str]] = []
     errores_barras = 0
+    errores_fuera = 0
+    errores_texto = 0
 
     for p_enum, nombre_pantalla in pantallas_recorrido:
         ventana.seleccionar_pantalla(p_enum)
         app.processEvents()
-        p_widget = ventana._apilador.currentWidget()
-        if hasattr(p_widget, "refrescar"):
-            p_widget.refrescar()
         QThreadPool.globalInstance().waitForDone(3000)
         app.processEvents()
         app.processEvents()
@@ -1397,15 +1555,8 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
                 for widget in ventana.findChildren(QAbstractScrollArea)
                 if widget.isVisible() and widget.horizontalScrollBar().isVisible()
             ]
-            fuera = []
-            rect_ventana = ventana.rect()
-            for widget in ventana.findChildren(QWidget):
-                if not widget.isVisibleTo(ventana):
-                    continue
-                top_left = widget.mapTo(ventana, widget.rect().topLeft())
-                recto = widget.rect().translated(top_left)
-                if not rect_ventana.contains(recto):
-                    fuera.append(widget.objectName() or widget.metaObject().className())
+            fuera = _widgets_fuera_de_ventana(ventana)
+            textos_elididos = _textos_elididos_sin_tooltip(ventana)
 
             pix = ventana.grab()
             ruta = salida_dir / f"pantalla_{nombre_pantalla}_{etiqueta}.png"
@@ -1414,15 +1565,25 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
             if barras:
                 errores_barras += len(barras)
                 print(
-                    f"[AUTOPRUEBA] ERROR {nombre_pantalla} {etiqueta}: "
+                    f"[AUTOPRUEBA] FALLA {nombre_pantalla} {etiqueta}: "
                     f"barras horizontales visibles: {', '.join(barras)}"
                 )
             if fuera:
+                errores_fuera += len(fuera)
                 print(
-                    f"[AUTOPRUEBA] ADVERTENCIA {nombre_pantalla} {etiqueta}: "
+                    f"[AUTOPRUEBA] FALLA {nombre_pantalla} {etiqueta}: "
                     f"{len(fuera)} widgets fuera de la ventana: {', '.join(fuera)}"
                 )
-            resumen.append((nombre_pantalla, etiqueta, len(barras), len(fuera), str(ruta)))
+            if textos_elididos:
+                errores_texto += len(textos_elididos)
+                print(
+                    f"[AUTOPRUEBA] FALLA {nombre_pantalla} {etiqueta}: "
+                    f"{len(textos_elididos)} textos elididos sin tooltip: "
+                    f"{', '.join(textos_elididos)}"
+                )
+            resumen.append(
+                (nombre_pantalla, etiqueta, len(barras), len(fuera), len(textos_elididos), str(ruta))
+            )
 
     # Restaurar a Inicio y cerrar ventana de autoprueba para no interferir con pruebas posteriores
     ventana.seleccionar_pantalla(Pantalla.INICIO)
@@ -1437,16 +1598,18 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         os.environ["PEA_SIN_ANIMACIONES"] = prev_sin_anim
 
     print("\n[AUTOPRUEBA] Resumen")
-    print(f"{'Pantalla':<22} {'Tamano':<10} {'Barras':>7} {'Fuera':>7}  Captura")
+    print(f"{'Pantalla':<22} {'Tamaño':<10} {'Barras':>7} {'Fuera':>7} {'Elididos':>9}  Captura")
     print("-" * 100)
-    for nombre, etiqueta, barras, fuera, ruta in resumen:
-        print(f"{nombre:<22} {etiqueta:<10} {barras:>7} {fuera:>7}  {ruta}")
+    for nombre, etiqueta, barras, fuera, elididos, ruta in resumen:
+        print(f"{nombre:<22} {etiqueta:<10} {barras:>7} {fuera:>7} {elididos:>9}  {ruta}")
 
-    if errores_barras:
+    hallazgos_totales = errores_barras + errores_fuera + errores_texto
+    if hallazgos_totales:
         print(
-            f"[AUTOPRUEBA] FALLA: se detectaron {errores_barras} "
-            "barras horizontales visibles."
+            f"[AUTOPRUEBA] FALLA: {hallazgos_totales} hallazgos visuales "
+            f"(barras: {errores_barras}, widgets inaccesibles: {errores_fuera}, "
+            f"textos elididos sin tooltip: {errores_texto})."
         )
         return 3
-    print("[AUTOPRUEBA] Autoprueba completada exitosamente.")
+    print(f"[AUTOPRUEBA] Cero hallazgos en las {len(resumen)} combinaciones de pantalla y resolución.")
     return 0

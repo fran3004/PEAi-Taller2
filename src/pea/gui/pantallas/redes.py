@@ -147,12 +147,14 @@ class FilaTopConectado(QFrame):
 
         lbl_nom = QLabel(self._nombre_completo, self)
         lbl_nom.setMinimumWidth(0)
+        lbl_nom.setToolTip(self._nombre_completo)
         lbl_nom.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
         self._lbl_nom = lbl_nom
         cat_limpia = "Sin categoría" if categoria.lower() == "sin categoria" else (
             "Emérito" if categoria.lower() == "emerito" else categoria
         )
         lbl_sub = QLabel(cat_limpia, self)
+        lbl_sub.setToolTip(cat_limpia)
         lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
 
         col_txt.addWidget(lbl_nom)
@@ -160,6 +162,7 @@ class FilaTopConectado(QFrame):
         layout.addLayout(col_txt, 1)
 
         lbl_grado = QLabel(f"{grado} coaut.", self)
+        lbl_grado.setToolTip(f"{grado} coautores directos")
         lbl_grado.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {COLOR_DTI};")
         layout.addWidget(lbl_grado)
 
@@ -486,6 +489,8 @@ class PantallaRedes(QWidget):
         layout_sin.addWidget(lbl_orientacion)
 
         lbl_tit_top = QLabel("Investigadores más conectados", self._caja_sin_seleccion)
+        lbl_tit_top.setWordWrap(True)
+        lbl_tit_top.setToolTip("Investigadores más conectados")
         lbl_tit_top.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout_sin.addWidget(lbl_tit_top)
 

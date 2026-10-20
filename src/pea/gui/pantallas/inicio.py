@@ -137,6 +137,7 @@ class FilaRanking(QFrame):
         lbl_tit.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: 600; color: {TEXTO};")
         lbl_tit.setWordWrap(False)
+        lbl_tit.setToolTip(titulo)
         col_centro.addWidget(lbl_tit)
 
         if subtitulo:
@@ -144,6 +145,7 @@ class FilaRanking(QFrame):
             lbl_sub.setMinimumWidth(0)
             lbl_sub.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             lbl_sub.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
+            lbl_sub.setToolTip(subtitulo)
             col_centro.addWidget(lbl_sub)
         else:
             # Barra horizontal proporcional
@@ -168,9 +170,10 @@ class FilaRanking(QFrame):
         # Valor numérico a la derecha
         lbl_val = QLabel(f"{formatear_entero(valor)} {etiqueta_valor}", self)
         lbl_val.setMinimumWidth(0)
-        lbl_val.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        lbl_val.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         lbl_val.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {PRIMARIO};")
         lbl_val.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        lbl_val.setToolTip(f"{formatear_entero(valor)} {etiqueta_valor}")
         layout.addWidget(lbl_val)
 
 

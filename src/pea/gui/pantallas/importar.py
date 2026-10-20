@@ -77,8 +77,8 @@ class ZonaSoltarArchivo(QFrame):
         self._establecer_estilo(arrastrando=False)
 
     def _construir_ui(self) -> None:
-        self.setFixedHeight(88)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setMinimumHeight(88)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 6, 12, 6)
@@ -97,6 +97,7 @@ class ZonaSoltarArchivo(QFrame):
         col_textos.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         self._lbl_principal = QLabel(self._placeholder, self)
+        self._lbl_principal.setToolTip(self._placeholder)
         self._lbl_principal.setStyleSheet(
             f"font-size: {TAMANO_CUERPO}pt; font-weight: 500; color: {TEXTO};"
         )
@@ -185,12 +186,12 @@ class ZonaSoltarArchivo(QFrame):
         self._ruta_archivo = ruta.strip()
         if self._ruta_archivo:
             self._nombre_archivo = Path(self._ruta_archivo).name
-            self._actualizar_nombre_visible()
             self._lbl_principal.setToolTip(self._nombre_archivo)
             self._lbl_principal.setStyleSheet(
                 f"font-size: {TAMANO_CUERPO}pt; font-weight: bold; color: {PRIMARIO};"
             )
             self.btn_limpiar.setVisible(True)
+            self._ajustar_layout_textos()
             self.archivo_seleccionado.emit(self._ruta_archivo)
         else:
             self.limpiar()
@@ -202,16 +203,37 @@ class ZonaSoltarArchivo(QFrame):
         self._ruta_archivo = ""
         self._nombre_archivo = ""
         self._lbl_principal.setText(self._placeholder)
-        self._lbl_principal.setToolTip("")
+        self._lbl_principal.setToolTip(self._placeholder)
         self._lbl_principal.setStyleSheet(
             f"font-size: {TAMANO_CUERPO}pt; font-weight: 500; color: {TEXTO};"
         )
         self.btn_limpiar.setVisible(False)
+        self._ajustar_layout_textos()
         self.archivo_seleccionado.emit("")
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
+        altura_minima = 128 if self.width() < 340 else 88
+        if self.minimumHeight() != altura_minima:
+            self.setMinimumHeight(altura_minima)
+        self._ajustar_layout_textos()
+
+    def _ajustar_layout_textos(self) -> None:
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
         self._actualizar_nombre_visible()
+        cambio_altura = False
+        for etiqueta in (self._lbl_principal, self._lbl_subtexto):
+            ancho = etiqueta.width()
+            if ancho <= 0 or not etiqueta.hasHeightForWidth():
+                continue
+            altura = etiqueta.heightForWidth(ancho)
+            if altura > 0 and etiqueta.minimumHeight() != altura:
+                etiqueta.setMinimumHeight(altura)
+                cambio_altura = True
+        if cambio_altura and layout is not None:
+            layout.activate()
 
     def _actualizar_nombre_visible(self) -> None:
         if not self._nombre_archivo:

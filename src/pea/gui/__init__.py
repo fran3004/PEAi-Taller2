@@ -37,7 +37,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if es_autoprueba:
         codigo = ejecutar_autoprueba(app, ventana)
-        print("Autoprueba de GUI Python completada exitosamente.")
+        if codigo == 0:
+            print("Autoprueba de GUI Python completada exitosamente.")
+        else:
+            print(f"Autoprueba de GUI Python fallida (código {codigo}).")
         return codigo
 
     ventana.show()

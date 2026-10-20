@@ -354,6 +354,7 @@ class BarrasTipologia(QWidget):
         layout.setSpacing(8)
 
         lbl_tit = QLabel("Tipología de productos", self)
+        lbl_tit.setToolTip("Tipología de productos")
         lbl_tit.setStyleSheet(f"font-size: {estilo.TAMANO_CUERPO}pt; font-weight: bold; color: {TEXTO};")
         layout.addWidget(lbl_tit)
 

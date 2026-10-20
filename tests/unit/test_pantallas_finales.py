@@ -147,13 +147,17 @@ def test_zona_soltar_archivo_formatos_aceptados_adaptable(
         assert pantalla.btn_encolar_url.isVisible()
 
         for nombre_zona, zona in [("CSV", pantalla.zona_csv), ("PDF", pantalla.zona_pdf)]:
+            principal = zona._lbl_principal
             sub = zona._lbl_subtexto
             btn = zona.btn_examinar
 
-            # La tarjeta conserva altura de 88 px
-            assert zona.height() == 88
+            # En la resolución más estrecha, el texto envuelto recibe el alto que necesita.
+            altura_minima = 128 if zona.width() < 340 else 88
+            assert zona.height() >= altura_minima
+            assert principal.height() >= principal.heightForWidth(principal.width())
+            assert sub.height() >= sub.heightForWidth(sub.width())
 
-            # El subtexto tiene geometría útil y cabe íntegramente dentro de los 88 px de la tarjeta
+            # Ambos textos quedan íntegramente dentro de la tarjeta.
             assert sub.width() > 80, f"Ancho insuficiente para {nombre_zona} en {ancho}x{alto}: {sub.width()}"
             if ancho <= 1100:
                 assert sub.height() >= 24, (
@@ -164,6 +168,10 @@ def test_zona_soltar_archivo_formatos_aceptados_adaptable(
                 assert sub.height() >= 12, (
                     f"Altura insuficiente para {nombre_zona} en {ancho}x{alto}: {sub.height()}"
                 )
+            assert principal.geometry().bottom() < zona.height(), (
+                f"El texto principal de {nombre_zona} desborda la tarjeta en {ancho}x{alto}: "
+                f"bottom={principal.geometry().bottom()} vs max={zona.height()}"
+            )
             assert sub.geometry().bottom() < zona.height(), (
                 f"El subtexto de {nombre_zona} desborda la tarjeta en {ancho}x{alto}: "
                 f"bottom={sub.geometry().bottom()} vs max={zona.height()}"
