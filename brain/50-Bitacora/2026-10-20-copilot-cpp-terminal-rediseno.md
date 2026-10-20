@@ -5,7 +5,6 @@ creado: 2026-10-20
 actualizado: 2026-10-20
 relacionado:
   - "[[00-Inicio]]"
-  - "[[AGENTS]]"
   - "[[GUI-paridad]]"
   - "[[ADR-0019-Cpp-terminal-con-ftxui]]"
 origen: "Cambio de rumbo del proyecto: C++ deja Qt Widgets y se convierte en terminal moderna"
@@ -20,7 +19,7 @@ commit: "pendiente"
 Actualizar la dirección del proyecto para que C++ sea una aplicación de terminal moderna sin GUI, dejando claro que la lógica funcional de Python sigue siendo la referencia y preservando la arquitectura de red y servicios.
 
 ## Qué se hizo
-- Ajusté la documentación del contrato del proyecto en [[AGENTS]].
+- Ajusté la documentación del contrato del proyecto y el registro de decisiones para reflejar el nuevo rumbo terminal de C++.
 - Reescribí la nota de paridad de interfaz en [[GUI-paridad]] para reflejar la terminal TUI de C++.
 - Añadí el ADR-0019 en [[ADR-0019-Cpp-terminal-con-ftxui]] documentando la decisión de retirar Qt Widgets/Gui.
 - Modifiqué la configuración de CMake para eliminar dependencias gráficas Qt y dejar la capa de red con Qt Core + Qt Network.
