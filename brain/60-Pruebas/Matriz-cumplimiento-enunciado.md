@@ -1,47 +1,76 @@
 ---
 tipo: resultado-de-pruebas
-estado: borrador
+estado: revisado
 creado: 2026-10-20
 actualizado: 2026-10-20
 relacionado:
   - "[[SPEC]]"
   - "[[Trazabilidad]]"
+  - "[[Variables-entrada-salida]]"
   - "[[Ingesta]]"
+  - "[[Estructuras]]"
   - "[[GUI-Diseno-Python]]"
-origen: "Verificación del código y criterios de entrega solicitados para el Taller 2"
+  - "[[Interoperabilidad]]"
+origen: "Contraste de los requisitos funcionales del PDF docs/entrada/Taller 2 EdD (2026-09-24) - G 8.pdf con el código, las pruebas y la documentación del proyecto"
 ---
 
-# Matriz de cumplimiento del enunciado
+# Matriz de contraste del Taller 2
 
-## Alcance y limitaciones de trazabilidad
+## Alcance
 
-`docs/entrada/` no contiene el enunciado original numerado del 1 al 14. La fuente formal disponible, `brain/10-Requisitos/SPEC.md`, identifica los requisitos funcionales R0–R12 (13 entradas) y los criterios C1–C6. **Supuesto provisional de organización, no validado contra el enunciado:** los puntos 1–13 se relacionan en orden con R0–R12; el punto 14 queda pendiente de cotejo. La mención de C++ como pendiente procede de la instrucción de entrega de esta tarea, no de una atribución al enunciado ausente.
+Fuente: `docs/entrada/Taller 2 EdD (2026-09-24) - G 8.pdf`, páginas 1–3. Esta matriz contrasta los requisitos funcionales introductorios y los puntos 1–14 con el estado del código y la evidencia local disponible.
 
-Los estados «cumple» se limitan a la evidencia local ejecutada. «Parcial» indica que existe implementación, pero falta una verificación requerida (por ejemplo, contra el servicio remoto o mediante inspección visual manual). No se declaran verificados los conteos remotos de Supabase.
+Los estados describen la evidencia observada; «cumple» no significa que se hayan verificado los conteos actuales de Supabase ni todos los escenarios de datos reales. Los números de requisitos citados corresponden a la numeración literal del PDF, no a los identificadores R0–R12 del `SPEC.md`.
 
-| Punto | Requisito trazable | Módulo y función | Estado | Evidencia | Comentario |
-|---:|---|---|---|---|---|
-| 1 | R0 · Revisión y concurrencia | `src/pea/datos/revision.py` · `ControladorRevision.verificar_consistencia` | parcial | `tests/unit/test_cliente_http.py`; contrato remoto `tests/test_contrato_supabase.py` | Las pruebas locales cubren el cliente; el contrato real no se ejecutó porque no están disponibles las variables de sesión normal y clave publicable. |
-| 2 | R1 · Grupos | `src/pea/servicios/servicio_dominio.py` · `CatalogoInvestigacion.crear_grupo` | parcial | Suite unitaria Python | La implementación local está presente; los conteos de grupos reales en `pea-prod` siguen sin confirmar. |
-| 3 | R2 · Investigadores | `src/pea/servicios/servicio_dominio.py` · `CatalogoInvestigacion.crear_investigador` | parcial | Suite unitaria Python | La implementación local está presente; los conteos de investigadores reales siguen sin confirmar. |
-| 4 | R3 · Productos | `src/pea/servicios/servicio_dominio.py` · `CatalogoInvestigacion.crear_producto` | parcial | Suite unitaria Python | La implementación local está presente; los conteos de productos reales siguen sin confirmar. |
-| 5 | R4 · Multilista y coautoría | `src/pea/estructuras/multilista.py` · `Multilista.agregar_producto` | parcial | `tests/unit/test_estructuras.py`; suite unitaria Python | Estructura y pruebas locales presentes; no se declara verificada toda la aceptación de dominio contra datos remotos. |
-| 6 | R5 · Lista doble | `src/pea/estructuras/lista_doble.py` · `ListaDoble.insertar_final` | parcial | `tests/unit/test_estructuras.py`; suite unitaria Python | Estructura manual disponible; falta cotejo con el enunciado original ausente. |
-| 7 | R6 · Pila y deshacer | `src/pea/servicios/servicio_dominio.py` · `CatalogoInvestigacion.deshacer` | parcial | Suite unitaria Python | Se valida el comportamiento local; la sincronización de reversión remota no se verificó contra `pea-prod`. |
-| 8 | R7 · Cola e importación por lotes | `src/pea/ingesta/servicio_ingesta.py` · `ServicioIngesta.procesar_todas`; `src/pea/cli.py` · `comando_importar_url_lote` | cumple | `tests/unit/test_cli_importar_url_lote.py` (fixture local, sin red) | Se valida la lectura del archivo, la validación del código y el flujo de lote sobre fixture. No se añadieron códigos reales de grupos. |
-| 9 | R8 · Hipercubo | `src/pea/estructuras/hipercubo.py` · `Hipercubo5D.acumular` | parcial | `tests/unit/test_estructuras.py`; `tests/unit/test_hipercubo.py` | Implementación presente; el cotejo formal con el enunciado original queda pendiente. |
-| 10 | R9 · Estadísticas desde hipercubo | `src/pea/servicios/servicio_estadisticas.py` · `ServicioEstadisticas.obtener_vista_institucional` | parcial | `tests/unit/test_graficos_seccion9.py`; suite unitaria Python | Las estadísticas e histogramas se calculan en memoria; falta comparar todos los criterios del enunciado original. |
-| 11 | R10 · GUI Python | `src/pea/gui/__init__.py` · `main`; `src/pea/gui/ventana_principal.py` · `VentanaPrincipal` | parcial | `python -m pea.gui --autoprueba` y capturas de 8 pantallas × 3 resoluciones | Se revisaron visualmente las 24 capturas; se corrigió el solapamiento entre avatar y nombre de ficha. La autoprueba final reportó 0 hallazgos. Se mantiene parcial porque falta cotejar el punto con el enunciado original. |
-| 12 | R11 · Persistencia atómica | `src/pea/datos/repositorios.py` · `RepositorioProductos.crear_con_rpc` | parcial | Suite unitaria Python; `tests/test_contrato_supabase.py` | La ruta local está cubierta; no se ejecutó la verificación remota de conteos. |
-| 13 | R12 · Extracción e importación | `src/pea/ingesta/extractor_url.py` · `ExtractorURL.procesar_url` | parcial | `tests/unit/test_ingesta.py`; `tests/unit/test_cli_importar_url_lote.py` | Fixtures offline y lote probados; no se hizo una descarga de red en esta verificación. |
-| 14 | Punto por cotejar; C++ | `cpp/` | pendiente | `cpp/` | La implementación C++ queda pendiente y se rehace en terminal. No se asocia este renglón a un requisito no disponible. |
+## Requisitos generales del enunciado
 
-## Entregables de la nota de entrega
-
-| Entregable | Estado | Evidencia | Comentario |
+| Requisito | Estado | Evidencia | Contraste y límite |
 |---|---|---|---|
-| Entrada Python con encabezado, índice y apertura de GUI | cumple | `entrega/Taller2_FF_SM.py`; `python -m py_compile entrega/Taller2_FF_SM.py` | La asociación de puntos debe cotejarse con el enunciado original cuando se incorpore. |
-| Especificación técnica Word | cumple | `entrega/Especificacion_Tecnica_PEAi.docx`; conversión de vuelta a texto con Pandoc | Su contenido se basa en `SPEC.md` y documentos de diseño. |
-| Archivo de identificación del grupo | cumple | `entrega/integrantes.txt` | Copia local solicitada de `docs/entrada/identidad/integrantes.txt`; contiene información personal del equipo. GitHub reporta visibilidad pública, por lo que esta copia no está protegida por privacidad del repositorio. No se hizo `push`. |
-| C++ | pendiente | `cpp/` | Se rehace en terminal, según la instrucción de entrega. |
-| Video | excluido | — | Se ignora por instrucción. |
+| Gestionar mediante operaciones CRUD y persistir los datos de grupos, investigadores y productos | parcial | `src/pea/servicios/servicio_dominio.py`; `cpp/src/servicios/catalogo_investigacion.cpp`; `tests/unit/test_servicios_nuevos.py`; `cpp/build` · `ctest` | Python y C++ tienen servicios, estructuras y repositorios. Las pruebas locales pasan; no se verificó una escritura real contra Supabase durante este contraste. |
+| Representar información con listas, multilistas, pilas y colas | cumple | `src/pea/estructuras/`; `cpp/include/pea/estructuras/`; `tests/unit/test_estructuras.py`; `cpp/tests/test_estructuras.cpp` | Hay implementaciones propias en ambos lenguajes; el hipercubo recomendado también está implementado. |
+| Considerar el hipercubo recomendado por el enunciado | cumple | `src/pea/estructuras/hipercubo.py`; `cpp/include/pea/estructuras/hipercubo.hpp`; `tests/unit/test_hipercubo.py`; `cpp/tests/test_hipercubo.cpp` | Las estadísticas de servicio agregan desde el hipercubo en memoria. |
+
+## Puntos funcionales 1–14
+
+| Punto PDF | Requisito importante | Estado | Evidencia | Contraste y pendiente |
+|---:|---|---|---|---|
+| 1 | Gestionar grupos e investigadores de la institución en las dos soluciones | cumple | `src/pea/dominio/grupo.py`; `src/pea/dominio/investigador.py`; `src/pea/servicios/servicio_dominio.py`; `cpp/include/pea/dominio/`; `cpp/src/servicios/catalogo_investigacion.cpp`; `cpp/tests/test_estructuras.cpp` | Existen modelos, catálogo/servicios y estructuras en Python y C++. `ctest --test-dir cpp/build --output-on-failure` pasó. |
+| 2 | Gestionar productos de investigación asociados a grupos e investigadores | cumple | `src/pea/estructuras/multilista.py`; `src/pea/servicios/servicio_dominio.py`; `cpp/include/pea/estructuras/multilista.hpp`; `tests/unit/test_estructuras.py` | La multilista mantiene productos enlazados con sus grupos y autores. |
+| 3 | Gestionar, por grupo, integrantes, plan y productos | parcial | `src/pea/dominio/integrante.py`; `src/pea/dominio/plan.py`; `src/pea/servicios/servicio_dominio.py`; `src/pea/gui/pantallas/grupos.py` | Se gestionan integrantes y productos asociados. Existe la entidad `Plan`, pero no se encontró integración de planes en el catálogo/servicio de dominio ni en la ficha del grupo. |
+| 4 | Gestionar información personal del investigador y sus productos | cumple | `src/pea/dominio/investigador.py`; `src/pea/servicios/servicio_dominio.py`; `src/pea/gui/pantallas/investigadores.py`; `src/pea/estructuras/multilista.py` | Se gestionan atributos de investigador y su relación con productos mediante autoría. |
+| 5 | Ajustar los datos al documento «Modelo» | parcial | `docs/entrada/Modelo-2024.md`; `brain/40-Fuentes/Modelo.md`; `brain/10-Requisitos/Variables-entrada-salida.md`; modelos en `src/pea/dominio/` | El Modelo está extraído y el diccionario documenta campos y citas. La matriz no certifica aún una correspondencia campo por campo de todas las entidades con cada regla del documento. |
+| 6 | Identificar claramente entradas y salidas para grupos, investigadores y productos | cumple | `brain/10-Requisitos/Variables-entrada-salida.md`; `src/pea/dominio/grupo.py`; `src/pea/dominio/investigador.py`; `src/pea/dominio/producto.py` | El diccionario formal separa atributos de entidades y métricas de salida del hipercubo. |
+| 7 | Obtener datos desde URL o procesar PDF/CSV | parcial | `src/pea/ingesta/extractor_url.py`; `src/pea/ingesta/extractor_pdf.py`; `src/pea/ingesta/lector_csv.py`; `src/pea/cli.py`; `tests/unit/test_cli_importar_url_lote.py`; `tests/unit/test_ingesta.py` | Hay rutas para extracción URL y lectura PDF/CSV, probadas con fixtures y pruebas locales. No se verificó una descarga real de SCIENTI en esta sesión. |
+| 8 | Diseñar una estructura de listas adecuada al problema | cumple | `src/pea/estructuras/lista_doble.py`; `src/pea/estructuras/multilista.py`; `cpp/include/pea/estructuras/lista_doble.hpp`; `cpp/include/pea/estructuras/multilista.hpp`; `brain/20-Diseno/Estructuras.md` | La selección e implementación de listas enlazadas y multilista está documentada y probada. |
+| 9 | Crear, eliminar, desactivar y modificar grupos, investigadores y productos, incluyendo categoría y validación del producto | cumple | `src/pea/servicios/servicio_dominio.py`; `tests/unit/test_servicios_nuevos.py`; `tests/unit/test_cascadas.py`; `cpp/tests/test_cascadas.cpp`; `cpp/tests/test_deshacer.cpp` | Los servicios implementan operaciones y reglas de cascada; productos contienen tipología/categoría mayor y estado de validación. Las pruebas locales cubren edición, desactivación y eliminación. |
+| 10 | Filtrar por año mediante una ventana de observación | cumple | `src/pea/gui/componentes/filtro_anios.py`; `src/pea/servicios/servicio_aplicacion.py`; `src/pea/servicios/servicio_estadisticas.py`; `tests/unit/test_hipercubo.py`; `tests/unit/test_servicios_nuevos.py` | La ventana temporal se aplica a estadísticas y pantallas; hay pruebas de filtros y agregación. |
+| 11 | Permitir editar y modificar cualquier dato | parcial | `src/pea/servicios/servicio_dominio.py`; `src/pea/gui/pantallas/grupos.py`; `src/pea/gui/pantallas/investigadores.py`; `src/pea/gui/pantallas/productos.py`; `tests/unit/test_servicios_nuevos.py` | Hay edición para las entidades principales, pero no se comprobó que cada atributo de entrada del punto 6 pueda editarse desde la GUI. |
+| 12.a | En C/C++, presentar estadísticas descriptivas como resumen, tablas y números; no exige GUI | parcial | `cpp/src/cli.cpp`; `cpp/src/servicios/servicio_estadisticas.cpp`; `cpp/tests/test_hipercubo.cpp`; `ctest --test-dir cpp/build --output-on-failure` | El CLI y los servicios estadísticos existen y la suite C++ pasa. No se hizo una comprobación de salida de `resumen` en esta revisión. |
+| 12.b | En Python, mostrar dashboard con estadísticas, histogramas y diagramas de barras | cumple | `src/pea/gui/pantallas/inicio.py`; `src/pea/gui/componentes/graficos/histograma.py`; `src/pea/gui/componentes/graficos/barras_apiladas.py`; `tests/unit/test_graficos_seccion9.py`; `python -m pea.gui --autoprueba` | Hay gráficos e histogramas basados en los servicios/hipercubo. La autoprueba final cubrió 8 pantallas × 3 resoluciones con cero hallazgos. |
+| 12.c.i | Permitir una vista estadística por grupo | cumple | `src/pea/servicios/servicio_estadisticas.py` · `obtener_vista_grupo`; `src/pea/gui/pantallas/grupos.py` | Existe vista y ficha estadística de grupo. |
+| 12.c.ii | Permitir una vista estadística por investigador | cumple | `src/pea/servicios/servicio_estadisticas.py` · `obtener_vista_investigador`; `src/pea/gui/pantallas/investigadores.py` | Existe vista individual, con indicadores y distribución anual. |
+| 12.c.iii | Permitir una vista estadística por producto | parcial | `src/pea/gui/pantallas/productos.py`; `src/pea/servicios/servicio_estadisticas.py` | Existe catálogo y ficha de productos, pero no se encontró una función de estadísticas/vista analítica por producto equivalente a las vistas de grupo e investigador. |
+| 13 | El enunciado indica una evaluación de 4.0 si se realizan estos requerimientos | informativo | PDF, página 2, punto 13 | Es una condición de evaluación, no una funcionalidad del programa; el cumplimiento global depende de la evaluación docente. |
+| 14.a | Usar Git y GitHub | cumple | Historial Git de la rama `feat/python-cierre-francisco`; repositorio `fran3004/PEAi-Taller2` | Hay historial y ramas Git; el repositorio GitHub existe. |
+| 14.b | Usar base de datos | parcial | `src/pea/cliente_http.py`; `src/pea/datos/repositorios.py`; `supabase/migrations/`; `tests/test_contrato_supabase.py` | La aplicación usa el contrato REST/RPC de Supabase. La prueba remota de conteos quedó omitida por falta de variables de sesión normal y clave publicable; no se verificaron conteos remotos aquí. |
+| 14.c | Usar GUI creativa | cumple | `src/pea/gui/`; `cpp/src/gui/ventana_principal.cpp`; pruebas GUI Python y `cpp/tests/test_gui.cpp` | Hay GUI en Qt Widgets para ambos lenguajes. Se validaron visualmente las 24 capturas Python y pasó CTest; no se hizo revisión visual de la ventana C++ en esta sesión. |
+| 14.d | Integrar lenguajes (interoperabilidad) | parcial | `brain/20-Diseno/Interoperabilidad.md`; contratos JSON, REST/RPC y Supabase compartidos | Los clientes comparten contratos y backend, pero no se encontró ni ejecutó una prueba de interoperabilidad directa entre procesos Python y C++. |
+| 14.e | Documentar el proyecto | cumple | `README.md`; `brain/10-Requisitos/`; `brain/20-Diseno/`; ADR; `python tools/brain/verificar_brain.py` | Existe documentación de requisitos, arquitectura, datos, estructuras, GUI e ingesta. El verificador de la bóveda terminó con cero errores y una advertencia histórica no relacionada. |
+| 14.f | «¿Rust?» | fuera de alcance / pregunta abierta | PDF, página 2, punto 14.f | El propio enunciado lo presenta como pregunta, no como requisito obligatorio; no se implementa Rust. |
+
+## Verificaciones ejecutadas para este contraste
+
+- Suite Python: `python -m pytest -q` → **284 pasaron, 3 excluidas**.
+- C++: `ctest --test-dir cpp/build --output-on-failure` → **1/1 pruebas registradas pasaron**.
+- GUI Python: `python -m pea.gui --autoprueba` → **0 hallazgos en 24 combinaciones**.
+- Calidad: Ruff aprobó; Vulture con confianza 80 no reportó hallazgos.
+- Documentación: `python tools/brain/verificar_brain.py` → **0 errores, 1 advertencia histórica** por un enlace ADR-0016 no resuelto en otra bitácora.
+- Contrato remoto Supabase: **1 omitida** por variables de sesión normal y clave publicable ausentes; los datos remotos no se verificaron.
+
+## Observaciones de prioridad
+
+1. Integrar la entidad `Plan` con los servicios y la ficha de grupo, o justificar documentalmente por qué el alcance implementado la deja como entidad no operativa.
+2. Definir si el punto 12.c.iii requiere métricas agregadas por producto. Si es así, añadir esa vista; actualmente hay ficha/catálogo, no una vista estadística específica.
+3. Confirmar que todos los campos editables del punto 6 están disponibles en las interfaces de edición (punto 11).
+4. Ejecutar la prueba de conteos remotos cuando el entorno tenga configuradas la sesión normal y la clave publicable.
+5. Verificar el formato real del comando de resumen C++ en ejecución, aunque sus pruebas de CTest ya pasan.
