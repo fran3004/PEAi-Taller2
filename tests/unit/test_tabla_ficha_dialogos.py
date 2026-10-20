@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from PySide6.QtCore import QEvent, QPoint, Qt
 from PySide6.QtGui import QFontMetrics, QHelpEvent, QStandardItemModel
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QScrollArea
 
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.modelo_tabla import ModeloTabla
@@ -192,6 +192,48 @@ def test_ficha_lateral_base(qapp: QApplication, qtbot: Any) -> None:
     assert ficha.btn_estado.text() == "Activar"
     ficha.configurar_estado_activo(activo=True)
     assert ficha.btn_estado.text() == "Desactivar"
+
+
+@pytest.mark.parametrize(
+    ("ancho_ventana", "ancho_ficha", "columnas_kpi"),
+    [(1100, 320, 1), (1366, 380, 1), (1920, 440, 2)],
+)
+def test_ficha_lateral_reacomoda_kpis_y_acciones(
+    qapp: QApplication, qtbot: Any, ancho_ventana: int, ancho_ficha: int, columnas_kpi: int
+) -> None:
+    ficha = FichaLateral()
+    qtbot.addWidget(ficha)
+    ficha.ajustar_ancho_ficha(ancho_ventana)
+    ficha.resize(ancho_ficha, 620)
+    for indice, (fila, columna) in enumerate(((0, 0), (0, 1), (1, 0), (1, 1))):
+        ficha.agregar_kpi(FichaKPI(f"KPI {indice + 1}", "12", "Dato de prueba"), fila, columna)
+    ficha.mostrar_contenido()
+    ficha.show()
+    qapp.processEvents()
+
+    assert len(ficha.findChildren(QScrollArea)) == 1
+    assert ficha._contenedor_acciones.parent() is ficha
+    assert ficha._contenedor_acciones.isVisible()
+    assert ficha._layout_kpi.count() == 4
+    assert {
+        ficha._layout_kpi.getItemPosition(indice)[1] for indice in range(ficha._layout_kpi.count())
+    } == (set(range(columnas_kpi)))
+    for indice in range(ficha._layout_kpi.count()):
+        widget = ficha._layout_kpi.itemAt(indice).widget()
+        assert widget is not None
+        assert widget.geometry().right() <= ficha._contenedor_kpi.rect().right()
+        if columnas_kpi == 2:
+            assert widget.width() >= ficha.ANCHO_MINIMO_KPI
+
+    botones = (
+        ficha.btn_editar,
+        ficha.btn_estado,
+        ficha.btn_eliminar,
+        ficha.btn_ver_completa,
+        ficha.btn_ver_productos,
+    )
+    assert all(boton.isVisible() for boton in botones)
+    assert all(boton.width() >= boton.sizeHint().width() for boton in botones)
 
     # Probar emisión de señales de acción
     with qtbot.waitSignal(ficha.editar_solicitado, timeout=1000):

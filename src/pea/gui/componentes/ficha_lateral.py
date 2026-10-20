@@ -44,6 +44,8 @@ from pea.gui.estilo import (
 class FichaLateral(QFrame):
     """Ficha lateral institucional de 360 px para visualización detallada y acciones."""
 
+    ANCHO_MINIMO_KPI = 180
+
     editar_solicitado = Signal()
     cambiar_estado_solicitado = Signal()
     eliminar_solicitado = Signal()
@@ -131,6 +133,8 @@ class FichaLateral(QFrame):
         self._layout_kpi = QGridLayout(self._contenedor_kpi)
         self._layout_kpi.setContentsMargins(0, 0, 0, 0)
         self._layout_kpi.setSpacing(8)
+        self._posiciones_kpi: list[tuple[QWidget, int, int]] = []
+        self._columnas_kpi = 0
         self._layout_cuerpo.addWidget(self._contenedor_kpi)
 
         # 3. Zona de Contenido libre (Gráficos, listas, notas)
@@ -146,13 +150,17 @@ class FichaLateral(QFrame):
 
         # 4. Zona de Acciones fijas al pie
         self._contenedor_acciones = QWidget(self)
+        self._contenedor_acciones.installEventFilter(self)
         self._layout_acciones = QVBoxLayout(self._contenedor_acciones)
         self._layout_acciones.setContentsMargins(0, 6, 0, 0)
         self._layout_acciones.setSpacing(6)
 
         # Fila principal de botones (Editar / Estado / Eliminar)
-        fila_btn_primarios = QHBoxLayout()
-        fila_btn_primarios.setSpacing(6)
+        fila_btn_primarios = QGridLayout()
+        fila_btn_primarios.setContentsMargins(0, 0, 0, 0)
+        fila_btn_primarios.setHorizontalSpacing(6)
+        fila_btn_primarios.setVerticalSpacing(6)
+        self._layout_botones_primarios = fila_btn_primarios
 
         self.btn_editar = QPushButton("Editar", self._contenedor_acciones)
         self.btn_editar.setAccessibleName("Editar datos de la entidad seleccionada")
@@ -163,7 +171,6 @@ class FichaLateral(QFrame):
             f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_SUAVE}; }}"
         )
         self.btn_editar.clicked.connect(self.editar_solicitado.emit)
-        fila_btn_primarios.addWidget(self.btn_editar)
 
         self.btn_estado = QPushButton("Desactivar", self._contenedor_acciones)
         self.btn_estado.setAccessibleName("Activar o desactivar entidad")
@@ -174,7 +181,6 @@ class FichaLateral(QFrame):
             f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_SUAVE}; }}"
         )
         self.btn_estado.clicked.connect(self.cambiar_estado_solicitado.emit)
-        fila_btn_primarios.addWidget(self.btn_estado)
 
         self.btn_eliminar = QPushButton("Eliminar…", self._contenedor_acciones)
         self.btn_eliminar.setAccessibleName("Eliminar entidad permanentemente")
@@ -185,7 +191,6 @@ class FichaLateral(QFrame):
             f"QPushButton:hover {{ background-color: {estilo.SUPERFICIE_DESHABILITADA_ERROR}; border-color: {ERROR}; }}"
         )
         self.btn_eliminar.clicked.connect(self.eliminar_solicitado.emit)
-        fila_btn_primarios.addWidget(self.btn_eliminar)
 
         self._layout_acciones.addLayout(fila_btn_primarios)
 
@@ -195,7 +200,7 @@ class FichaLateral(QFrame):
         self.btn_ver_completa.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ver_completa.setStyleSheet(
             f"QPushButton {{ background-color: {estilo.SUPERFICIE}; color: {PRIMARIO}; font-weight: 600; "
-            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 6px 12px; }}"
+            f"border: 1px solid {PRIMARIO}; border-radius: {RADIO_BOTON}px; padding: 6px 6px; }}"
             f"QPushButton:hover {{ background-color: {estilo.FONDO_APP}; }}"
         )
         self.btn_ver_completa.clicked.connect(self.ver_completa_solicitado.emit)
@@ -212,6 +217,9 @@ class FichaLateral(QFrame):
         )
         self.btn_ver_productos.clicked.connect(self.ver_productos_solicitado.emit)
         self._layout_acciones.addWidget(self.btn_ver_productos)
+        self._botones_primarios = [self.btn_editar, self.btn_estado, self.btn_eliminar]
+        self._columnas_acciones_primarias = 0
+        self._ajustar_disposicion_acciones_primarias()
 
         layout_raiz.addWidget(self._contenedor_acciones)
 
@@ -229,18 +237,72 @@ class FichaLateral(QFrame):
     def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
         self._ajustar_ancho_cuerpo()
+        self._ajustar_disposicion_acciones_primarias()
         if self.parent() is None and self.window() is not self:
             self.ajustar_ancho_ficha(self.window().width())
 
     def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
         if watched is self._scroll.viewport() and event.type() == QEvent.Type.Resize:
             self._ajustar_ancho_cuerpo()
+        elif getattr(self, "_contenedor_acciones", None) is watched and event.type() == QEvent.Type.Resize:
+            self._ajustar_disposicion_acciones_primarias()
         return super().eventFilter(watched, event)
 
     def _ajustar_ancho_cuerpo(self) -> None:
         ancho = self._scroll.viewport().width()
         if ancho > 0:
             self._cuerpo.setFixedWidth(ancho)
+            if hasattr(self, "_layout_kpi"):
+                self._ajustar_columnas_kpi(ancho)
+
+    def _ajustar_columnas_kpi(self, ancho_disponible: int, forzar: bool = False) -> None:
+        ancho_dos_columnas = self.ANCHO_MINIMO_KPI * 2 + self._layout_kpi.spacing()
+        columnas = 2 if ancho_disponible >= ancho_dos_columnas else 1
+        if columnas == self._columnas_kpi and not forzar:
+            return
+
+        posiciones = sorted(self._posiciones_kpi, key=lambda item: (item[1], item[2]))
+        while self._layout_kpi.count():
+            self._layout_kpi.takeAt(0)
+
+        for indice, (widget, fila, columna) in enumerate(posiciones):
+            if columnas == 1:
+                self._layout_kpi.addWidget(widget, indice, 0)
+            else:
+                self._layout_kpi.addWidget(widget, fila, columna)
+
+        self._layout_kpi.setColumnStretch(0, 1)
+        self._layout_kpi.setColumnStretch(1, 1 if columnas == 2 else 0)
+        self._columnas_kpi = columnas
+
+    def _ajustar_disposicion_acciones_primarias(self) -> None:
+        if not hasattr(self, "_botones_primarios"):
+            return
+
+        ancho_disponible = self._contenedor_acciones.contentsRect().width()
+        ancho_dos_columnas = (
+            self.btn_editar.sizeHint().width()
+            + self.btn_estado.sizeHint().width()
+            + self._layout_botones_primarios.horizontalSpacing()
+        )
+        columnas = 2 if ancho_disponible >= ancho_dos_columnas else 1
+        if columnas == self._columnas_acciones_primarias:
+            return
+
+        while self._layout_botones_primarios.count():
+            self._layout_botones_primarios.takeAt(0)
+
+        if columnas == 1:
+            for fila, boton in enumerate(self._botones_primarios):
+                self._layout_botones_primarios.addWidget(boton, fila, 0)
+        else:
+            self._layout_botones_primarios.addWidget(self.btn_editar, 0, 0)
+            self._layout_botones_primarios.addWidget(self.btn_estado, 0, 1)
+            self._layout_botones_primarios.addWidget(self.btn_eliminar, 1, 0, 1, 2)
+
+        self._layout_botones_primarios.setColumnStretch(0, 1)
+        self._layout_botones_primarios.setColumnStretch(1, 1 if columnas == 2 else 0)
+        self._columnas_acciones_primarias = columnas
 
     def ajustar_ancho_ficha(self, ancho_ventana: int) -> None:
         """Ajusta el ancho lateral a la ventana sin habilitar desplazamiento horizontal."""
@@ -314,10 +376,13 @@ class FichaLateral(QFrame):
             w = item.widget()
             if w is not None:
                 w.deleteLater()
+        self._posiciones_kpi.clear()
+        self._columnas_kpi = 0
 
     def agregar_kpi(self, widget: QWidget, fila: int, columna: int) -> None:
         """Agrega un widget a la cuadrícula KPI."""
-        self._layout_kpi.addWidget(widget, fila, columna)
+        self._posiciones_kpi.append((widget, fila, columna))
+        self._ajustar_columnas_kpi(self._scroll.viewport().width(), forzar=True)
 
     def limpiar_contenido(self) -> None:
         """Limpia los widgets de la zona de contenido libre."""

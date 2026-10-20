@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QAbstractScrollArea, QApplication
 
 from pea.gui.componentes.tabla import ROL_ACTIVO
 from pea.gui.pantallas.grupos import (
@@ -79,6 +79,35 @@ def test_pantalla_grupos_responsive(
     assert pantalla._ficha_lateral.geometry().right() <= pantalla._splitter.width()
     assert pantalla.btn_nuevo.isVisible()
     assert pantalla._ficha_lateral.grafico_barras.minimumHeight() == (150 if alto < 760 else 180)
+
+
+def test_ficha_grupo_mantiene_una_zona_de_desplazamiento(
+    qapp: QApplication, servicio_con_datos: ServicioAplicacion
+) -> None:
+    pantalla = PantallaGrupos(servicio=servicio_con_datos)
+    pantalla.resize(1100, 700)
+    pantalla.show()
+    qapp.processEvents()
+
+    ficha = pantalla._ficha_lateral
+    grafico = ficha.grafico_barras
+    grafico.alternar_vista_tabla()
+    qapp.processEvents()
+
+    assert grafico._tabla.isVisible()
+    assert not grafico._tabla.verticalScrollBar().isVisible()
+    assert not grafico._tabla.horizontalScrollBar().isVisible()
+    alto_tabla_necesario = (
+        grafico._tabla.horizontalHeader().height()
+        + sum(grafico._tabla.rowHeight(fila) for fila in range(grafico._tabla.rowCount()))
+        + 2 * grafico._tabla.frameWidth()
+    )
+    assert grafico._tabla.height() >= alto_tabla_necesario
+
+    for area in ficha.findChildren(QAbstractScrollArea):
+        if area is not ficha._scroll:
+            assert not area.verticalScrollBar().isVisible()
+            assert not area.horizontalScrollBar().isVisible()
 
 
 def test_pantalla_grupos_tabla_y_datos(
@@ -329,4 +358,3 @@ def test_pantalla_grupos_tabla_responsive_y_elipsis(
     assert bool(tooltip_nombre)
     assert tooltip_nombre == vista.model().data(idx_0, Qt.ItemDataRole.DisplayRole)
     assert vista.model().headerData(0, Qt.Orientation.Horizontal, Qt.ItemDataRole.ToolTipRole) == "Nombre"
-

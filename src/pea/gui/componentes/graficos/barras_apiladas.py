@@ -476,6 +476,8 @@ class GraficoBarrasApiladas(QWidget):
         self._tabla.setHorizontalHeaderLabels(["Año", "GNC", "DTI", "ASC", "FRH", "Total"])
         self._tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._tabla.verticalHeader().setVisible(False)
+        self._tabla.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._tabla.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._tabla.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._tabla.setAlternatingRowColors(True)
         self._apilador.addWidget(self._tabla)
@@ -510,12 +512,25 @@ class GraficoBarrasApiladas(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter if col == 0 else Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
                 self._tabla.setItem(fila, col, item)
 
+        if self._apilador.currentWidget() is self._tabla:
+            self._ajustar_alto_tabla()
+
+    def _ajustar_alto_tabla(self) -> None:
+        encabezado = self._tabla.horizontalHeader()
+        alto_encabezado = max(encabezado.height(), encabezado.sizeHint().height())
+        alto_filas = sum(self._tabla.rowHeight(fila) for fila in range(self._tabla.rowCount()))
+        alto_total = alto_encabezado + alto_filas + 2 * self._tabla.frameWidth()
+        self._tabla.setFixedHeight(alto_total)
+
     def alternar_vista_tabla(self) -> None:
         """Alterna entre la vista gráfica nativa y la vista tabular accesible."""
         if self._apilador.currentIndex() == 0:
+            self._ajustar_alto_tabla()
             self._apilador.setCurrentIndex(1)
             self._btn_alternar.setText("Ver gráfico")
         else:
+            self._tabla.setMinimumHeight(0)
+            self._tabla.setMaximumHeight(16777215)
             self._apilador.setCurrentIndex(0)
             self._btn_alternar.setText("Ver como tabla")
 

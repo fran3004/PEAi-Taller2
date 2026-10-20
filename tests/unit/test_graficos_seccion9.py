@@ -85,6 +85,14 @@ def test_barras_apiladas_vacio_un_dato_valores_grandes(tmp_path: Path, qapp: QAp
     grafico.alternar_vista_tabla()
     assert grafico._apilador.currentIndex() == 1
     assert grafico._btn_alternar.text() == "Ver gráfico"
+    assert not grafico._tabla.verticalScrollBar().isVisible()
+    assert not grafico._tabla.horizontalScrollBar().isVisible()
+    alto_tabla_necesario = (
+        grafico._tabla.horizontalHeader().height()
+        + sum(grafico._tabla.rowHeight(fila) for fila in range(grafico._tabla.rowCount()))
+        + 2 * grafico._tabla.frameWidth()
+    )
+    assert grafico._tabla.height() >= alto_tabla_necesario
 
     grafico.alternar_vista_tabla()
     assert grafico._apilador.currentIndex() == 0
@@ -299,4 +307,3 @@ def test_exportador_visual_pdf_png_csv(tmp_path: Path, qapp: QApplication, qtbot
     contenido = ruta_csv.read_text(encoding="utf-8-sig")
     assert "PEA-i · Programa Estadístico de Análisis de Investigación" in contenido
     assert "2022;15;8;5;4;32" in contenido
-
