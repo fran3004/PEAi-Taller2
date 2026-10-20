@@ -113,7 +113,7 @@ def test_inicio_exporta_pdf_csv_y_png_sin_errores(
     assert pdf.stat().st_size > 5_000
     assert png.stat().st_size > 5_000
     assert csv.read_bytes().startswith(b"\xef\xbb\xbf")
-    assert len(list((tmp_path / "graficos").glob("*.png"))) == 3
+    assert len(list((tmp_path / "graficos").glob("*.png"))) == 4
     assert not Path("False").exists()
 
 
@@ -200,4 +200,3 @@ def test_pantallas_exportan_a_la_ruta_elegida_y_nunca_a_false(
         assert destino.exists() and destino.stat().st_size > 0, metodo
 
     assert not Path("False").exists()
-

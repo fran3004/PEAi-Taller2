@@ -347,6 +347,8 @@ def test_datos_fichas_metricas_completas() -> None:
     assert fg["productos_avalados"] >= 0
     assert fg["estudiantes"] == 1
     assert fg["porcentaje_sobre_institucion"] > 0
+    assert fg["distribucion_productos_por_investigador"]
+    assert fg["distribucion_productos_por_investigador"]["0"] >= 1
 
     # Ficha de investigador
     fi = app.datos_ficha_investigador("PRUEBA-INV-001", filtro)
@@ -355,3 +357,15 @@ def test_datos_fichas_metricas_completas() -> None:
     assert fi["productos_avalados"] >= 0
     assert fi["anios_con_produccion"] > 0
     assert fi["coautores"] >= 0
+    assert fi["histograma_productos_por_anio"] == {
+        str(anio): cantidad for anio, cantidad in fi["productos_por_anio"].items()
+    }
+
+    resumen = app.resumen_general(filtro)
+    assert set(resumen["distribucion_productos_por_investigador"]) == {
+        "0",
+        "1–2",
+        "3–5",
+        "6–10",
+        "11+",
+    }

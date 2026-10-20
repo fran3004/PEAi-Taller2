@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import QEvent, QPoint, Qt
-from PySide6.QtGui import QFontMetrics, QHelpEvent, QStandardItemModel
+from PySide6.QtGui import QFont, QFontMetrics, QHelpEvent, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QLabel, QScrollArea
 
 from pea.gui.componentes.ficha_lateral import FichaLateral
@@ -24,6 +24,7 @@ from pea.gui.dialogos import (
     DialogoInvestigador,
     DialogoProducto,
 )
+from pea.gui.estilo import TAMANO_AUXILIAR
 from pea.servicios.vistas import TablaDatos
 
 
@@ -101,7 +102,10 @@ def test_encabezado_y_contenido_definen_ancho_minimo_con_tooltip(
     qapp.processEvents()
 
     encabezado = tabla_widget.vista.horizontalHeader()
-    ancho_encabezado = QFontMetrics(encabezado.font()).horizontalAdvance("Código CvLAC") + 24
+    fuente_encabezado = QFont(encabezado.font())
+    fuente_encabezado.setPointSize(TAMANO_AUXILIAR)
+    fuente_encabezado.setBold(True)
+    ancho_encabezado = QFontMetrics(fuente_encabezado).horizontalAdvance("Código CvLAC") + 24
     assert tabla_widget.vista.columnWidth(0) >= ancho_encabezado
 
     evento = QHelpEvent(QEvent.Type.ToolTip, QPoint(4, 4), QPoint(4, 4))

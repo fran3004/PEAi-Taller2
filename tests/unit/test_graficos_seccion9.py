@@ -22,6 +22,7 @@ from pea.gui.componentes.graficos import (
     GraficoBarrasApiladas,
     GraficoBase,
     GraficoDonaDoble,
+    GraficoHistograma,
     GraficoSerieAnual,
     Minigrafico,
     MiniRed,
@@ -47,6 +48,42 @@ def test_grafico_base_estado_vacio_y_exportar_png(tmp_path: Path, qapp: QApplica
     # Doble resolución: 800 * 2 = 1600, 500 * 2 = 1000
     assert imagen.width() == 1600
     assert imagen.height() == 1000
+
+
+def test_histograma_se_pinta_vacio_y_con_datos(tmp_path: Path, qapp: QApplication, qtbot: Any) -> None:
+    """Verifica el estado vacío, los bins, la tabla y el renderizado con datos."""
+    grafico = GraficoHistograma(
+        titulo="",
+        subtitulo="Distribución de productos",
+        unidad="investigador",
+    )
+    qtbot.addWidget(grafico)
+    grafico.resize(600, 340)
+    grafico.show()
+
+    assert grafico.esta_vacio()
+    imagen_vacia = grafico._lienzo.grab().toImage()
+    assert not imagen_vacia.isNull()
+
+    datos = {"0": 1, "1–2": 2, "3–5": 3, "6–10": 0, "11+": 0}
+    grafico.establecer_datos(datos)
+    assert not grafico.esta_vacio()
+    assert grafico._tabla.rowCount() == 5
+    assert grafico._tabla.item(0, 0).text() == "0"
+    assert grafico._tabla.item(2, 1).text() == "3"
+    assert not grafico._lienzo.grab().toImage().isNull()
+
+    destino = tmp_path / "histograma.png"
+    assert grafico.exportar_png(destino, ancho=600, alto=340)
+    imagen_datos = QImage(str(destino))
+    assert not imagen_datos.isNull()
+    assert imagen_datos.width() == 1200
+
+    grafico.alternar_vista_tabla()
+    assert grafico._apilador.currentWidget() is grafico._tabla
+    assert grafico._btn_alternar.text() == "Ver gráfico"
+    grafico.alternar_vista_tabla()
+    assert grafico._apilador.currentWidget() is grafico._lienzo
 
 
 def test_barras_apiladas_vacio_un_dato_valores_grandes(tmp_path: Path, qapp: QApplication, qtbot: Any) -> None:

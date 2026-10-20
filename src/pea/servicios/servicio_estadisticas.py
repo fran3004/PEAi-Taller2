@@ -7,9 +7,18 @@ Conforme a AGENTS.md, Hipercubo.md, SPEC.md y ADR-0006.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 from pea.estructuras.hipercubo import Hipercubo5D
+
+RANGOS_PRODUCTOS_POR_INVESTIGADOR: tuple[tuple[str, int, int | None], ...] = (
+    ("0", 0, 0),
+    ("1–2", 1, 2),
+    ("3–5", 3, 5),
+    ("6–10", 6, 10),
+    ("11+", 11, None),
+)
 
 
 class ServicioEstadisticas:
@@ -124,6 +133,31 @@ class ServicioEstadisticas:
         c = cubo if cubo is not None else self.hipercubo
         return c.enrollar(Hipercubo5D.DIM_INVESTIGADOR)
 
+    def distribucion_productos_por_investigador(
+        self,
+        codigos_investigadores: Iterable[str] = (),
+        cubo: Hipercubo5D | None = None,
+    ) -> dict[str, int]:
+        """Agrupa investigadores por cantidad de productos contados en el hipercubo."""
+        conteo = self.productos_por_investigador(cubo)
+        codigos = set(codigos_investigadores)
+        codigos.update(conteo)
+        codigos.discard("SIN_INVESTIGADOR")
+        distribucion = {etiqueta: 0 for etiqueta, _, _ in RANGOS_PRODUCTOS_POR_INVESTIGADOR}
+
+        for codigo in codigos:
+            cantidad = int(conteo.get(codigo, 0))
+            for etiqueta, minimo, maximo in RANGOS_PRODUCTOS_POR_INVESTIGADOR:
+                if cantidad >= minimo and (maximo is None or cantidad <= maximo):
+                    distribucion[etiqueta] += 1
+                    break
+
+        return distribucion
+
+    def distribucion_productos_por_anio(self, cubo: Hipercubo5D | None = None) -> dict[str, int]:
+        """Proyecta la producción anual filtrada en etiquetas de bins para el histograma."""
+        return {str(anio): cantidad for anio, cantidad in self.productos_por_anio(cubo).items()}
+
     # =========================================================================
     # MÉTRICAS ESTADÍSTICAS DERIVADAS
     # =========================================================================
@@ -211,6 +245,7 @@ class ServicioEstadisticas:
         modelo_2024: bool = False,
         anio_inicio: int | None = None,
         anio_fin: int | None = None,
+        codigos_investigadores: Iterable[str] = (),
     ) -> dict[str, Any]:
         """Vista 1: Vista Institucional General (Consolidado panorámico universitario)."""
         c = self._resolver_cubo(
@@ -229,6 +264,10 @@ class ServicioEstadisticas:
             "top_5_investigadores": self.top_5_investigadores(cubo=c),
             "top_5_grupos": self.top_5_grupos(cubo=c),
             "promedio_por_investigador": self.promedio_por_investigador(cubo=c),
+            "distribucion_productos_por_investigador": self.distribucion_productos_por_investigador(
+                codigos_investigadores,
+                cubo=c,
+            ),
         }
 
     def obtener_vista_grupo(
@@ -238,6 +277,7 @@ class ServicioEstadisticas:
         modelo_2024: bool = False,
         anio_inicio: int | None = None,
         anio_fin: int | None = None,
+        codigos_investigadores: Iterable[str] = (),
     ) -> dict[str, Any]:
         """Vista 2: Vista por Grupo de Investigación (Ficha analítica grupal)."""
         c_inst = self._resolver_cubo(
@@ -264,6 +304,10 @@ class ServicioEstadisticas:
             "top_5_investigadores": self.top_5_investigadores(id_grupo=id_grupo, cubo=c_grp),
             "promedio_por_investigador": self.promedio_por_investigador(id_grupo=id_grupo, cubo=c_grp),
             "investigadores": self.productos_por_investigador(c_grp),
+            "distribucion_productos_por_investigador": self.distribucion_productos_por_investigador(
+                codigos_investigadores,
+                cubo=c_grp,
+            ),
         }
 
     def obtener_vista_investigador(
@@ -302,6 +346,7 @@ class ServicioEstadisticas:
             "id_investigador": id_investigador,
             "total_productos": total_inv,
             "productos_por_anio": self.productos_por_anio(c_inv),
+            "histograma_productos_por_anio": self.distribucion_productos_por_anio(c_inv),
             "productos_por_categoria": self.productos_por_categoria(c_inv),
             "porcentajes_categoria": self.porcentajes_por_categoria(c_inv),
             "productos_por_validacion": self.productos_por_validacion(c_inv),

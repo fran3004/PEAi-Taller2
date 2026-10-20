@@ -176,6 +176,7 @@ def test_pantalla_investigadores_seleccion_y_ficha_lateral(
 
     # Gráfico de serie anual actualizado
     assert not pantalla.grafico_serie.esta_vacio()
+    assert not pantalla.grafico_histograma.esta_vacio()
 
     # Cambiar de fila programáticamente
     if pantalla._proxy.rowCount() > 1:

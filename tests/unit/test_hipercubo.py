@@ -64,14 +64,23 @@ class TestHipercuboVacio:
         vista_inst = servicio.obtener_vista_institucional()
         assert vista_inst["total_productos"] == 0
         assert vista_inst["promedio_por_investigador"] == 0.0
+        assert vista_inst["distribucion_productos_por_investigador"] == {
+            "0": 0,
+            "1–2": 0,
+            "3–5": 0,
+            "6–10": 0,
+            "11+": 0,
+        }
 
         vista_grp = servicio.obtener_vista_grupo("GRUPO-INEXISTENTE")
         assert vista_grp["total_productos"] == 0
         assert vista_grp["porcentaje_sobre_institucion"] == 0.0
+        assert vista_grp["distribucion_productos_por_investigador"]["0"] == 0
 
         vista_inv = servicio.obtener_vista_investigador("INV-INEXISTENTE")
         assert vista_inv["total_productos"] == 0
         assert vista_inv["grupos_participacion"] == {}
+        assert vista_inv["histograma_productos_por_anio"] == {}
 
 
 class TestHipercuboUnProducto:
@@ -115,6 +124,56 @@ class TestHipercuboUnProducto:
         assert top_grp == [("GRP-01", 1)]
 
         assert servicio.promedio_por_investigador() == 1.0
+
+
+class TestDistribucionesHistograma:
+    """Verifica los límites de los histogramas calculados desde el hipercubo."""
+
+    def test_distribucion_por_investigador_respeta_los_limites_de_rango(self) -> None:
+        cubo = Hipercubo5D()
+        cantidades = {
+            "INV-01": 1,
+            "INV-02": 2,
+            "INV-03": 3,
+            "INV-04": 5,
+            "INV-05": 6,
+            "INV-06": 10,
+            "INV-07": 11,
+        }
+        for investigador, cantidad in cantidades.items():
+            for indice in range(cantidad):
+                cubo.acumular(
+                    grupo="GRP-01",
+                    investigador=investigador,
+                    categoria="GNC",
+                    anio=2022,
+                    validacion="Avalado",
+                    producto_id=f"{investigador}-PRD-{indice}",
+                )
+
+        distribucion = ServicioEstadisticas(cubo).distribucion_productos_por_investigador(
+            ["INV-00", *cantidades]
+        )
+
+        assert distribucion == {"0": 1, "1–2": 2, "3–5": 2, "6–10": 2, "11+": 1}
+
+    def test_distribucion_anual_respeta_ventana_temporal(self) -> None:
+        cubo = Hipercubo5D()
+        for anio, cantidad in ((2020, 1), (2021, 2), (2022, 3), (2023, 4)):
+            for indice in range(cantidad):
+                cubo.acumular(
+                    grupo="GRP-01",
+                    investigador="INV-01",
+                    categoria="GNC",
+                    anio=anio,
+                    validacion="Avalado",
+                    producto_id=f"PRD-{anio}-{indice}",
+                )
+
+        ventana = cubo.subcubo_por_ventana(anio_inicio=2021, anio_fin=2022)
+        servicio = ServicioEstadisticas(cubo)
+
+        assert servicio.distribucion_productos_por_anio(ventana) == {"2021": 2, "2022": 3}
 
 
 class TestHipercuboDesactivacionYMutacion:

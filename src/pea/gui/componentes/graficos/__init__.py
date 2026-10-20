@@ -10,6 +10,7 @@ from __future__ import annotations
 from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
 from pea.gui.componentes.graficos.base import GraficoBase
 from pea.gui.componentes.graficos.dona_doble import GraficoDonaDoble
+from pea.gui.componentes.graficos.histograma import GraficoHistograma
 from pea.gui.componentes.graficos.mini_red import MiniRed
 from pea.gui.componentes.graficos.minigrafico import Minigrafico
 from pea.gui.componentes.graficos.serie_anual import GraficoSerieAnual
@@ -18,6 +19,7 @@ __all__ = [
     "GraficoBarrasApiladas",
     "GraficoBase",
     "GraficoDonaDoble",
+    "GraficoHistograma",
     "GraficoSerieAnual",
     "MiniRed",
     "Minigrafico",

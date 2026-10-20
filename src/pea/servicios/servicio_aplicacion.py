@@ -642,7 +642,12 @@ class ServicioAplicacion:
     def resumen_general(self, filtro: FiltroAnios) -> dict[str, Any]:
         cat = self._catalogo
         inicio, fin, modelo = self._rango(filtro)
-        vista = cat.estadisticas.obtener_vista_institucional(modelo_2024=modelo, anio_inicio=inicio, anio_fin=fin)
+        vista = cat.estadisticas.obtener_vista_institucional(
+            modelo_2024=modelo,
+            anio_inicio=inicio,
+            anio_fin=fin,
+            codigos_investigadores=(i.codigo_rh for i in cat.investigadores),
+        )
         top_inv = tuple((c, self._nombre_investigador(c), n) for c, n in vista["top_5_investigadores"])
         top_grp = tuple((c, self._nombre_grupo(c), n) for c, n in vista["top_5_grupos"])
         return {
@@ -655,6 +660,7 @@ class ServicioAplicacion:
             "total_productos": vista["total_productos"],
             "promedio_por_investigador": vista["promedio_por_investigador"],
             "productos_por_anio": dict(vista["productos_por_anio"]),
+            "distribucion_productos_por_investigador": dict(vista["distribucion_productos_por_investigador"]),
             "productos_por_categoria": dict(vista["productos_por_categoria"]),
             "porcentajes_categoria": dict(vista["porcentajes_categoria"]),
             "productos_por_validacion": dict(vista["productos_por_validacion"]),
@@ -678,7 +684,15 @@ class ServicioAplicacion:
         if grupo is None:
             raise RecursoNoEncontrado(f"Grupo {codigo} no encontrado")
         inicio, fin, modelo = self._rango(filtro)
-        vista = cat.estadisticas.obtener_vista_grupo(codigo, modelo_2024=modelo, anio_inicio=inicio, anio_fin=fin)
+        vista = cat.estadisticas.obtener_vista_grupo(
+            codigo,
+            modelo_2024=modelo,
+            anio_inicio=inicio,
+            anio_fin=fin,
+            codigos_investigadores=(
+                m.codigo_rh for m in cat.integrantes if m.codigo_gruplac == codigo
+            ),
+        )
         conteo_inv = {k: v for k, v in vista["investigadores"].items() if k != "SIN_INVESTIGADOR"}
         integrantes = [m for m in cat.integrantes if m.codigo_gruplac == codigo]
         filas_int = []
@@ -706,6 +720,9 @@ class ServicioAplicacion:
             "porcentaje_sobre_institucion": vista["porcentaje_sobre_institucion"],
             "promedio_por_investigador": vista["promedio_por_investigador"],
             "productos_por_anio": dict(vista["productos_por_anio"]),
+            "distribucion_productos_por_investigador": dict(
+                vista["distribucion_productos_por_investigador"]
+            ),
             "productos_por_categoria": dict(vista["productos_por_categoria"]),
             "porcentajes_categoria": dict(vista["porcentajes_categoria"]),
             "productos_por_validacion": dict(vista["productos_por_validacion"]),
@@ -765,6 +782,7 @@ class ServicioAplicacion:
             "anios_con_produccion": anios_con_prod,
             "coautores": len(coautores_set),
             "productos_por_anio": dict(vista["productos_por_anio"]),
+            "histograma_productos_por_anio": dict(vista["histograma_productos_por_anio"]),
             "productos_por_categoria": dict(vista["productos_por_categoria"]),
             "porcentajes_categoria": dict(vista["porcentajes_categoria"]),
             "productos_por_validacion": dict(vista["productos_por_validacion"]),
@@ -796,6 +814,7 @@ class ServicioAplicacion:
             "estudiantes": vg["estudiantes"],
             "porcentaje_sobre_institucion": vg["porcentaje_sobre_institucion"],
             "promedio_por_investigador": vg["promedio_por_investigador"],
+            "distribucion_productos_por_investigador": vg["distribucion_productos_por_investigador"],
             "productos_por_anio": vg["productos_por_anio"],
             "productos_por_categoria": vg["productos_por_categoria"],
             "productos_por_validacion": vg["productos_por_validacion"],
@@ -819,6 +838,7 @@ class ServicioAplicacion:
             "anios_con_produccion": vi["anios_con_produccion"],
             "coautores": vi["coautores"],
             "productos_por_anio": vi["productos_por_anio"],
+            "histograma_productos_por_anio": vi["histograma_productos_por_anio"],
             "productos_por_categoria": vi["productos_por_categoria"],
             "productos_por_validacion": vi["productos_por_validacion"],
         }

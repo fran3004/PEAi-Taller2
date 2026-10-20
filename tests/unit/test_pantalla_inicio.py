@@ -56,6 +56,7 @@ def test_pantalla_inicio_modo_institucion(
     # Gráficos poblados
     assert not pantalla._grafico_dona.esta_vacio()
     assert not pantalla._mini_red.esta_vacio()
+    assert not pantalla._grafico_histograma.esta_vacio()
 
     # Rankings poblados
     assert pantalla._layout_ranking_1.count() > 0
@@ -83,6 +84,7 @@ def test_pantalla_inicio_modo_grupo(
     assert pantalla._kpi_1.lbl_titulo.text() == "Integrantes"
     assert pantalla._kpi_2.lbl_titulo.text() == "Estudiantes"
     assert pantalla._kpi_6.lbl_titulo.text() == "Aporte a la institución"
+    assert not pantalla._grafico_histograma.esta_vacio()
 
 
 def test_pantalla_inicio_detalles_desplegables(
@@ -242,4 +244,3 @@ def test_conexion_automatica_sin_login_manual(
     assert not cfg_widget.chk_entorno.isVisible()
     assert cfg_widget.btn_conectar.isVisible()
     assert cfg_widget.btn_demo.isVisible()
-

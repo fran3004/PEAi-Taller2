@@ -64,6 +64,7 @@ from pea.gui import estilo
 from pea.gui.componentes.campo_busqueda import CampoBusqueda
 from pea.gui.componentes.ficha_lateral import FichaLateral
 from pea.gui.componentes.filtro_anios import ChipVentana
+from pea.gui.componentes.graficos.histograma import GraficoHistograma
 from pea.gui.componentes.graficos.serie_anual import GraficoSerieAnual
 from pea.gui.componentes.modelo_tabla import ModeloTabla
 from pea.gui.componentes.tabla import (
@@ -890,6 +891,15 @@ class PantallaInvestigadores(QWidget):
         self.grafico_serie.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         ficha.agregar_contenido(self.grafico_serie)
 
+        self.grafico_histograma = GraficoHistograma(
+            titulo="Distribución anual",
+            subtitulo="Productos por año en la ventana",
+            unidad="producto",
+            parent=ficha,
+        )
+        self.grafico_histograma.setMinimumHeight(180)
+        ficha.agregar_contenido(self.grafico_histograma)
+
         # Barras de tipología de productos
         self.barras_tipologia = BarrasTipologia(parent=ficha)
         ficha.agregar_contenido(self.barras_tipologia)
@@ -1080,6 +1090,7 @@ class PantallaInvestigadores(QWidget):
 
         # Gráficos
         self.grafico_serie.establecer_datos(ficha["productos_por_anio"])
+        self.grafico_histograma.establecer_datos(ficha["histograma_productos_por_anio"])
         self.barras_tipologia.actualizar(ficha["productos_por_categoria"])
 
         # Estado del botón Activar / Desactivar
@@ -1224,6 +1235,12 @@ class PantallaInvestigadores(QWidget):
                         renderizar_widget_imagen(self.grafico_serie),
                     )
                 )
+                imagenes.append(
+                    (
+                        f"Distribución anual · {self._investigador_seleccionado_nom}",
+                        renderizar_widget_imagen(self.grafico_histograma),
+                    )
+                )
             exportar_reporte_pdf(
                 ruta,
                 titulo="Directorio de Investigadores",
@@ -1278,6 +1295,7 @@ class PantallaInvestigadores(QWidget):
                 subtitulo=f"Filtro temporal: {desc_f}",
                 imagenes=[
                     ("Evolución anual de producción", renderizar_widget_imagen(self.grafico_serie)),
+                    ("Distribución anual", renderizar_widget_imagen(self.grafico_histograma)),
                     ("Distribución por tipología", renderizar_widget_imagen(self.barras_tipologia)),
                 ],
             )

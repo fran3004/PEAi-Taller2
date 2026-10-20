@@ -12,6 +12,7 @@ relacionado:
   - "[[ADR-0015-Analisis-de-red-nativo]]"
   - "[[ADR-0016-Alcance-de-pantallas-y-datos-del-boceto]]"
   - "[[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]]"
+  - "[[ADR-0018-Histogramas-desde-hipercubo]]"
   - "[[SPEC]]"
   - "[[Hipercubo]]"
   - "[[Multilista]]"
@@ -215,7 +216,7 @@ Referencia: ![[ref-inicio.png]] y ![[ref-inicio-acabado.jpg]]
 
 - **Propósito**: panorama estadístico de la institución o de un grupo (requisito 12.b del taller: histogramas y barras).
 - **Barra de contexto**: selector segmentado **«Institución | Grupo ▾»**. En «Grupo» se elige uno con un combo. A la derecha: chip de ventana y menú **«Exportar ▾»** (tablas CSV · gráficos PNG).
-- **Disposición (≥ 1360 px)**: cuatro columnas con proporción 11 : 13 : 12 : 13 y separación de 16.
+- **Disposición (≥ 1500 px)**: cuatro columnas con proporción 11 : 13 : 12 : 13 y separación de 16.
 
 | # | Tarjeta | Contenido | Servicio |
 |---|---|---|---|
@@ -223,9 +224,12 @@ Referencia: ![[ref-inicio.png]] y ![[ref-inicio-acabado.jpg]]
 | 2 | **Producción por año y tipología** | Barras apiladas (sección 9.1) | `serie_anual_por_categoria` (nuevo) |
 | 3 | **Tipología de productos** | Dona de dos anillos (sección 9.2) | `productos_por_categoria`, `productos_por_validacion` |
 | 4 | **Red de colaboración** | Vista previa del grafo + enlace «Abrir análisis completo →» | `red_coautoria` (nuevo) |
+| 5 | **Distribución de productos por investigador** | Histograma con rangos 0, 1–2, 3–5, 6–10 y 11+; conteos, *tooltip* y alternancia «Ver como tabla» | `distribucion_productos_por_investigador` |
 
-- **Menos de 1360 px**: rejilla 2×2 (1 y 2 arriba; 3 y 4 abajo).
+- **Menos de 1500 px**: rejilla 2×2 (1 y 2 arriba; 3 y 4 abajo). El histograma ocupa una fila completa debajo de los rankings.
+- **Desde 1500 px**: el histograma ocupa una fila completa debajo de los rankings de la primera fila.
 - **Segunda fila** (dos tarjetas): «Investigadores más productivos» y «Grupos más productivos» (Top 5, con barra horizontal incrustada en cada fila) desde `top_investigadores` y `top_grupos`. En modo Grupo se convierten en «Integrantes con más productos» y «Últimos productos del grupo».
+- El histograma cuenta productos por investigador desde el hipercubo; incluye los códigos del catálogo o de las membresías para representar el rango cero. En modo Grupo usa el subcubo del grupo y sus integrantes.
 
 **Tarjeta de Ámbito, modo Institución**
 - Avatar: logo UPC. Título «Universidad Popular del Cesar». Líneas: «Grupos de investigación: N».
@@ -249,7 +253,7 @@ Referencia: ![[ref-investigadores.png]]
   `Nombre` (avatar de iniciales de 28 px + nombre en negrita) · `Grupo(s)` · `Categoría` (píldora) · `Formación` · `Productos` (alineado a la derecha) · `Código CvLAC` (color `ENLACE`; clic copia al portapapeles con toast).
   Ordenable por columna (`QSortFilterProxyModel`). Pie de tabla: «Mostrando 5 de 12».
   Los investigadores inactivos se ven al 60 % de opacidad con píldora «Inactivo».
-- **Ficha lateral**: avatar de 96 px con degradado y iniciales; nombre (16 pt negrita); línea «GRUPO · Categoría»; fichas KPI 2×2: **Productos** (ventana) · **Grupos** (membresías) · **Coautores** (grado en la red) · **Años con producción**; minigráfico «Producción anual»; barras «Tipología». Botones: **Editar** · **Activar/Desactivar** · **Eliminar…** (confirma mostrando la cascada de `describir_cascada`) · **Ver ficha completa** (diálogo amplio con las tablas *Aporte a grupos*, *Membresías* y *Productos*, que son las pestañas de la versión anterior) · **Ver productos** (abre Productos con la búsqueda puesta en su nombre).
+- **Ficha lateral**: avatar de 96 px con degradado y iniciales; nombre (16 pt negrita); línea «GRUPO · Categoría»; fichas KPI 2×2: **Productos** (ventana) · **Grupos** (membresías) · **Coautores** (grado en la red) · **Años con producción**; minigráfico «Producción anual»; histograma de productos por año limitado por la ventana global; barras «Tipología». Los gráficos conservan estado vacío y opción «Ver como tabla». Botones: **Editar** · **Activar/Desactivar** · **Eliminar…** (confirma mostrando la cascada de `describir_cascada`) · **Ver ficha completa** (diálogo amplio con las tablas *Aporte a grupos*, *Membresías* y *Productos*, que son las pestañas de la versión anterior) · **Ver productos** (abre Productos con la búsqueda puesta en su nombre).
 - **Servicios**: `tabla_investigadores`, `vista_investigador`, `datos_investigador`, `crear_/actualizar_investigador`, `cambiar_estado`, `eliminar`, `describir_cascada`, `red_coautoria` (para Coautores).
 
 ### 6.3 Grupos
@@ -381,7 +385,7 @@ Los diálogos de creación y edición (`DialogoGrupo`, `DialogoInvestigador`, `D
 
 ## 9. Gráficos (QPainter, sin dependencias externas)
 
-Carpeta `src/pea/gui/componentes/graficos/`. Todos heredan de `GraficoBase`, que ya sabe **exportar a PNG** (el doble de resolución, fondo blanco, con título) y **dibujar el estado vacío**.
+Carpeta `src/pea/gui/componentes/graficos/`. Todos los lienzos heredan de `GraficoBase`, que ya sabe **exportar a PNG** (el doble de resolución, fondo blanco, con título) y **dibujar el estado vacío**.
 
 ### 9.1 `GraficoBarrasApiladas`
 - Datos: `dict[int, dict[str, int]]` (año → tipología → conteo). Apilado de abajo hacia arriba: GNC, DTI, ASC, FRH.
@@ -406,6 +410,12 @@ Línea de 56×18 px sin ejes, para la ficha KPI de productos.
 
 ### 9.5 `MiniRed`
 Vista previa estática del grafo (los 18 nodos de mayor grado), sin etiquetas salvo los 6 primeros; al pasar el ratón muestra el nombre. Pulsar abre Análisis de redes.
+
+### 9.6 `GraficoHistograma`
+- Distribución por investigador con rangos `0`, `1–2`, `3–5`, `6–10` y `11+`; distribución anual por investigador con un bin por año presente en el hipercubo filtrado.
+- Los conteos se calculan en `ServicioEstadisticas` mediante roll-up y subcubos del `Hipercubo5D`; no se consultan ni agregan datos en SQL.
+- Dibuja barras, etiquetas de bins, conteo sobre cada barra y *tooltip*; ofrece «Ver como tabla» para consultar y copiar los valores.
+- Usa los mismos tokens gráficos y el estado vacío de `GraficoBase`; no introduce una biblioteca de gráficos adicional.
 
 **Estado vacío de cualquier gráfico**: ícono tenue, «Sin datos en esta ventana» y la sugerencia «Prueba con “Todos los años”».
 

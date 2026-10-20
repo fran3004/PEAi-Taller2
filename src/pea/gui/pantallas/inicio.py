@@ -45,6 +45,7 @@ from pea.gui.componentes.estado_vacio import Esqueleto, EstadoVacio
 from pea.gui.componentes.filtro_anios import ChipVentana
 from pea.gui.componentes.graficos.barras_apiladas import GraficoBarrasApiladas
 from pea.gui.componentes.graficos.dona_doble import GraficoDonaDoble
+from pea.gui.componentes.graficos.histograma import GraficoHistograma
 from pea.gui.componentes.graficos.mini_red import MiniRed
 from pea.gui.componentes.pildora import Pildora
 from pea.gui.componentes.selector_segmentado import SelectorSegmentado
@@ -249,6 +250,7 @@ class PantallaInicio(QWidget):
         self._crear_tarjeta_barras()
         self._crear_tarjeta_dona()
         self._crear_tarjeta_red()
+        self._crear_tarjeta_histograma()
         self._crear_tarjetas_rankings()
 
         # Posicionar inicialmente en 4 columnas
@@ -494,6 +496,21 @@ class PantallaInicio(QWidget):
         self._mini_red.nodo_pulsado.connect(self._al_pulsar_nodo_mini_red)
         self._tarjeta_red.agregar_widget(self._mini_red)
 
+    def _crear_tarjeta_histograma(self) -> None:
+        self._tarjeta_histograma = Tarjeta(
+            titulo="Distribución de productos por investigador",
+            con_sombra=True,
+            parent=self._widget_rejilla,
+        )
+        self._grafico_histograma = GraficoHistograma(
+            titulo="",
+            subtitulo="Investigadores según cantidad de productos",
+            unidad="investigador",
+            parent=self._tarjeta_histograma,
+        )
+        self._grafico_histograma.setMinimumHeight(250)
+        self._tarjeta_histograma.agregar_widget(self._grafico_histograma)
+
     def _al_abrir_red_completa(self) -> None:
         # Pestaña 4: Pantalla.REDES
         self.solicitar_navegacion.emit(4)
@@ -541,6 +558,7 @@ class PantallaInicio(QWidget):
             self._tarjeta_barras,
             self._tarjeta_dona,
             self._tarjeta_red,
+            self._tarjeta_histograma,
             self._tarjeta_ranking_1,
             self._tarjeta_ranking_2,
         ):
@@ -556,6 +574,7 @@ class PantallaInicio(QWidget):
             # Fila 1: 2 rankings anchos
             self._layout_rejilla.addWidget(self._tarjeta_ranking_1, 1, 0, 1, 2)
             self._layout_rejilla.addWidget(self._tarjeta_ranking_2, 1, 2, 1, 2)
+            self._layout_rejilla.addWidget(self._tarjeta_histograma, 2, 0, 1, 4)
 
             self._layout_rejilla.setColumnStretch(0, 11)
             self._layout_rejilla.setColumnStretch(1, 13)
@@ -570,6 +589,7 @@ class PantallaInicio(QWidget):
 
             self._layout_rejilla.addWidget(self._tarjeta_ranking_1, 2, 0)
             self._layout_rejilla.addWidget(self._tarjeta_ranking_2, 2, 1)
+            self._layout_rejilla.addWidget(self._tarjeta_histograma, 3, 0, 1, 2)
 
             self._layout_rejilla.setColumnStretch(0, 1)
             self._layout_rejilla.setColumnStretch(1, 1)
@@ -705,6 +725,9 @@ class PantallaInicio(QWidget):
         # 2. Barras apiladas
         serie = self._servicio.serie_anual_por_categoria(self._filtro_actual)
         self._grafico_barras.establecer_datos(serie)
+        self._grafico_histograma.establecer_datos(
+            resumen.get("distribucion_productos_por_investigador", {})
+        )
 
         # 3. Dona doble
         tip_map = resumen.get("productos_por_categoria", {})
@@ -816,6 +839,9 @@ class PantallaInicio(QWidget):
         # 2. Barras apiladas
         serie = self._servicio.serie_anual_por_categoria(self._filtro_actual, codigo_grupo=cod)
         self._grafico_barras.establecer_datos(serie)
+        self._grafico_histograma.establecer_datos(
+            vg.get("distribucion_productos_por_investigador", {})
+        )
 
         # 3. Dona doble
         tip_map = vg.get("productos_por_categoria", {})
@@ -979,6 +1005,10 @@ class PantallaInicio(QWidget):
                 ("Producción anual por tipología (GNC · DTI · ASC · FRH)", renderizar_widget_imagen(self._grafico_barras)),
                 ("Distribución por tipología y validación", renderizar_widget_imagen(self._grafico_dona)),
                 ("Vista sintética de la red de coautoría", renderizar_widget_imagen(self._mini_red)),
+                (
+                    "Distribución de productos por investigador",
+                    renderizar_widget_imagen(self._grafico_histograma),
+                ),
             ]
             titulo_rep = (
                 "Panorama Estadístico Institucional"
@@ -1064,7 +1094,7 @@ class PantallaInicio(QWidget):
             GestorAvisos.mostrar_desde(self, mensaje_error(err, ruta), tipo="error", titulo="No se pudo exportar el CSV")
 
     def exportar_png(self, ruta_destino: str | Path | None = None) -> None:
-        """Exporta el panel completo (barras, dona y red) como una lámina PNG institucional."""
+        """Exporta las gráficas principales como una lámina PNG institucional."""
         ruta = resolver_archivo_destino(
             self,
             ruta_destino,
@@ -1086,6 +1116,10 @@ class PantallaInicio(QWidget):
                     ("Producción anual por tipología", renderizar_widget_imagen(self._grafico_barras)),
                     ("Distribución por tipología y validación", renderizar_widget_imagen(self._grafico_dona)),
                     ("Red sintética de coautoría", renderizar_widget_imagen(self._mini_red)),
+                    (
+                        "Distribución de productos por investigador",
+                        renderizar_widget_imagen(self._grafico_histograma),
+                    ),
                 ],
             )
             GestorAvisos.mostrar_desde(
@@ -1129,6 +1163,12 @@ class PantallaInicio(QWidget):
                     "Red sintética de coautoría científica",
                     "Subgrafo principal de colaboración",
                     self._mini_red,
+                ),
+                (
+                    "histograma",
+                    "Distribución de productos por investigador",
+                    "Investigadores según cantidad de productos",
+                    self._grafico_histograma,
                 ),
             )
             for sufijo, titulo, leyenda, widget in piezas:
