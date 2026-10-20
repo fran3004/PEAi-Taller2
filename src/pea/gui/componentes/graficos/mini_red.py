@@ -11,7 +11,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 9.5).
 from __future__ import annotations
 
 import math
-from typing import Any, Final
+from typing import Any
 
 from PySide6.QtCore import (
     QEvent,
@@ -49,16 +49,6 @@ from pea.gui.red.nodo import (
     abreviar_nombre_investigador,
     normalizar_nombre_investigador,
 )
-
-COLORES_CATEGORIAS_MAP: Final[dict[str, str]] = {
-    "Emérito": COLOR_CAT_EMERITO,
-    "Emerito": COLOR_CAT_EMERITO,
-    "Senior": COLOR_CAT_SENIOR,
-    "Asociado": COLOR_CAT_ASOCIADO,
-    "Junior": COLOR_CAT_JUNIOR,
-    "Sin categoría": estilo.COLOR_NODO_SIN_CATEGORIA,
-    "Sin categoria": estilo.COLOR_NODO_SIN_CATEGORIA,
-}
 
 
 def _resolver_color_mini_nodo(categoria: str, grado: int, idx: int) -> str:

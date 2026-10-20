@@ -86,6 +86,16 @@ class TestHipercuboVacio:
 class TestHipercuboUnProducto:
     """Verifica el comportamiento analítico con exactamente un producto activo."""
 
+    def test_desacumular_actualiza_medidas_y_poda_celda(self) -> None:
+        cubo = Hipercubo5D()
+        cubo.acumular("GRP-01", "INV-01", "GNC", 2023, "Avalado", "PRD-01", 2.0)
+
+        assert cubo.desacumular("GRP-01", "INV-01", "GNC", 2023, "Avalado", "PRD-01", 2.0)
+        assert cubo.esta_vacio()
+        assert cubo.medida_total() == 0
+        assert cubo.total_productos_unicos() == 0
+        assert not cubo.desacumular("GRP-01", "INV-01", "GNC", 2023, "Avalado", "PRD-01", 2.0)
+
     def test_un_producto_metricas_y_porcentajes(self) -> None:
         cubo = Hipercubo5D()
         cubo.acumular(

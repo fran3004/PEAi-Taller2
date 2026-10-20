@@ -19,19 +19,20 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+
 from bs4 import BeautifulSoup
 from modelos_scienti import (
+    FormacionAcademica,
     GrupoGrupLAC,
-    InvestigadorCvLAC,
-    MetadatosOrigen,
-    IntegranteGrupo,
-    LineaInvestigacion,
     InstitucionAval,
+    IntegranteGrupo,
+    InvestigadorCvLAC,
+    LineaInvestigacion,
+    MetadatosOrigen,
     ProductoBibliografico,
     ProductoSoftware,
-    TrabajoDirigido,
     ProyectoInvestigacion,
-    FormacionAcademica,
+    TrabajoDirigido,
 )
 
 
@@ -81,7 +82,7 @@ def parse_gruplac(html_text: str, meta: dict, anonimizar: bool = False) -> tuple
     for idx, table in enumerate(tables):
         header_cell = table.find("td", class_="celdaEncabezado")
         sec_title = limpiar_texto(header_cell.get_text()) if header_cell else f"Sección {idx}"
-        
+
         md_lines.append(f"## {sec_title}\n")
         rows = table.find_all("tr")
 
@@ -147,7 +148,7 @@ def parse_gruplac(html_text: str, meta: dict, anonimizar: bool = False) -> tuple
                     vinc = limpiar_texto(tds[1].get_text())
                     hrs = limpiar_texto(tds[2].get_text())
                     per = limpiar_texto(tds[3].get_text())
-                    
+
                     partes_per = per.split(" - ")
                     ini = partes_per[0].strip() if len(partes_per) > 0 else None
                     fin = partes_per[1].strip() if len(partes_per) > 1 else None
@@ -363,7 +364,7 @@ def parse_cvlac(html_text: str, meta: dict, anonimizar: bool = False) -> tuple[I
                 if len(tds) >= 2:
                     k = limpiar_texto(tds[0].get_text())
                     v = limpiar_texto(tds[1].get_text())
-                    
+
                     if k == "Nombre":
                         inv_obj.nombre_completo = v
                         if anonimizar:

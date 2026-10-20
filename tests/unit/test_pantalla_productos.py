@@ -127,7 +127,8 @@ def test_pantalla_productos_filtros_reactivos(
     assert iniciales > 0
 
     # 1. Filtro por texto (primer producto)
-    prod_primero = servicio_con_datos._catalogo.multilista_productos.obtener_todos()[0]
+    nodo_primero = next(servicio_con_datos._catalogo.multilista_productos.iterar_nodos())
+    prod_primero = nodo_primero.producto
     pantalla.campo_busqueda.establecer_texto(prod_primero.titulo[:10])
     qapp.processEvents()
     assert pantalla._proxy.rowCount() <= iniciales
@@ -226,9 +227,9 @@ def test_producto_inactivo_opacidad_y_pildora(
     qapp: QApplication, servicio_con_datos: ServicioAplicacion
 ) -> None:
     """Verifica que un producto desactivado retorne ROL_ACTIVO=False y píldora «Inactivo»."""
-    prods = servicio_con_datos._catalogo.multilista_productos.obtener_todos()
-    assert len(prods) > 0
-    prod_cod = prods[0].codigo_identificador
+    nodo = next(servicio_con_datos._catalogo.multilista_productos.iterar_nodos(), None)
+    assert nodo is not None
+    prod_cod = nodo.producto.codigo_identificador
 
     # Desactivar
     servicio_con_datos.cambiar_estado("producto", prod_cod, activo=False)
@@ -253,9 +254,9 @@ def test_dialogos_confirmar_eliminar_producto(
     qapp: QApplication, servicio_con_datos: ServicioAplicacion, qtbot: Any
 ) -> None:
     """Verifica la cascada y el diálogo de confirmación de eliminación de un producto."""
-    prods = servicio_con_datos._catalogo.multilista_productos.obtener_todos()
-    assert len(prods) > 0
-    prod_cod = prods[0].codigo_identificador
+    nodo = next(servicio_con_datos._catalogo.multilista_productos.iterar_nodos(), None)
+    assert nodo is not None
+    prod_cod = nodo.producto.codigo_identificador
 
     cascada = servicio_con_datos.describir_cascada("producto", prod_cod)
     assert "Se eliminará el producto" in cascada
@@ -382,4 +383,3 @@ def test_tabla_productos_titulo_ancho_legible(
     assert not vista.isColumnHidden(1)
     ancho_titulo = vista.columnWidth(1)
     assert ancho_titulo >= 200, f"Título tiene ancho {ancho_titulo} px en resolución {resolucion}, menor a 200 px"
-

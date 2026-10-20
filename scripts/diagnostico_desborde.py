@@ -8,11 +8,10 @@ import sys
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSize
-from PySide6.QtWidgets import QApplication, QAbstractScrollArea, QWidget
+from PySide6.QtWidgets import QAbstractScrollArea, QApplication, QWidget
 
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
-
 
 TAMANOS_OFICIALES = ((1100, 700), (1366, 768), (1920, 1080))
 

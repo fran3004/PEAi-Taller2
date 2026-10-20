@@ -166,13 +166,6 @@ class Multilista:
             return True
         return False
 
-    def obtener_todos(self) -> ListaDoble[Any]:
-        """Retorna todos los productos almacenados en una ListaDoble."""
-        resultado: ListaDoble[Any] = ListaDoble()
-        for nodo in self.iterar_nodos():
-            resultado.insertar_final(nodo.producto)
-        return resultado
-
     def eliminar_producto(self, codigo_identificador: str) -> Any | None:
         """Desenlaza y elimina físicamente el nodo producto de todas las listas."""
         nodo = self.buscar_nodo(codigo_identificador)

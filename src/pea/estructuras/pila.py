@@ -75,7 +75,7 @@ class Pila[T]:
         self._tamano -= 1
         return nodo.dato
 
-    def ver_tope(self) -> T | None:
+    def tope(self) -> T | None:
         """Consulta el dato en la cima sin extraerlo."""
         return self.tope_nodo.dato if self.tope_nodo is not None else None
 

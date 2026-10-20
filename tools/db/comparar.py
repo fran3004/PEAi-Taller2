@@ -43,9 +43,9 @@ def comparar_archivos(archivo_a: Path, archivo_b: Path) -> int:
         print(f"[ERROR] Archivo destino no existe: {archivo_b}", file=sys.stderr)
         return 1
 
-    with open(archivo_a, "r", encoding="utf-8") as f:
+    with open(archivo_a, encoding="utf-8") as f:
         data_a = json.load(f)
-    with open(archivo_b, "r", encoding="utf-8") as f:
+    with open(archivo_b, encoding="utf-8") as f:
         data_b = json.load(f)
 
     # Extraer si viene envuelto en "tablas"

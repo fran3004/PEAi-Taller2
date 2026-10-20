@@ -87,24 +87,6 @@ class Hipercubo5D:
         self._indice.clear()
         self._productos_registrados.clear()
 
-    def obtener_celda(
-        self,
-        grupo: str,
-        investigador: str,
-        categoria: str,
-        anio: int,
-        validacion: str,
-    ) -> CeldaHipercubo | None:
-        """Retorna la celda en las coordenadas especificadas si existe."""
-        coord = Coordenada5D(
-            str(grupo or "SIN_GRUPO"),
-            str(investigador or "SIN_INVESTIGADOR"),
-            str(categoria or "GNC"),
-            int(anio),
-            str(validacion or "No avalado"),
-        )
-        return self._indice.get(coord)
-
     def acumular(
         self,
         grupo: str,

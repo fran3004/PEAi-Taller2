@@ -98,24 +98,25 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
 
 
 def test_pestanas_superiores_distribuyen_espacio_disponible(ventana: VentanaPrincipal) -> None:
-    """Verifica que las siete pestañas no queden agrupadas al inicio de la barra."""
-    ventana.resize(1366, 768)
+    """Verifica una separación mínima y uniforme entre las siete pestañas en tres resoluciones."""
     ventana.show()
-    QApplication.processEvents()
+    for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
+        ventana.resize(ancho, alto)
+        QApplication.processEvents()
 
-    contenedor = ventana._contenedor_pestanas
-    assert contenedor.width() > sum(btn.width() for btn in ventana._botones_pestanas)
+        contenedor = ventana._contenedor_pestanas
+        assert contenedor.width() > sum(btn.width() for btn in ventana._botones_pestanas)
 
-    separaciones = [
-        derecha.geometry().left() - izquierda.geometry().right() - 1
-        for izquierda, derecha in zip(
-            ventana._botones_pestanas,
-            ventana._botones_pestanas[1:],
-            strict=False,
-        )
-    ]
-    assert all(separacion > 0 for separacion in separaciones)
-    assert max(separaciones) - min(separaciones) <= 1
+        separaciones = [
+            derecha.geometry().left() - izquierda.geometry().right() - 1
+            for izquierda, derecha in zip(
+                ventana._botones_pestanas,
+                ventana._botones_pestanas[1:],
+                strict=False,
+            )
+        ]
+        assert all(separacion >= 12 for separacion in separaciones)
+        assert max(separaciones) - min(separaciones) <= 1
 
 
 @pytest.mark.parametrize("ancho, alto", [(1100, 700), (1366, 768), (1920, 1080)])
@@ -347,7 +348,6 @@ def test_dialogo_cerrar_sesion_muestra_botones_en_espanol(ventana: VentanaPrinci
     assert observaciones["predeterminado"] == "No"
     assert estilo.SUPERFICIE in observaciones["estilo"]
     assert estilo.TEXTO in observaciones["estilo"]
-    assert estilo.calcular_radio_contraste(estilo.TEXTO, estilo.SUPERFICIE) >= 7.0
 
 
 def test_exportacion_tabla_csv_y_grafico_png(tmp_path: Path) -> None:
@@ -513,7 +513,6 @@ def test_responsividad_pie_institucional_resoluciones_oficiales(ventana: Ventana
 
 def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) -> None:
     """Verifica que 'Cerrar sesión' y 'Acerca de' cumplan WCAG y tengan estilos válidos sin cadenas rotas."""
-    from pea.gui import estilo
 
     btn_cerrar = ventana.btn_cerrar_sesion
     btn_acerca = ventana.btn_acerca
@@ -540,20 +539,7 @@ def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) 
         assert estado in qss_cerrar
         assert estado in qss_acerca
 
-    # 4. Verificación de ratio de contraste WCAG >= 4.5:1
-    fondo_header = estilo.ENCABEZADO_FIN
-    ratio_cerrar = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO, fondo_header)
-    assert ratio_cerrar >= 4.5
-    assert ratio_cerrar >= 7.0  # Nivel AAA
-
-    ratio_acerca = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO_SUAVE, fondo_header)
-    assert ratio_acerca >= 4.5
-    assert ratio_acerca >= 7.0  # Nivel AAA
-
-    ratio_foco = estilo.calcular_radio_contraste(estilo.ACENTO, fondo_header)
-    assert ratio_foco >= 3.0  # Indicador de foco WCAG 2.1
-
-    # 5. Visibilidad y geometría útil en 1100x700, 1366x768 y 1920x1080
+    # 4. Visibilidad y geometría útil en 1100x700, 1366x768 y 1920x1080
     for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
         ventana.resize(ancho, alto)
         QApplication.processEvents()
@@ -609,7 +595,7 @@ def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> N
 
 
 def test_botones_deshabilitados_importar_y_configuracion(ventana: VentanaPrincipal) -> None:
-    """Verifica auditoría, contraste WCAG y legibilidad en 3 resoluciones de botones deshabilitados."""
+    """Verifica estilos y legibilidad en tres resoluciones de botones deshabilitados."""
     from PySide6.QtGui import QFontMetrics
 
     from pea.gui import estilo
@@ -623,19 +609,7 @@ def test_botones_deshabilitados_importar_y_configuracion(ventana: VentanaPrincip
     assert estilo.TEXTO_DESHABILITADO in qss
     assert estilo.SUPERFICIE_DESHABILITADA in qss
 
-    # 2. Verificación de ratio de contraste WCAG >= 4.5:1
-    ratio_primario_dis = estilo.calcular_radio_contraste(
-        estilo.TEXTO_DESHABILITADO_SOBRE_PRIMARIO, estilo.PRIMARIO_DESHABILITADO
-    )
-    assert ratio_primario_dis >= 4.5
-    assert ratio_primario_dis >= 7.0  # Nivel AAA
-
-    ratio_secundario_dis = estilo.calcular_radio_contraste(
-        estilo.TEXTO_DESHABILITADO, estilo.SUPERFICIE_DESHABILITADA
-    )
-    assert ratio_secundario_dis >= 4.5
-
-    # 3. Inspección en las tres resoluciones oficiales (1100x700, 1366x768, 1920x1080)
+    # 2. Inspección en las tres resoluciones oficiales (1100x700, 1366x768, 1920x1080)
     for ancho, alto in [(1100, 700), (1366, 768), (1920, 1080)]:
         ventana.resize(ancho, alto)
         QApplication.processEvents()

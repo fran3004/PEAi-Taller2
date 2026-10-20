@@ -21,7 +21,7 @@ def cargar_configuracion() -> tuple[str, str]:
     ruta_env = Path(".env")
     if ruta_env.exists():
         try:
-            with open(ruta_env, "r", encoding="utf-8") as f:
+            with open(ruta_env, encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
@@ -51,7 +51,7 @@ def cargar_configuracion() -> tuple[str, str]:
             ruta_cfg = Path("config/pea.config.example.json")
         if ruta_cfg.exists():
             try:
-                with open(ruta_cfg, "r", encoding="utf-8") as f:
+                with open(ruta_cfg, encoding="utf-8") as f:
                     cfg = json.load(f)
                     sb = cfg.get("supabase", {})
                     url = url or sb.get("url", "")

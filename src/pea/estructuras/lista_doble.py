@@ -64,29 +64,6 @@ class ListaDoble[T]:
         self._tamano += 1
         return nuevo
 
-    def insertar_en(self, indice: int, dato: T) -> NodoDoble[T]:
-        """Inserta un nuevo elemento en una posición específica."""
-        if indice < 0 or indice > self._tamano:
-            raise IndexError(f"Índice fuera de rango: {indice} (tamaño: {self._tamano})")
-
-        if indice == 0:
-            return self.insertar_inicio(dato)
-        if indice == self._tamano:
-            return self.insertar_final(dato)
-
-        actual = self._nodo_en(indice)
-        nuevo = NodoDoble(dato)
-        predecesor = actual.anterior
-
-        if predecesor is not None:
-            predecesor.siguiente = nuevo
-            nuevo.anterior = predecesor
-
-        nuevo.siguiente = actual
-        actual.anterior = nuevo
-        self._tamano += 1
-        return nuevo
-
     def _nodo_en(self, indice: int) -> NodoDoble[T]:
         if indice < 0 or indice >= self._tamano:
             raise IndexError(f"Índice fuera de rango: {indice} (tamaño: {self._tamano})")
@@ -136,11 +113,6 @@ class ListaDoble[T]:
         self._tamano -= 1
         return nodo.dato
 
-    def eliminar_en(self, indice: int) -> T:
-        """Elimina y retorna el dato en el índice indicado."""
-        nodo = self._nodo_en(indice)
-        return self.eliminar_nodo(nodo)
-
     def eliminar_por_criterio(self, predicado: Callable[[T], bool]) -> T | None:
         """Elimina el primer nodo que satisfaga el predicado."""
         nodo = self.buscar(predicado)
@@ -173,7 +145,3 @@ class ListaDoble[T]:
         self.cabeza = None
         self.cola = None
         self._tamano = 0
-
-    def a_lista_auxiliar(self) -> list[T]:
-        """Convierte temporalmente los elementos a una lista nativa (solo para exportación/inspección)."""
-        return list(self)

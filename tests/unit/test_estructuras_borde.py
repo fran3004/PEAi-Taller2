@@ -22,9 +22,6 @@ def test_lista_doble_casos_borde_vacia() -> None:
     with pytest.raises(IndexError):
         lista.obtener(0)
 
-    with pytest.raises(IndexError):
-        lista.eliminar_en(0)
-
     with pytest.raises(ValueError):
         lista.eliminar_nodo(None)  # type: ignore[arg-type]
 
@@ -59,12 +56,6 @@ def test_lista_doble_indices_fuera_de_rango() -> None:
     lista: ListaDoble[int] = ListaDoble()
     lista.insertar_final(10)
     lista.insertar_final(20)
-
-    with pytest.raises(IndexError):
-        lista.insertar_en(-1, 99)
-
-    with pytest.raises(IndexError):
-        lista.insertar_en(5, 99)
 
     with pytest.raises(IndexError):
         lista.obtener(-1)
@@ -126,7 +117,7 @@ def test_multilista_casos_borde() -> None:
 def test_pila_casos_borde() -> None:
     pila: Pila[str] = Pila()
     assert pila.esta_vacia()
-    assert pila.ver_tope() is None
+    assert pila.tope() is None
 
     with pytest.raises(IndexError):
         pila.desapilar()

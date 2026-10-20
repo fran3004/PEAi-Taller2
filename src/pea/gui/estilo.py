@@ -57,7 +57,6 @@ SUPERFICIE_EXITO_HOVER: Final[str] = "#D7EFE0"
 SUPERFICIE_DESHABILITADA: Final[str] = "#F1F3F4"
 SUPERFICIE_DESHABILITADA_SUAVE: Final[str] = "#DDE5F0"
 SUPERFICIE_DESHABILITADA_ERROR: Final[str] = "#FDE8E8"
-BORDE_DESHABILITADO: Final[str] = "#9AA0A6"
 TEXTO_DESHABILITADO: Final[str] = TEXTO_SECUNDARIO
 TEXTO_DESHABILITADO_SOBRE_PRIMARIO: Final[str] = TEXTO_SOBRE_OSCURO
 PRIMARIO_DESHABILITADO: Final[str] = PRIMARIO_PULSADO
@@ -132,13 +131,6 @@ COLOR_CAT_JUNIOR: Final[str] = "#0F7F73"    # Turquesa oscuro
 COLOR_CAT_SIN_CATEGORIA_FONDO: Final[str] = "#E3E9F0"
 COLOR_CAT_SIN_CATEGORIA_TEXTO: Final[str] = "#3F5163"
 
-COLORES_CATEGORIAS: Final[dict[str, str]] = {
-    "Emérito": COLOR_CAT_EMERITO,
-    "Senior": COLOR_CAT_SENIOR,
-    "Asociado": COLOR_CAT_ASOCIADO,
-    "Junior": COLOR_CAT_JUNIOR,
-}
-
 # Red de colaboración
 COLOR_RED_ARISTAS: Final[str] = "#7E9AB8"
 COLOR_RED_ARISTA_ACTIVA: Final[str] = "#1F6FA8"
@@ -157,83 +149,6 @@ PALETA_NODOS_RED: Final[tuple[str, ...]] = (
     "#3B6EA5",
 )
 
-# Paleta cíclica para series gráficas
-SERIE: Final[tuple[str, ...]] = (
-    COLOR_GNC,
-    COLOR_DTI,
-    COLOR_ASC,
-    COLOR_FRH,
-    COLOR_VALIDACION_AVALADO,
-    COLOR_VALIDACION_CON_SOPORTE,
-    COLOR_CAT_SENIOR,
-    COLOR_CAT_EMERITO,
-)
-
-# ---------------------------------------------------------------------------
-# Verificación de contraste WCAG 2.1 (Tabla 4.1 de la especificación)
-# ---------------------------------------------------------------------------
-
-PARES_CONTRASTE_TABLA_4_1: Final[list[tuple[str, str, str]]] = [
-    (TEXTO_SOBRE_OSCURO, ENCABEZADO_INICIO, "Blanco sobre ENCABEZADO_INICIO"),
-    (TEXTO_SOBRE_OSCURO, ENCABEZADO_MEDIO, "Blanco sobre ENCABEZADO_MEDIO"),
-    (TEXTO_SOBRE_OSCURO, ENCABEZADO_FIN, "Blanco sobre ENCABEZADO_FIN"),
-    (ACENTO, ENCABEZADO_INICIO, "ACENTO sobre ENCABEZADO_INICIO"),
-    (TEXTO_SOBRE_OSCURO, PRIMARIO, "Blanco sobre PRIMARIO"),
-    (TEXTO_SOBRE_OSCURO, PRIMARIO_HOVER, "Blanco sobre PRIMARIO_HOVER"),
-    (TEXTO_SOBRE_OSCURO, PRIMARIO_PULSADO, "Blanco sobre PRIMARIO_PULSADO"),
-    (TEXTO, SUPERFICIE, "TEXTO sobre SUPERFICIE"),
-    (TEXTO, FICHA, "TEXTO sobre FICHA"),
-    (TEXTO, PIE, "TEXTO sobre PIE"),
-    (TEXTO_SECUNDARIO, SUPERFICIE, "TEXTO_SECUNDARIO sobre SUPERFICIE"),
-    (TEXTO_SECUNDARIO, FICHA, "TEXTO_SECUNDARIO sobre FICHA"),
-    (TEXTO_SOBRE_OSCURO_SUAVE, ENCABEZADO_MEDIO, "TEXTO_SOBRE_OSCURO_SUAVE sobre ENCABEZADO_MEDIO"),
-    (ENLACE, SUPERFICIE, "ENLACE sobre SUPERFICIE"),
-    (EXITO, EXITO_FONDO, "EXITO sobre EXITO_FONDO"),
-    (AVISO, AVISO_FONDO, "AVISO sobre AVISO_FONDO"),
-    (ERROR, ERROR_FONDO, "ERROR sobre ERROR_FONDO"),
-    (TEXTO_SOBRE_OSCURO, COLOR_CAT_SENIOR, "Blanco sobre Senior"),
-    (TEXTO_SOBRE_OSCURO, COLOR_CAT_ASOCIADO, "Blanco sobre Asociado"),
-    (TEXTO_SOBRE_OSCURO, COLOR_CAT_JUNIOR, "Blanco sobre Junior"),
-    (COLOR_CAT_SIN_CATEGORIA_TEXTO, COLOR_CAT_SIN_CATEGORIA_FONDO, "Texto sobre fondo sin categoría"),
-    (TEXTO_DESHABILITADO, SUPERFICIE, "Texto deshabilitado sobre superficie"),
-    (
-        TEXTO_DESHABILITADO,
-        SUPERFICIE_DESHABILITADA,
-        "Texto deshabilitado sobre superficie deshabilitada",
-    ),
-    (
-        TEXTO_DESHABILITADO_SOBRE_PRIMARIO,
-        PRIMARIO_DESHABILITADO,
-        "Texto deshabilitado sobre primario",
-    ),
-]
-
-
-def calcular_luminancia_relativa(color_hex: str) -> float:
-    """Calcula la luminancia relativa según la fórmula oficial de WCAG 2.1."""
-    hex_str = color_hex.lstrip("#")
-    r_val = int(hex_str[0:2], 16) / 255.0
-    g_val = int(hex_str[2:4], 16) / 255.0
-    b_val = int(hex_str[4:6], 16) / 255.0
-
-    def ajustar(canal: float) -> float:
-        return canal / 12.92 if canal <= 0.03928 else ((canal + 0.055) / 1.055) ** 2.4
-
-    r_lin = ajustar(r_val)
-    g_lin = ajustar(g_val)
-    b_lin = ajustar(b_val)
-    return 0.2126 * r_lin + 0.7152 * g_lin + 0.0722 * b_lin
-
-
-def calcular_radio_contraste(color1_hex: str, color2_hex: str) -> float:
-    """Calcula el ratio de contraste (X:1) entre dos colores según WCAG 2.1."""
-    l1 = calcular_luminancia_relativa(color1_hex)
-    l2 = calcular_luminancia_relativa(color2_hex)
-    mas_claro = max(l1, l2)
-    mas_oscuro = min(l1, l2)
-    return (mas_claro + 0.05) / (mas_oscuro + 0.05)
-
-
 # ---------------------------------------------------------------------------
 # 4.2 Tipografía
 # ---------------------------------------------------------------------------
@@ -245,13 +160,11 @@ TAMANO_MARCA: Final[int] = 30           # pt, peso 800 (Black)
 PESO_MARCA: Final[int] = 800
 
 TAMANO_KPI: Final[int] = 22             # pt, Bold
-PESO_KPI: Final[str] = "bold"
 
 TAMANO_TITULO_PANTALLA: Final[int] = 18 # pt, Semibold (600)
 PESO_TITULO_PANTALLA: Final[int] = 600
 
 TAMANO_TITULO_TARJETA: Final[int] = 14  # pt, Bold (con barra de acento)
-PESO_TITULO_TARJETA: Final[str] = "bold"
 
 TAMANO_SUBTITULO: Final[int] = 12       # pt, Regular
 TAMANO_CUERPO: Final[int] = 11          # pt, Regular (cuerpo, tablas, pestañas; no baja de 11)
@@ -268,158 +181,26 @@ TAMANO_CENTRO_DONA: Final[int] = 20     # pt, centro de dona en vista estándar
 
 ESPACIADO_4: Final[int] = 4
 ESPACIADO_8: Final[int] = 8
-ESPACIADO_12: Final[int] = 12
 ESPACIADO_16: Final[int] = 16
-ESPACIADO_20: Final[int] = 20
-ESPACIADO_24: Final[int] = 24
-ESPACIADO_32: Final[int] = 32
-
-ESPACIADOS: Final[tuple[int, ...]] = (4, 8, 12, 16, 20, 24, 32)
 
 RELLENO_TARJETA: Final[int] = 20
 SEPARACION_TARJETAS: Final[int] = 16
 MARGEN_CONTENIDO: Final[int] = 24
-MARGEN_CONTENIDO_COMPACTO: Final[int] = 20
 
 # Radios de esquina y dimensiones de controles
 RADIO_BOTON: Final[int] = 8
 RADIO_CAMPO: Final[int] = 8
 ALTURA_CAMPO_MINIMA: Final[int] = 36
-ALTURA_CAMPO: Final[int] = ALTURA_CAMPO_MINIMA
 RADIO_FICHA_KPI: Final[int] = 12
 RADIO_PESTANA_ACTIVA: Final[int] = 12
 RADIO_TARJETA: Final[int] = 16
 RADIO_PILDORA: Final[int] = 999
-RADIO_AVATAR: Final[int] = 999
 
 # Sombras
 SOMBRA_TARJETA_DESENFOQUE: Final[int] = 24
 SOMBRA_TARJETA_DESPLAZAMIENTO: Final[tuple[int, int]] = (0, 4)
 SOMBRA_TARJETA_COLOR: Final[str] = "#0A2045"
 SOMBRA_TARJETA_OPACIDAD: Final[float] = 0.10
-
-SOMBRA_TARJETA_HOVER_DESENFOQUE: Final[int] = 32
-SOMBRA_TARJETA_HOVER_DESPLAZAMIENTO: Final[tuple[int, int]] = (0, 8)
-SOMBRA_TARJETA_HOVER_OPACIDAD: Final[float] = 0.16
-
-SOMBRA_BARRA_SUPERIOR_DESENFOQUE: Final[int] = 16
-SOMBRA_BARRA_SUPERIOR_OPACIDAD: Final[float] = 0.25
-
-# Movimiento (duraciones en milisegundos)
-DURACION_HOVER_MS: Final[int] = 120
-DURACION_TRANSICION_PANTALLA_MS: Final[int] = 200
-DURACION_GRAFICO_MS: Final[int] = 400
-DESPLAZAMIENTO_TRANSICION_PX: Final[int] = 8
-
-
-def css_etiqueta(
-    tamano: int,
-    color: str = TEXTO,
-    peso: int | str | None = None,
-) -> str:
-    """Devuelve las propiedades QSS comunes de una etiqueta."""
-    propiedades = [f"font-size: {tamano}pt", f"color: {color}"]
-    if peso is not None:
-        propiedades.append(f"font-weight: {peso}")
-    return "; ".join(propiedades) + ";"
-
-
-def css_boton(variante: str) -> str:
-    """Devuelve el QSS de un botón según su variante semántica."""
-    variantes = {
-        "primario": (
-            PRIMARIO,
-            TEXTO_SOBRE_OSCURO,
-            "none",
-            "bold",
-            PRIMARIO_HOVER,
-            PRIMARIO_PULSADO,
-            PRIMARIO_DESHABILITADO,
-            TEXTO_DESHABILITADO_SOBRE_PRIMARIO,
-            "none",
-        ),
-        "secundario": (
-            SUPERFICIE,
-            TEXTO,
-            f"1px solid {LINEA}",
-            "500",
-            SUPERFICIE_HOVER,
-            SUPERFICIE_PULSADA,
-            SUPERFICIE_DESHABILITADA,
-            TEXTO_DESHABILITADO,
-            f"1px solid {LINEA}",
-        ),
-        "peligro": (
-            ERROR,
-            TEXTO_SOBRE_OSCURO,
-            "none",
-            "bold",
-            ERROR_HOVER,
-            ERROR,
-            ERROR_DESHABILITADO,
-            TEXTO_SOBRE_OSCURO,
-            "none",
-        ),
-        "icono": (
-            SUPERFICIE,
-            TEXTO_SECUNDARIO,
-            f"1px solid {LINEA}",
-            "500",
-            SUPERFICIE_HOVER,
-            SUPERFICIE_PULSADA,
-            SUPERFICIE_DESHABILITADA,
-            TEXTO_DESHABILITADO,
-            f"1px solid {LINEA}",
-        ),
-    }
-    try:
-        fondo, texto, borde, peso, hover, pulsado, fondo_dis, texto_dis, borde_dis = variantes[variante]
-    except KeyError as exc:
-        raise ValueError(f"Variante de botón desconocida: {variante}") from exc
-    return (
-        f"QPushButton {{ background-color: {fondo}; color: {texto}; border: {borde}; "
-        f"border-radius: {RADIO_BOTON}px; padding: {ESPACIADO_8}px {ESPACIADO_16}px; "
-        f"font-size: {TAMANO_CUERPO}pt; font-weight: {peso}; }}"
-        f" QPushButton:hover {{ background-color: {hover}; }}"
-        f" QPushButton:pressed {{ background-color: {pulsado}; }}"
-        f" QPushButton:disabled {{ background-color: {fondo_dis}; color: {texto_dis}; border: {borde_dis}; }}"
-    )
-
-
-def css_pildora(
-    fondo: str,
-    texto: str,
-    tamano: int = TAMANO_AUXILIAR,
-) -> str:
-    """Devuelve el QSS de una etiqueta tipo píldora."""
-    return (
-        f"background-color: {fondo}; color: {texto}; "
-        f"border-radius: {RADIO_PILDORA}px; padding: {ESPACIADO_4}px {ESPACIADO_8}px; "
-        f"font-size: {tamano}pt;"
-    )
-
-
-def css_menu() -> str:
-    """Devuelve el QSS común para menús contextuales y de exportación."""
-    return (
-        f"QMenu {{ background-color: {SUPERFICIE}; color: {TEXTO}; "
-        f"border: 1px solid {LINEA}; border-radius: {RADIO_BOTON}px; "
-        f"font-size: {TAMANO_CUERPO}pt; padding: {ESPACIADO_4}px; }}"
-        f" QMenu::item {{ padding: {ESPACIADO_8}px {ESPACIADO_16}px; }}"
-        f" QMenu::item:selected {{ background-color: {SUPERFICIE_SELECCIONADA}; "
-        f"color: {TEXTO}; }}"
-    )
-
-
-def css_pestana_interna() -> str:
-    """Devuelve el QSS de las pestañas de subsecciones."""
-    return (
-        f"QTabBar::tab {{ padding: {ESPACIADO_8}px {ESPACIADO_16}px; "
-        f"font-size: {TAMANO_CUERPO}pt; color: {TEXTO_SECUNDARIO}; }}"
-        f" QTabBar::tab:selected {{ color: {PRIMARIO}; font-weight: bold; "
-        f"border-bottom: 3px solid {ACENTO}; }}"
-    )
-
 
 # ---------------------------------------------------------------------------
 # Generador de la hoja de estilo global (QSS)

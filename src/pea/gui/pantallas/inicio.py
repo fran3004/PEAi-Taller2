@@ -655,7 +655,7 @@ class PantallaInicio(QWidget):
             if self._modo_ambito == "institucion":
                 self._actualizar_modo_institucion(resumen_inst)
             else:
-                self._actualizar_modo_grupo(resumen_inst)
+                self._actualizar_modo_grupo()
 
         except Exception as err:
             GestorAvisos.mostrar_desde(self, f"Error cargando inicio: {err}", tipo="error", titulo="Inicio")
@@ -768,7 +768,7 @@ class PantallaInicio(QWidget):
     # Modo Grupo
     # -----------------------------------------------------------------------
 
-    def _actualizar_modo_grupo(self, resumen_global: dict[str, Any]) -> None:
+    def _actualizar_modo_grupo(self) -> None:
         if not self._codigo_grupo_seleccionado:
             return
 

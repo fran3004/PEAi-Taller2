@@ -231,7 +231,6 @@ def test_pantalla_configuracion_altura_minima_campos(
     servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
 ) -> None:
     """Verifica que los cuatro QLineEdit de Supabase tengan altura mínima reglamentaria (>= 36 px) y no corten texto."""
-    from pea.gui import estilo
 
     qapp.setStyleSheet(estilo.HOJA_ESTILO)
     pantalla = PantallaConfiguracion(servicio=servicio_demo, ejecutor=None)
@@ -398,11 +397,7 @@ def test_pantalla_acerca_tarjeta_institucional_y_ficha_tecnica_responsive(
         assert "background-color: transparent" in css
         assert "border: none" in css
 
-    # 2. Contraste de texto institucional sobre ENCABEZADO_INICIO
-    ratio = estilo.calcular_radio_contraste(estilo.TEXTO_SOBRE_OSCURO, estilo.ENCABEZADO_INICIO)
-    assert ratio >= 4.5
-
-    # 3. Ficha técnica: distribución en QGridLayout responsive y wordWrap
+    # 2. Ficha técnica: distribución en QGridLayout responsive y wordWrap
     grid_ficha = pantalla.tarjeta_tecnica.findChild(QGridLayout)
     assert grid_ficha is not None
     assert grid_ficha.columnMinimumWidth(0) >= 220

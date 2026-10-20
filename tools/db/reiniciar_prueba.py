@@ -11,7 +11,6 @@ REGLA INQUEBRANTABLE:
 from __future__ import annotations
 
 import json
-import os
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -47,7 +46,7 @@ def reiniciar_datos_prueba() -> int:
     try:
         with urlopen(req_rpc, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            print(f"[OK] Reinicio completado mediante RPC atómica segura:")
+            print("[OK] Reinicio completado mediante RPC atómica segura:")
             print(f"     Productos de prueba borrados: {data.get('productos_borrados', 0)}")
             print(f"     Investigadores de prueba borrados: {data.get('investigadores_borrados', 0)}")
             print(f"     Grupos de prueba borrados: {data.get('grupos_borrados', 0)}")
@@ -80,7 +79,7 @@ def reiniciar_datos_prueba() -> int:
         except Exception as e:
             print(f"    [FALLA] Error eliminando en '{tabla}': {e}", file=sys.stderr)
 
-    print(f"[OK] Operación de reinicio finalizada de forma segura. Cero datos de producción afectados.")
+    print("[OK] Operación de reinicio finalizada de forma segura. Cero datos de producción afectados.")
     return 0
 
 

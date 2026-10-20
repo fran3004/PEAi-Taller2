@@ -589,7 +589,7 @@ class VentanaPrincipal(QMainWindow):
         self._contenedor_pestanas = QWidget(barra)
         layout_p = QHBoxLayout(self._contenedor_pestanas)
         layout_p.setContentsMargins(0, 0, 0, 0)
-        layout_p.setSpacing(0)
+        layout_p.setSpacing(12)
         layout_p.addStretch(1)
 
         datos_pestanas = [
@@ -850,7 +850,6 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_configuracion_modulo.estado_actualizado.connect(self.actualizar_estado_global)
         self._pantalla_configuracion_modulo.datos_modificados.connect(self.actualizar_estado_global)
         self._pantalla_configuracion_modulo.solicitar_navegacion.connect(self.seleccionar_pantalla)
-        self._pantalla_conectar = self._pantalla_configuracion_modulo  # alias retrocompatible
 
         self._pantalla_acerca = PantallaAcerca(self._servicio, parent=self._apilador)
         self._pantalla_acerca.volver_solicitado.connect(lambda: self.seleccionar_pantalla(Pantalla.INICIO))

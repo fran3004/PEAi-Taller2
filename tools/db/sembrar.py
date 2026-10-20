@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -84,7 +83,7 @@ def sembrar() -> int:
 
     req = Request(f"{url}/rest/v1/grupos", data=json.dumps(grupo_payload).encode("utf-8"), headers=headers, method="POST")
     try:
-        with urlopen(req, timeout=10) as resp:
+        with urlopen(req, timeout=10):
             print("    [OK] Grupo de prueba sembrado/verificado.")
     except HTTPError as e:
         print(f"    [INFO] Inserción de grupo retornó HTTP {e.code} (posiblemente ya existe o RLS activo)", file=sys.stderr)
@@ -117,7 +116,7 @@ def sembrar() -> int:
 
     req = Request(f"{url}/rest/v1/investigadores", data=json.dumps(inv_payload).encode("utf-8"), headers=headers, method="POST")
     try:
-        with urlopen(req, timeout=10) as resp:
+        with urlopen(req, timeout=10):
             print("    [OK] Investigadores de prueba sembrados/verificados.")
     except HTTPError as e:
         print(f"    [INFO] Inserción de investigadores retornó HTTP {e.code}", file=sys.stderr)

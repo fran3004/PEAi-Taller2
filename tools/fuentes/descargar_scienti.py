@@ -70,7 +70,7 @@ def descargar_url(url: str, cache_dir: Path, alias: str | None = None) -> tuple[
                 meta = {
                     "url": url,
                     "alias": alias,
-                    "fecha_descarga": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "fecha_descarga": datetime.datetime.now(datetime.UTC).isoformat(),
                     "codigo_http": resp.status_code,
                     "encoding_cabeceras": resp.encoding,
                     "encoding_aparente": resp.apparent_encoding,

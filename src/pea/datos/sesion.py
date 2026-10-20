@@ -67,8 +67,3 @@ class Sesion:
         self._rol = "anon"
         self._expira_en = None
         self._metadatos_usuario.clear()
-
-    def simular_expiracion(self) -> None:
-        """Método de prueba para simular token expirado."""
-        if self._expira_en is not None:
-            self._expira_en = time.time() - 1.0

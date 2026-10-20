@@ -8,7 +8,6 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
-    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -34,7 +33,7 @@ from pea.gui.componentes import (
     animaciones_habilitadas,
     duracion_efectiva,
 )
-from pea.gui.componentes.animacion import VARIABLE_SIN_ANIMACIONES, animar_desvanecimiento
+from pea.gui.componentes.animacion import VARIABLE_SIN_ANIMACIONES
 from pea.servicios.vistas import FiltroAnios, ModoFiltroAnios
 
 # ===========================================================================
@@ -51,47 +50,6 @@ def test_animacion_respeta_variable_entorno(monkeypatch: Any) -> None:
     monkeypatch.setenv(VARIABLE_SIN_ANIMACIONES, "0")
     assert animaciones_habilitadas()
     assert duracion_efectiva(350) == 350
-
-
-def test_animacion_no_reemplaza_un_efecto_grafico_existente(qapp: Any, monkeypatch: Any) -> None:
-    """Una sombra existente debe permanecer intacta y cancelar el desvanecimiento."""
-    monkeypatch.delenv(VARIABLE_SIN_ANIMACIONES, raising=False)
-    widget = QWidget()
-    sombra = QGraphicsDropShadowEffect(widget)
-    widget.setGraphicsEffect(sombra)
-
-    assert animar_desvanecimiento(widget, duracion_ms=180) is None
-    assert widget.graphicsEffect() is sombra
-    assert isinstance(widget.graphicsEffect(), QGraphicsDropShadowEffect)
-    widget.deleteLater()
-
-
-def test_animacion_reutiliza_efecto_de_opacidad(qapp: Any, monkeypatch: Any) -> None:
-    """La animación reutiliza una opacidad existente en lugar de apilar efectos."""
-    monkeypatch.setenv(VARIABLE_SIN_ANIMACIONES, "1")
-    widget = QWidget()
-    opacidad = QGraphicsOpacityEffect(widget)
-    widget.setGraphicsEffect(opacidad)
-
-    assert animar_desvanecimiento(widget, inicio=0.0, fin=1.0, duracion_ms=180) is None
-    assert widget.graphicsEffect() is opacidad
-    assert opacidad.opacity() == 1.0
-    widget.deleteLater()
-
-
-def test_animacion_aplica_opacidad_solo_si_no_hay_efecto(qapp: Any, monkeypatch: Any, qtbot: Any) -> None:
-    """Los widgets sin efecto conservan la animación de opacidad prevista."""
-    monkeypatch.delenv(VARIABLE_SIN_ANIMACIONES, raising=False)
-    widget = QWidget()
-
-    animacion = animar_desvanecimiento(widget, inicio=0.0, fin=1.0, duracion_ms=30)
-
-    assert animacion is not None
-    efecto = widget.graphicsEffect()
-    assert isinstance(efecto, QGraphicsOpacityEffect)
-    qtbot.waitUntil(lambda: efecto.opacity() == 1.0, timeout=500)
-    assert efecto.opacity() == 1.0
-    widget.deleteLater()
 
 
 def test_animacion_conserva_la_sombra_del_toast(qapp: Any, monkeypatch: Any, qtbot: Any) -> None:
@@ -393,7 +351,7 @@ def test_toast_y_gestor_avisos(qapp: Any, qtbot: Any) -> None:
     toast_exito.cerrar()
     assert len(gestor._toasts) == 1
 
-    gestor.limpiar_todos()
+    toast_aviso.cerrar()
     assert len(gestor._toasts) == 0
 
     toast_temporal = gestor.mostrar_info("Cierre automático", duracion_ms=30)
@@ -419,7 +377,6 @@ def test_gestor_avisos_resuelve_el_gestor_de_la_ventana(qapp: Any, qtbot: Any) -
     assert GestorAvisos.desde_widget(pantalla) is ventana._gestor_toasts
     assert GestorAvisos.mostrar_desde(QWidget(), "Sin ventana") is None
     assert len(ventana._gestor_toasts._toasts) == len(tipos)
-    ventana._gestor_toasts.limpiar_todos()
 
 
 def test_toasts_consecutivos_se_conservan_al_interactuar_y_cambiar_pantalla(
@@ -466,4 +423,5 @@ def test_toasts_consecutivos_se_conservan_al_interactuar_y_cambiar_pantalla(
     qapp.processEvents()
     assert toast_error._timer.isActive()
 
-    gestor.limpiar_todos()
+    toast_exito.cerrar()
+    toast_error.cerrar()

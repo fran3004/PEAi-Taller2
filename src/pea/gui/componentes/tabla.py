@@ -441,7 +441,6 @@ class _VistaTablaEstilizada(QTableView):
         encabezado_h.setDefaultSectionSize(120)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._especificaciones: list[ColumnSpecification] = []
-        self._columnas_ocultas: set[int] = set()
 
         self.setStyleSheet(
             f"QTableView#vistaTablaEstilizada {{"

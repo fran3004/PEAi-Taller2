@@ -26,14 +26,10 @@ def test_lista_doble_operaciones_basicas() -> None:
     assert lista.cabeza.dato == "A"
     assert lista.cola.dato == "C"
 
-    # Inserción intermedia
-    lista.insertar_en(1, "A.5")
-    assert list(lista) == ["A", "A.5", "B", "C"]
-
     # Acceso por índice
     assert lista[0] == "A"
-    assert lista[1] == "A.5"
-    assert lista[3] == "C"
+    assert lista[1] == "B"
+    assert lista[2] == "C"
 
     # Búsqueda
     hallado = lista.buscar_dato(lambda x: x == "B")
@@ -42,13 +38,8 @@ def test_lista_doble_operaciones_basicas() -> None:
     # Eliminación por nodo conocido en O(1)
     dato_eliminado = lista.eliminar_nodo(nodo_b)
     assert dato_eliminado == "B"
-    assert list(lista) == ["A", "A.5", "C"]
-    assert len(lista) == 3
-
-    # Eliminación en índice
-    removido = lista.eliminar_en(1)
-    assert removido == "A.5"
     assert list(lista) == ["A", "C"]
+    assert len(lista) == 2
 
     # Limpiar
     lista.limpiar()
@@ -109,7 +100,7 @@ def test_pila_lifo_y_capacidad_maxima() -> None:
     pila.apilar(2)
     pila.apilar(3)
     assert len(pila) == 3
-    assert pila.ver_tope() == 3
+    assert pila.tope() == 3
 
     # Al superar la capacidad máxima (3), descarta el más antiguo (1)
     pila.apilar(4)

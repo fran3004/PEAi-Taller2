@@ -274,11 +274,4 @@ class GestorAvisos(QObject):
             toast.raise_()
             y_actual = y - espaciado
 
-    def limpiar_todos(self) -> None:
-        """Cierra todos los avisos activos."""
-        for t in list(self._toasts):
-            t.cerrar()
-        self._toasts.clear()
-
-
 __all__ = ["GestorAvisos", "Toast"]

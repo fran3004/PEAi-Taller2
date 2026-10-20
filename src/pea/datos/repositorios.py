@@ -195,13 +195,6 @@ class RepositorioProductos:
             return int(res["producto_id"])
         return 0
 
-    def crear_directo(self, producto: Producto) -> Producto:
-        datos = producto.model_dump(exclude={"id"}, exclude_none=True)
-        res = self.cliente.post("productos", datos)
-        if isinstance(res, list) and len(res) > 0:
-            return Producto.model_validate(res[0])
-        return producto
-
     def actualizar(self, codigo_identificador: str, datos: dict[str, Any]) -> Producto:
         res = self.cliente.patch("productos", datos, params={"codigo_identificador": f"eq.{codigo_identificador}"})
         if isinstance(res, list) and len(res) > 0:

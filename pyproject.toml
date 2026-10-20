@@ -23,6 +23,7 @@ dev = [
     "pytest-qt>=4.4.0",
     "ruff>=0.3.0",
     "responses>=0.25.0",
+    "vulture>=2.14",
 ]
 
 [tool.hatch.build.targets.wheel]

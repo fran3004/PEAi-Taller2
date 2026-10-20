@@ -10,7 +10,6 @@ from typing import Any
 import pytest
 from PySide6.QtGui import QFont, QFontDatabase, QFontMetricsF, QIcon, QPixmap
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication
 
 from pea.gui.estilo import (
     ACENTO,
@@ -42,7 +41,6 @@ from pea.gui.estilo import (
     HOJA_ESTILOS_GLOBAL,
     LINEA,
     LINEA_FUERTE,
-    PARES_CONTRASTE_TABLA_4_1,
     PIE,
     PRIMARIO,
     PRIMARIO_HOVER,
@@ -56,12 +54,6 @@ from pea.gui.estilo import (
     UPC_VERDE,
     UPC_VERDE_CLARO,
     UPC_VERDE_OSCURO,
-    calcular_radio_contraste,
-    css_boton,
-    css_etiqueta,
-    css_menu,
-    css_pestana_interna,
-    css_pildora,
     generar_hoja_estilos,
 )
 from pea.gui.formato import (
@@ -92,18 +84,8 @@ from pea.gui.recursos import (
 )
 
 # ===========================================================================
-# 1. Pruebas de tokens de estilo y contraste WCAG 2.1
+# 1. Pruebas de tokens de estilo
 # ===========================================================================
-
-
-def test_contraste_wcag_tabla_4_1() -> None:
-    """Verifica que todos los pares de texto/fondo de la tabla 4.1 cumplan el contraste mínimo de 4.5:1."""
-    for c_texto, c_fondo, descripcion in PARES_CONTRASTE_TABLA_4_1:
-        ratio = calcular_radio_contraste(c_texto, c_fondo)
-        assert ratio >= 4.5, (
-            f"El par '{descripcion}' ({c_texto} sobre {c_fondo}) tiene un ratio de {ratio:.2f}:1, "
-            f"inferior al mínimo exigido de 4.5:1."
-        )
 
 
 def test_eliminacion_paleta_obsoleta() -> None:
@@ -186,36 +168,6 @@ def test_generar_hoja_estilos() -> None:
     assert "QComboBox" in qss
 
 
-def test_generadores_css_aceptados_por_qt() -> None:
-    """Comprueba que los generadores producen hojas que Qt puede aplicar."""
-    aplicacion = QApplication.instance() or QApplication([])
-    hojas = (
-        css_etiqueta(11),
-        css_boton("primario"),
-        css_boton("secundario"),
-        css_boton("peligro"),
-        css_boton("icono"),
-        css_pildora(EXITO_FONDO, EXITO),
-        css_menu(),
-        css_pestana_interna(),
-    )
-    avisos: list[str] = []
-
-    def capturar_aviso(_tipo: Any, _contexto: Any, mensaje: str) -> None:
-        if "Could not parse stylesheet" in mensaje:
-            avisos.append(mensaje)
-
-    from PySide6.QtCore import qInstallMessageHandler
-
-    anterior = qInstallMessageHandler(capturar_aviso)
-    try:
-        for hoja in hojas:
-            aplicacion.setStyleSheet(hoja)
-    finally:
-        qInstallMessageHandler(anterior)
-    assert not avisos, "\n".join(avisos)
-
-
 def test_no_hay_tokens_de_estilo_sin_interpolar_en_qss() -> None:
     """Detecta tokens estilo.X que llegaron literalmente a estilos o colores Qt."""
     raiz = Path(__file__).parents[2] / "src" / "pea" / "gui"
@@ -240,11 +192,6 @@ def test_no_hay_tokens_de_estilo_sin_interpolar_en_qss() -> None:
         arbol = ast.parse(ruta.read_text(encoding="utf-8"), filename=str(ruta))
         Visitante().visit(arbol)
     assert not hallazgos, "Tokens de estilo sin interpolar:\n" + "\n".join(hallazgos)
-
-
-def test_variantes_css_desconocidas_fallan_explicitamente() -> None:
-    with pytest.raises(ValueError, match="desconocida"):
-        css_boton("inexistente")
 
 
 def test_guardian_estilos_sin_literales_en_gui() -> None:

@@ -76,13 +76,14 @@ def test_compensacion_persistencia_fallida_producto() -> None:
     assert catalogo.buscar_producto("P-FAIL-01") is None
 
 
-def test_sesion_expirada_bloquea_operacion() -> None:
+def test_sesion_expirada_bloquea_operacion(monkeypatch: pytest.MonkeyPatch) -> None:
+    instante_actual = [1_000.0]
+    monkeypatch.setattr("pea.datos.sesion.time.time", lambda: instante_actual[0])
     sesion = Sesion()
     sesion.iniciar_sesion("token-jwt-prueba", "usuario@upc.edu.co", tiempo_expiracion_segundos=3600.0)
     assert sesion.esta_autenticado()
 
-    # Simular que el tiempo expiró
-    sesion.simular_expiracion()
+    instante_actual[0] += 3601.0
     assert sesion.esta_expirada()
 
     cliente = ClienteHTTPSupabase("https://ejemplo.supabase.co", "anon-key")

@@ -369,28 +369,10 @@ class FichaLateral(QFrame):
                 p = Pildora(texto=texto_pildora, variante=variante, parent=self._contenedor_pildoras)
                 self._layout_pildoras.addWidget(p)
 
-    def limpiar_kpis(self) -> None:
-        """Limpia los widgets de la cuadrícula KPI."""
-        while self._layout_kpi.count() > 0:
-            item = self._layout_kpi.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-        self._posiciones_kpi.clear()
-        self._columnas_kpi = 0
-
     def agregar_kpi(self, widget: QWidget, fila: int, columna: int) -> None:
         """Agrega un widget a la cuadrícula KPI."""
         self._posiciones_kpi.append((widget, fila, columna))
         self._ajustar_columnas_kpi(self._scroll.viewport().width(), forzar=True)
-
-    def limpiar_contenido(self) -> None:
-        """Limpia los widgets de la zona de contenido libre."""
-        while self._layout_contenido.count() > 0:
-            item = self._layout_contenido.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
 
     def agregar_contenido(self, widget: QWidget) -> None:
         """Inserta un widget en la zona de contenido libre."""
