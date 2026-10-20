@@ -218,6 +218,20 @@ def test_pildora_variantes_y_colores(qapp: Any) -> None:
     assert p_gnc.color_fondo == "#1F7A9E"
 
 
+def test_pildora_reserva_ancho_y_tooltip_para_el_texto_completo(qapp: Any) -> None:
+    from PySide6.QtGui import QFontMetrics
+
+    pildora = Pildora("No avalado")
+    metricas = QFontMetrics(pildora.findChild(QLabel).font())
+    margenes = pildora.layout().contentsMargins()
+
+    assert pildora.minimumWidth() >= (
+        metricas.horizontalAdvance("No avalado") + margenes.left() + margenes.right()
+    )
+    assert pildora.toolTip() == "No avalado"
+    assert pildora.findChild(QLabel).toolTip() == "No avalado"
+
+
 # ===========================================================================
 # 5. Pruebas de Avatar
 # ===========================================================================

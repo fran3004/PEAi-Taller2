@@ -180,7 +180,7 @@ class BotonPestanaSuperior(QPushButton):
     def sizeHint(self) -> QSize:
         """Devuelve el tamaño preferido del botón según el modo activo."""
         if self._modo_compacto:
-            return QSize(54, 64)
+            return QSize(44, 64)
         return QSize(self._calcular_ancho_completo(), 64)
 
     def minimumSizeHint(self) -> QSize:
@@ -189,10 +189,12 @@ class BotonPestanaSuperior(QPushButton):
 
     def establecer_modo_compacto(self, compacto: bool) -> None:
         """Alterna entre mostrar solo ícono con tooltip o ícono con etiqueta completa."""
+        if self._modo_compacto == compacto:
+            return
         self._modo_compacto = compacto
         if compacto:
             self.setToolTip(self._texto)
-            self.setFixedWidth(54)
+            self.setFixedWidth(44)
         else:
             self.setToolTip("")
             self.setMaximumWidth(16777215)
@@ -228,7 +230,7 @@ class BotonPestanaSuperior(QPushButton):
             )
 
         # 2. Anillo de foco accesible
-        if self.hasFocus():
+        if self.hasFocus() and es_activo:
             pen_foco = QPen(QColor(ACENTO), 2)
             painter.setPen(pen_foco)
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -525,8 +527,8 @@ class VentanaPrincipal(QMainWindow):
         barra.paintEvent = pintar_barra  # type: ignore[assignment]
 
         layout = QHBoxLayout(barra)
-        layout.setContentsMargins(20, 8, 20, 8)
-        layout.setSpacing(14)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(8)
 
         # --- Zona Izquierda: Marca y Eslogan ---
         self._zona_marca = QWidget(barra)
@@ -549,6 +551,7 @@ class VentanaPrincipal(QMainWindow):
         fila_marca = QHBoxLayout()
         fila_marca.setContentsMargins(0, 0, 0, 0)
         fila_marca.setSpacing(8)
+        self._fila_marca = fila_marca
 
         lbl_marca = QLabel("PEA-i", self._zona_marca)
         lbl_marca.setStyleSheet(f"font-size: {estilo.TAMANO_TITULO_PANTALLA}pt; font-weight: 800; color: {estilo.SUPERFICIE};")
@@ -561,6 +564,7 @@ class VentanaPrincipal(QMainWindow):
         fila_marca.addStretch()
 
         caja_textos_marca.addLayout(fila_marca)
+        self._caja_textos_marca = caja_textos_marca
 
         self._lbl_eslogan = QLabel(f"{ESLOGAN_LINEA_1}\n{ESLOGAN_LINEA_2}", self._zona_marca)
         self._lbl_eslogan.setStyleSheet(
@@ -1255,13 +1259,27 @@ class VentanaPrincipal(QMainWindow):
         alto = self.height()
 
         # Barra superior según ancho
-        modo_solo_icono = ancho < 1120
-        ocultar_eslogan = ancho < 1240
+        modo_solo_icono = ancho < 1600
+        ocultar_eslogan = ancho < 2000
 
         self._lbl_eslogan.setVisible(not ocultar_eslogan)
+        self._ajustar_marca_compacta(ancho < 2000)
 
-        for btn in self._botones_pestanas:
-            btn.establecer_modo_compacto(modo_solo_icono)
+        if getattr(self, "_modo_pestanas_compacto_actual", None) != modo_solo_icono:
+            for btn in self._botones_pestanas:
+                btn.establecer_modo_compacto(modo_solo_icono)
+            layout_pestanas = self._contenedor_pestanas.layout()
+            if layout_pestanas is not None:
+                ancho_pestanas = sum(btn.minimumWidth() for btn in self._botones_pestanas)
+                ancho_pestanas += max(0, layout_pestanas.spacing()) * (len(self._botones_pestanas) - 1)
+                self._contenedor_pestanas.setMinimumWidth(ancho_pestanas)
+                layout_pestanas.invalidate()
+                layout_pestanas.activate()
+            layout_barra = self._barra_superior.layout()
+            if layout_barra is not None:
+                layout_barra.invalidate()
+                layout_barra.activate()
+            self._modo_pestanas_compacto_actual = modo_solo_icono
 
         # Pie institucional responsivo (conserva texto institucional y estado vivo)
         modo_pie_compacto = alto < 760 or ancho < 1240
@@ -1292,6 +1310,20 @@ class VentanaPrincipal(QMainWindow):
         )
         if self._lbl_pie_l1.text() != texto_l1:
             self._lbl_pie_l1.setText(texto_l1)
+
+    def _ajustar_marca_compacta(self, compacto: bool) -> None:
+        """Ubica la insignia debajo de la marca cuando el ancho no admite una sola fila."""
+        if getattr(self, "_marca_compacta_actual", None) == compacto:
+            return
+        if compacto:
+            self._fila_marca.removeWidget(self._pildora_demo)
+            self._caja_textos_marca.addWidget(self._pildora_demo)
+            self._pildora_demo.establecer_margen_horizontal(8)
+        else:
+            self._caja_textos_marca.removeWidget(self._pildora_demo)
+            self._fila_marca.insertWidget(1, self._pildora_demo)
+            self._pildora_demo.establecer_margen_horizontal(10)
+        self._marca_compacta_actual = compacto
 
 
 # ---------------------------------------------------------------------------

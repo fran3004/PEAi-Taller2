@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QStandardItemModel
+from PySide6.QtCore import QEvent, QPoint, Qt
+from PySide6.QtGui import QFontMetrics, QHelpEvent, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QLabel
 
 from pea.gui.componentes.ficha_lateral import FichaLateral
@@ -79,6 +79,33 @@ def test_tabla_estilizada_y_delegados(qapp: QApplication, qtbot: Any) -> None:
         qtbot.mouseClick(tabla_widget.vista.viewport(), Qt.MouseButton.LeftButton, pos=tabla_widget.vista.visualRect(idx_enlace).center())
 
     assert len(bloque_copia.args) == 1
+
+
+def test_encabezado_y_contenido_definen_ancho_minimo_con_tooltip(
+    qapp: QApplication, qtbot: Any
+) -> None:
+    tabla_widget = TablaEstilizada()
+    qtbot.addWidget(tabla_widget)
+    tabla_widget.resize(420, 240)
+    tabla_widget.show()
+    tabla_widget.establecer_modelo(
+        ModeloTabla(
+            TablaDatos(
+                columnas=("Código CvLAC",),
+                filas=(("PRUEBA-CODIGO-LARGO-123456",),),
+                claves=("PRUEBA-1",),
+            )
+        )
+    )
+    tabla_widget.configurar_columnas([ColumnSpecification("fijo", 40, 1)])
+    qapp.processEvents()
+
+    encabezado = tabla_widget.vista.horizontalHeader()
+    ancho_encabezado = QFontMetrics(encabezado.font()).horizontalAdvance("Código CvLAC") + 24
+    assert tabla_widget.vista.columnWidth(0) >= ancho_encabezado
+
+    evento = QHelpEvent(QEvent.Type.ToolTip, QPoint(4, 4), QPoint(4, 4))
+    assert encabezado.helpEvent(evento)
 
 
 def test_delegado_numero_distingue_anios_de_cantidades(qapp: QApplication) -> None:

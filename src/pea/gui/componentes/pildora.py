@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 
 from pea.gui.estilo import (
@@ -91,13 +92,13 @@ class Pildora(QFrame):
         self.setObjectName("pildora")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 3, 10, 3)
-        layout.setSpacing(0)
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(10, 3, 10, 3)
+        self._layout.setSpacing(0)
 
         self._lbl_texto = QLabel(texto, self)
         self._lbl_texto.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._lbl_texto)
+        self._layout.addWidget(self._lbl_texto)
 
         self._fondo = FICHA
         self._color_texto = TEXTO
@@ -122,6 +123,8 @@ class Pildora(QFrame):
     def establecer_texto(self, texto: str, variante: str | None = None) -> None:
         """Actualiza el texto y aplica los colores correspondientes a la variante o dato."""
         self._lbl_texto.setText(texto)
+        self._lbl_texto.setToolTip(texto)
+        self.setToolTip(texto)
         clave = variante if variante is not None else texto
         fondo, color_texto = resolver_estilo_pildora(clave)
         self.establecer_colores(fondo, color_texto)
@@ -138,4 +141,19 @@ class Pildora(QFrame):
             f"QFrame#pildora {{ background-color: {fondo}; border-radius: {RADIO_PILDORA}px; border: none; }} "
             f"QLabel {{ color: {color_texto}; font-size: {TAMANO_AUXILIAR}pt; font-weight: 600; background: transparent; }}"
         )
+        self.ensurePolished()
+        metricas = QFontMetrics(self._lbl_texto.font())
+        margenes = self._layout.contentsMargins()
+        ancho_texto = metricas.horizontalAdvance(self._lbl_texto.text())
+        self._lbl_texto.setMinimumWidth(ancho_texto)
+        self.setMinimumWidth(ancho_texto + margenes.left() + margenes.right())
         self.setAccessibleName(f"Píldora {self._lbl_texto.text()}")
+
+    def establecer_margen_horizontal(self, margen: int) -> None:
+        """Ajusta el margen sin sacrificar el espacio medido para el texto."""
+        self._layout.setContentsMargins(margen, 3, margen, 3)
+        metricas = QFontMetrics(self._lbl_texto.font())
+        self.setMinimumWidth(
+            metricas.horizontalAdvance(self._lbl_texto.text()) + self._layout.contentsMargins().left()
+            + self._layout.contentsMargins().right()
+        )

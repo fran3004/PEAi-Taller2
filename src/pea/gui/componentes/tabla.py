@@ -32,6 +32,7 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QFontMetrics,
     QHelpEvent,
     QLinearGradient,
     QMouseEvent,
@@ -41,6 +42,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QHeaderView,
     QLabel,
     QStyle,
     QStyledItemDelegate,
@@ -385,6 +387,30 @@ class NumeroDelegate(QStyledItemDelegate):
         return super().helpEvent(event, view, option, index)
 
 
+class _EncabezadoTabla(QHeaderView):
+    """Muestra el texto completo del encabezado al pasar el cursor."""
+
+    def helpEvent(self, event: QHelpEvent) -> bool:
+        seccion = self.logicalIndexAt(event.pos())
+        modelo = self.model()
+        if modelo is not None and seccion >= 0:
+            texto = modelo.headerData(
+                seccion,
+                self.orientation(),
+                Qt.ItemDataRole.ToolTipRole,
+            )
+            if not texto:
+                texto = modelo.headerData(
+                    seccion,
+                    self.orientation(),
+                    Qt.ItemDataRole.DisplayRole,
+                )
+            if texto:
+                QToolTip.showText(event.globalPos(), str(texto), self)
+                return True
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Vista y Contenedor Principal
 # ---------------------------------------------------------------------------
@@ -406,6 +432,7 @@ class _VistaTablaEstilizada(QTableView):
         self.verticalHeader().setVisible(False)
         self.verticalHeader().setDefaultSectionSize(48)
 
+        self.setHorizontalHeader(_EncabezadoTabla(Qt.Orientation.Horizontal, self))
         encabezado_h = self.horizontalHeader()
         encabezado_h.setStretchLastSection(False)
         encabezado_h.setHighlightSections(False)
@@ -465,27 +492,69 @@ class _VistaTablaEstilizada(QTableView):
         if len(specs) < cantidad:
             specs += [ColumnSpecification("contenido", 120, 3)] * (cantidad - len(specs))
         disponibles = max(0, self.viewport().width())
+        minimos = [self._ancho_minimo_columna(indice, spec) for indice, spec in enumerate(specs)]
         visibles = set(range(cantidad))
-        while sum(specs[i].ancho_minimo for i in visibles) > disponibles:
+        while sum(minimos[i] for i in visibles) > disponibles:
             candidatos = [i for i in visibles if specs[i].prioridad > 1]
+            if not candidatos:
+                candidatos = list(visibles) if len(visibles) > 1 else []
             if not candidatos:
                 break
             visibles.remove(max(candidatos, key=lambda i: (specs[i].prioridad, i)))
+
         for indice in range(cantidad):
-            visible = indice in visibles
-            self.setColumnHidden(indice, not visible)
-            if visible:
-                spec = specs[indice]
-                modo = {
-                    "estirar": self.horizontalHeader().ResizeMode.Stretch,
-                    "contenido": self.horizontalHeader().ResizeMode.ResizeToContents,
-                    "fijo": self.horizontalHeader().ResizeMode.Fixed,
-                }[spec.modo]
-                self.horizontalHeader().setSectionResizeMode(indice, modo)
-                if spec.modo == "fijo":
-                    self.setColumnWidth(indice, spec.ancho_minimo)
-                elif spec.modo != "estirar":
-                    self.setColumnWidth(indice, max(spec.ancho_minimo, self.columnWidth(indice)))
+            self.setColumnHidden(indice, indice not in visibles)
+
+        ancho_base = sum(minimos[indice] for indice in visibles)
+        estirables = [indice for indice in visibles if specs[indice].modo == "estirar"]
+        excedente = max(0, disponibles - ancho_base)
+        incremento, resto = divmod(excedente, len(estirables)) if estirables else (0, 0)
+        for indice in range(cantidad):
+            if indice not in visibles:
+                continue
+            self.horizontalHeader().setSectionResizeMode(indice, QHeaderView.ResizeMode.Fixed)
+            ancho = minimos[indice]
+            if indice in estirables:
+                ancho += incremento
+                if resto:
+                    ancho += 1
+                    resto -= 1
+            self.setColumnWidth(indice, ancho)
+
+    def _ancho_minimo_columna(self, indice: int, spec: ColumnSpecification) -> int:
+        modelo = self.model()
+        if modelo is None:
+            return spec.ancho_minimo
+
+        encabezado = str(
+            modelo.headerData(
+                indice,
+                Qt.Orientation.Horizontal,
+                Qt.ItemDataRole.DisplayRole,
+            )
+            or ""
+        )
+        fuente_encabezado = QFont(self.horizontalHeader().font())
+        fuente_encabezado.setPointSize(estilo.TAMANO_AUXILIAR)
+        fuente_encabezado.setBold(True)
+        ancho_encabezado = QFontMetrics(fuente_encabezado).horizontalAdvance(encabezado) + 24
+
+        fuente_contenido = QFont(self.font())
+        fuente_contenido.setPointSize(estilo.TAMANO_CUERPO)
+        metricas_contenido = QFontMetrics(fuente_contenido)
+        filas = modelo.rowCount()
+        muestras = sorted({0, min(filas - 1, 4), min(filas - 1, 9)}) if filas else []
+        ancho_contenido = 0
+        for fila in muestras:
+            valor = modelo.index(fila, indice).data(Qt.ItemDataRole.DisplayRole)
+            if valor is None:
+                continue
+            ancho_contenido = max(
+                ancho_contenido,
+                metricas_contenido.horizontalAdvance(str(valor)) + 20,
+            )
+
+        return max(spec.ancho_minimo, ancho_encabezado, min(ancho_contenido, 320))
 
 
 @dataclass(frozen=True)

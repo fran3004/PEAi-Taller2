@@ -22,6 +22,7 @@ from typing import Any
 
 import pytest
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QApplication, QMessageBox, QScrollArea
 
 from pea.gui.componentes.filtro_anios import texto_resumen_filtro
@@ -132,6 +133,18 @@ def test_navegacion_entre_todas_las_pantallas(ventana: VentanaPrincipal) -> None
             # "Acerca de" (índice 7) no deja ninguna pestaña superior seleccionada
             for b in ventana._botones_pestanas:
                 assert not b.isChecked()
+
+
+def test_foco_de_pestana_inactiva_no_se_dibuja(ventana: VentanaPrincipal) -> None:
+    """La pestaña que conserva el foco no resalta si otra pantalla está activa."""
+    boton_inicio = ventana._botones_pestanas[0]
+    boton_inicio.setFocus()
+    ventana.seleccionar_pantalla(Pantalla.INVESTIGADORES)
+    QApplication.processEvents()
+
+    assert boton_inicio.hasFocus()
+    assert not boton_inicio.isChecked()
+    assert ventana._botones_pestanas[1].isChecked()
 
 
 def test_navegacion_cruzada_entre_pantallas(ventana: VentanaPrincipal) -> None:
@@ -395,17 +408,17 @@ def test_responsividad_adaptativa_ventana(ventana: VentanaPrincipal) -> None:
     # 1. Tamaño amplio (1360x820)
     ventana.resize(1360, 820)
     QApplication.processEvents()
-    assert ventana._lbl_eslogan.isVisible()
-    assert not ventana._botones_pestanas[0]._modo_compacto
+    assert not ventana._lbl_eslogan.isVisible()
+    assert ventana._botones_pestanas[0]._modo_compacto
     assert ventana._pie.height() == 72
     assert ventana._caja_texto_pie.isVisible()
 
-    # 2. Ancho intermedio (< 1240)
+    # 2. Ancho intermedio (< 1600)
     ventana.resize(1200, 820)
     QApplication.processEvents()
     assert not ventana._lbl_eslogan.isVisible()
 
-    # 3. Ancho estrecho (< 1120): pestañas en modo compacto
+    # 3. Ancho estrecho: pie compacto y pestañas compactas
     ventana.resize(1100, 700)
     QApplication.processEvents()
     assert not ventana._lbl_eslogan.isVisible()
@@ -525,14 +538,16 @@ def test_bloque_superior_derecho_contraste_y_estilos(ventana: VentanaPrincipal) 
         QApplication.processEvents()
         assert btn_cerrar.isVisible()
         assert btn_acerca.isVisible()
-        assert btn_cerrar.width() >= 80
+        assert btn_cerrar.width() >= QFontMetrics(btn_cerrar.font()).horizontalAdvance(btn_cerrar.text())
         assert btn_cerrar.height() >= 24
-        assert btn_acerca.width() >= 60
+        assert btn_acerca.width() >= QFontMetrics(btn_acerca.font()).horizontalAdvance(btn_acerca.text())
         assert btn_acerca.height() >= 18
+        assert ventana._pildora_demo.isVisible()
+        assert ventana._pildora_demo.width() >= ventana._pildora_demo.minimumWidth()
 
 
 def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> None:
-    """Verifica el cálculo de ancho real de las pestañas superiores con QFontMetrics y modo compacto."""
+    """Verifica el texto completo o el tooltip según el espacio disponible."""
     from PySide6.QtGui import QFont, QFontMetrics
 
     from pea.gui import estilo
@@ -542,45 +557,24 @@ def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> N
     fuente.setBold(True)
     fm = QFontMetrics(fuente)
 
-    # 1. En resoluciones estándar (1366x768 y 1920x1080): texto completo sin truncamiento
-    for ancho, alto in [(1366, 768), (1920, 1080)]:
+    # 1. En 1920 px se muestran etiquetas completas con espacio medido.
+    ventana.resize(1920, 1080)
+    QApplication.processEvents()
+    for btn in ventana._botones_pestanas:
+        assert not btn._modo_compacto
+        assert btn.toolTip() == ""
+        assert btn.width() >= fm.horizontalAdvance(btn._texto) + 20
+
+    # 2. A 1100 y 1366 px las etiquetas pasan a tooltips para evitar desbordes.
+    for ancho, alto in [(1100, 700), (1366, 768)]:
         ventana.resize(ancho, alto)
         QApplication.processEvents()
-
         for btn in ventana._botones_pestanas:
-            assert not btn._modo_compacto
-            assert btn.toolTip() == ""
-            # No debe estar restringido por el tope rígido obsoleto de 130 px
-            assert btn.maximumWidth() > 130
+            assert btn._modo_compacto
+            assert btn.width() == 44
+            assert btn.toolTip() == btn._texto
 
-            # El ancho del botón debe ser suficiente para el texto completo con margen
-            ancho_esperado_texto = fm.horizontalAdvance(btn._texto)
-            assert btn.width() >= ancho_esperado_texto + 20
-            assert btn.minimumWidth() >= ancho_esperado_texto + 20
-
-        # Verificaciones específicas de las pestañas que antes se truncaban
-        btn_inv = ventana._botones_pestanas[1]
-        assert btn_inv._texto == "Investigadores"
-        assert btn_inv.width() >= 110
-
-        btn_red = ventana._botones_pestanas[4]
-        assert btn_red._texto == "Análisis de redes"
-        assert btn_red.width() >= 128
-
-        btn_cfg = ventana._botones_pestanas[6]
-        assert btn_cfg._texto == "Configuración"
-        assert btn_cfg.width() >= 110
-
-    # 2. En resolución compacta (1100x700): pestañas en modo solo ícono con tooltip
-    ventana.resize(1100, 700)
-    QApplication.processEvents()
-
-    for btn in ventana._botones_pestanas:
-        assert btn._modo_compacto
-        assert btn.width() == 54
-        assert btn.toolTip() == btn._texto
-
-    # 3. SizeHints dinámicos
+    # 3. SizeHints dinámicos.
     btn_ejemplo = ventana._botones_pestanas[4]
     btn_ejemplo.establecer_modo_compacto(False)
     hint_normal = btn_ejemplo.sizeHint()
@@ -589,7 +583,7 @@ def test_responsividad_botones_pestanas_superior(ventana: VentanaPrincipal) -> N
 
     btn_ejemplo.establecer_modo_compacto(True)
     hint_compacto = btn_ejemplo.sizeHint()
-    assert hint_compacto.width() == 54
+    assert hint_compacto.width() == 44
     assert hint_compacto.height() == 64
 
 
