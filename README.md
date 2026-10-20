@@ -68,9 +68,23 @@ Para ejecutar la suite integral de verificación (Bóveda Obsidian, Pruebas Pyth
 powershell -ExecutionPolicy Bypass -File .\scripts\verificar.ps1
 ```
 
-### Ejecutables
-- **Python CLI**: `python -m pea.cli --version`
-- **Python GUI**: `python -m pea.gui`
+### PEA-i Python
+Con el entorno virtual activado, la interfaz gráfica se inicia con:
+```powershell
+python -m pea.gui
+```
+
+Comandos de consola:
+```powershell
+python -m pea.cli --version
+python -m pea.cli resumen
+python -m pea.cli importar-url --url "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=<codigo>" --privado
+python -m pea.cli importar-url --archivo-grupos datos/fuentes/grupos_upc.txt --privado
+```
+
+Para la importación por lote, crea localmente `datos/fuentes/grupos_upc.txt` con un código GrupLAC autorizado por línea. Se omiten líneas vacías y comentarios que comiencen con `#`; los códigos repetidos se procesan una sola vez. No se incluyen códigos de grupos en el repositorio. `--privado` guarda las transcripciones completas en la carpeta privada de salida; si se van a compartir archivos, añade `--anonimizar`. La opción `--privado` no anonimiza por sí sola.
+
+### PEA-i C++
 - **C++ CLI**: `.\cpp\build\pea-cpp.exe --version`
 - **C++ GUI**: `.\cpp\build\pea-cpp.exe`
 

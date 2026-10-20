@@ -2,7 +2,7 @@
 tipo: nota-de-diseno
 estado: revisado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-20
 relacionado:
   - "[[_Indice]]"
   - "[[Arquitectura]]"
@@ -69,6 +69,10 @@ El scraping web está sujeto a las reglas estrictas de [[ADR-0010-Limites-y-resp
    - Si la caché es válida (vigencia configurable, por defecto 24 horas), no se reitera la petición de red.
 6. **Resiliencia ante Fallos**:
    - Si Minciencias cambia su estructura HTML o el servicio está fuera de línea, la aplicación no colapsa: atrapa el error, informa al usuario con un mensaje claro y propone como alternativa la carga vía archivo CSV.
+
+### 2.1. Importación por lote de grupos
+
+La CLI acepta `importar-url --archivo-grupos datos/fuentes/grupos_upc.txt`. El archivo UTF-8 contiene un código GrupLAC por línea; se omiten líneas vacías y comentarios iniciados con `#`, y se descartan duplicados. Cada código se valida como una secuencia de dígitos antes de construir la URL oficial de GrupLAC. Las tareas se encolan y procesan secuencialmente con una única instancia de `ServicioIngesta` y `ExtractorURL`, por lo que se conservan la pausa mínima entre solicitudes, los reintentos, la caché y la validación de host y HTTPS descritos arriba. Los resultados de cada grupo se guardan en su propio subdirectorio. No se incluyen códigos de grupos en el repositorio; deben proceder de una fuente autorizada.
 
 ## 3. Vía B: Importación por Archivos Tabulares (CSV)
 

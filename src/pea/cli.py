@@ -75,8 +75,17 @@ def crear_parser() -> argparse.ArgumentParser:
 
 
     # Comando importar-url
-    parser_url = subparsers.add_parser("importar-url", help="Extrae e ingesta datos desde portales SCIENTI (GrupLAC o CvLAC)")
-    parser_url.add_argument("--url", "-u", required=True, help="URL HTTPS de GrupLAC o CvLAC")
+    parser_url = subparsers.add_parser(
+        "importar-url",
+        help="Extrae e ingesta datos desde portales SCIENTI (GrupLAC o CvLAC)",
+    )
+    origen_url = parser_url.add_mutually_exclusive_group(required=True)
+    origen_url.add_argument("--url", "-u", help="URL HTTPS de GrupLAC o CvLAC")
+    origen_url.add_argument(
+        "--archivo-grupos",
+        metavar="ARCHIVO",
+        help="Archivo UTF-8 con un código GrupLAC por línea para importar varios grupos",
+    )
     parser_url.add_argument("--persistir", "-p", action="store_true", help="Persiste las entidades en la base de datos remota")
     parser_url.add_argument("--anonimizar", action="store_true", help="Anonimiza correos y nombres personales en notas públicas")
     parser_url.add_argument("--privado", action="store_true", help="Guarda la transcripción en carpeta privada")
@@ -221,6 +230,91 @@ def comando_importar_url(
         err_msg = informe.mensaje if informe else "Fallo desconocido"
         print(f"Error en la extracción web: {err_msg}", file=sys.stderr)
         return 1
+
+
+def _leer_codigos_grupos(archivo: Path) -> list[str]:
+    """Lee códigos GrupLAC de un archivo, omitiendo líneas vacías y comentarios."""
+    lineas = archivo.read_text(encoding="utf-8-sig").splitlines()
+    codigos: list[str] = []
+    vistos: set[str] = set()
+    for numero_linea, linea in enumerate(lineas, start=1):
+        codigo = linea.strip()
+        if not codigo or codigo.startswith("#"):
+            continue
+        if not codigo.isascii() or not codigo.isdigit():
+            raise ValueError(
+                f"Código GrupLAC inválido en la línea {numero_linea}: use solo dígitos."
+            )
+        if codigo not in vistos:
+            codigos.append(codigo)
+            vistos.add(codigo)
+    if not codigos:
+        raise ValueError(f"El archivo {archivo} no contiene códigos GrupLAC.")
+    return codigos
+
+
+def _url_gruplac(codigo: str) -> str:
+    """Construye la URL oficial GrupLAC para un código validado."""
+    return (
+        "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/"
+        f"visualizagr.jsp?nro={codigo}"
+    )
+
+
+def comando_importar_url_lote(
+    archivo_str: str,
+    persistir: bool = False,
+    anonimizar: bool = False,
+    es_privado: bool = False,
+    salida_str: str = "datos/fuentes/extraccion",
+) -> int:
+    """Importa secuencialmente los GrupLAC enumerados en un archivo local."""
+    archivo = Path(archivo_str)
+    try:
+        codigos = _leer_codigos_grupos(archivo)
+    except (OSError, UnicodeError, ValueError) as err:
+        print(f"Error al leer códigos GrupLAC: {err}", file=sys.stderr)
+        return 1
+
+    cliente = _obtener_cliente_desde_entorno() if persistir else None
+    catalogo = CatalogoInvestigacion(cliente=cliente)
+    servicio = ServicioIngesta(catalogo)
+
+    for codigo in codigos:
+        servicio.encolar_url(
+            url=_url_gruplac(codigo),
+            persistir=persistir,
+            anonimizar=anonimizar,
+            es_privado=es_privado,
+            salida_dir=Path(salida_str) / f"GrupLAC-{codigo}",
+        )
+
+    informes = servicio.procesar_todas()
+    errores = 0
+    for codigo, informe in zip(codigos, informes, strict=False):
+        if not informe.exito:
+            errores += 1
+            print(
+                f"Error al importar GrupLAC {codigo}: {informe.mensaje}",
+                file=sys.stderr,
+            )
+            continue
+        print(
+            f"GrupLAC {codigo}: {informe.grupos_procesados} grupo(s), "
+            f"{informe.investigadores_procesados} investigador(es), "
+            f"{informe.productos_procesados} producto(s)."
+        )
+        for tipo, ruta in informe.archivos_generados.items():
+            print(f" - {tipo}: {ruta}")
+
+    if len(informes) != len(codigos):
+        print(
+            f"Error: se recibieron {len(informes)} resultados para "
+            f"{len(codigos)} códigos.",
+            file=sys.stderr,
+        )
+        return 1
+    return 1 if errores else 0
 
 
 def comando_importar_pdf(archivo_str: str, salida_str: str = "datos/fuentes/pdf") -> int:
@@ -450,6 +544,14 @@ def main(argv: list[str] | None = None) -> int:
         return comando_resumen(salida_json=args.json)
 
     elif args.comando == "importar-url":
+        if args.archivo_grupos:
+            return comando_importar_url_lote(
+                archivo_str=args.archivo_grupos,
+                persistir=args.persistir,
+                anonimizar=args.anonimizar,
+                es_privado=args.privado,
+                salida_str=args.salida,
+            )
         return comando_importar_url(
             url=args.url,
             persistir=args.persistir,
