@@ -113,6 +113,7 @@ add_executable(pruebas_cpp
     tests/test_filtro_estadisticas.cpp
     tests/test_serializador_csv.cpp
     tests/test_cli_exportacion.cpp
+    tests/test_vistas_paridad.cpp
     tests/test_trabajador_periodico.cpp
 )
 

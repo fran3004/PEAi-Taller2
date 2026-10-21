@@ -62,9 +62,16 @@ public:
 
     [[nodiscard]] QMap<QString, double> porcentajesPorValidacion(const estructuras::Hipercubo5D* cubo = nullptr) const;
 
-    [[nodiscard]] QJsonObject obtenerVistaInstitucional(std::optional<int> ventanaAnios = std::nullopt, bool modelo2024 = false) const;
+    [[nodiscard]] QJsonObject obtenerVistaInstitucional(
+        std::optional<int> ventanaAnios = std::nullopt,
+        bool modelo2024 = false,
+        const QSet<QString>& codigosInvestigadores = {}) const;
 
-    [[nodiscard]] QJsonObject obtenerVistaGrupo(const QString& idGrupo, std::optional<int> ventanaAnios = std::nullopt, bool modelo2024 = false) const;
+    [[nodiscard]] QJsonObject obtenerVistaGrupo(
+        const QString& idGrupo,
+        std::optional<int> ventanaAnios = std::nullopt,
+        bool modelo2024 = false,
+        const QSet<QString>& codigosInvestigadores = {}) const;
 
     [[nodiscard]] QJsonObject obtenerVistaInvestigador(const QString& idInvestigador, std::optional<int> ventanaAnios = std::nullopt, bool modelo2024 = false) const;
 

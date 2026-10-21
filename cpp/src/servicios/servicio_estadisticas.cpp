@@ -268,7 +268,10 @@ QMap<QString, double> ServicioEstadisticas::porcentajesPorValidacion(const estru
     return resultado;
 }
 
-QJsonObject ServicioEstadisticas::obtenerVistaInstitucional(std::optional<int> ventanaAnios, bool modelo2024) const {
+QJsonObject ServicioEstadisticas::obtenerVistaInstitucional(
+    std::optional<int> ventanaAnios,
+    bool modelo2024,
+    const QSet<QString>& codigosInvestigadores) const {
     estructuras::Hipercubo5D c = resolverCubo(nullptr, ventanaAnios, modelo2024);
     QJsonObject obj;
     obj["tipo_vista"] = "institucional";
@@ -311,27 +314,39 @@ QJsonObject ServicioEstadisticas::obtenerVistaInstitucional(std::optional<int> v
 
     QJsonArray topInvArr;
     for (const auto& par : top5Investigadores("", &c)) {
-        QJsonObject invItem;
-        invItem["investigador"] = par.first;
-        invItem["cantidad"] = par.second;
+        QJsonArray invItem;
+        invItem.append(par.first);
+        invItem.append(par.second);
         topInvArr.append(invItem);
     }
     obj["top_5_investigadores"] = topInvArr;
 
     QJsonArray topGrpArr;
     for (const auto& par : top5Grupos(&c)) {
-        QJsonObject grpItem;
-        grpItem["grupo"] = par.first;
-        grpItem["cantidad"] = par.second;
+        QJsonArray grpItem;
+        grpItem.append(par.first);
+        grpItem.append(par.second);
         topGrpArr.append(grpItem);
     }
     obj["top_5_grupos"] = topGrpArr;
     obj["promedio_por_investigador"] = promedioPorInvestigador("", &c);
 
+    QJsonObject distribucion;
+    const auto histograma =
+        distribucionProductosPorInvestigador(codigosInvestigadores, &c);
+    for (auto it = histograma.constBegin(); it != histograma.constEnd(); ++it) {
+        distribucion[it.key()] = it.value();
+    }
+    obj["distribucion_productos_por_investigador"] = distribucion;
+
     return obj;
 }
 
-QJsonObject ServicioEstadisticas::obtenerVistaGrupo(const QString& idGrupo, std::optional<int> ventanaAnios, bool modelo2024) const {
+QJsonObject ServicioEstadisticas::obtenerVistaGrupo(
+    const QString& idGrupo,
+    std::optional<int> ventanaAnios,
+    bool modelo2024,
+    const QSet<QString>& codigosInvestigadores) const {
     estructuras::Hipercubo5D cInst = resolverCubo(nullptr, ventanaAnios, modelo2024);
     estructuras::Hipercubo5D cGrp = cInst.rebanada(estructuras::Hipercubo5D::DIM_GRUPO, idGrupo);
 
@@ -382,9 +397,9 @@ QJsonObject ServicioEstadisticas::obtenerVistaGrupo(const QString& idGrupo, std:
 
     QJsonArray topInvArr;
     for (const auto& par : top5Investigadores(idGrupo, &cGrp)) {
-        QJsonObject invItem;
-        invItem["investigador"] = par.first;
-        invItem["cantidad"] = par.second;
+        QJsonArray invItem;
+        invItem.append(par.first);
+        invItem.append(par.second);
         topInvArr.append(invItem);
     }
     obj["top_5_investigadores"] = topInvArr;
@@ -396,6 +411,14 @@ QJsonObject ServicioEstadisticas::obtenerVistaGrupo(const QString& idGrupo, std:
         invsObj[it.key()] = it.value();
     }
     obj["investigadores"] = invsObj;
+
+    QJsonObject distribucion;
+    const auto histograma =
+        distribucionProductosPorInvestigador(codigosInvestigadores, &cGrp);
+    for (auto it = histograma.constBegin(); it != histograma.constEnd(); ++it) {
+        distribucion[it.key()] = it.value();
+    }
+    obj["distribucion_productos_por_investigador"] = distribucion;
 
     return obj;
 }

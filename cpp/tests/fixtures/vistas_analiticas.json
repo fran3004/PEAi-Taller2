@@ -1,0 +1,54 @@
+{
+  "investigadores": ["I1", "I2", "I3"],
+  "productos": [
+    {"grupo": "G1", "investigador": "I1", "categoria": "GNC", "anio": 2023, "validacion": "Avalado", "id": "P1"},
+    {"grupo": "G1", "investigador": "I2", "categoria": "GNC", "anio": 2023, "validacion": "Avalado", "id": "P2"},
+    {"grupo": "G2", "investigador": "I1", "categoria": "DTI", "anio": 2022, "validacion": "Con soporte", "id": "P3"}
+  ],
+  "esperado": {
+    "institucional": {
+      "tipo_vista": "institucional",
+      "total_productos": 3,
+      "productos_por_anio": {"2022": 1, "2023": 2},
+      "productos_por_categoria": {"GNC": 2, "DTI": 1, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 66.67, "DTI": 33.33, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 2, "Con soporte": 1, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 66.67, "Con soporte": 33.33, "No avalado": 0.0},
+      "top_5_investigadores": [["I1", 2], ["I2", 1]],
+      "top_5_grupos": [["G1", 2], ["G2", 1]],
+      "promedio_por_investigador": 1.5,
+      "distribucion_productos_por_investigador": {"0": 1, "1–2": 2, "3–5": 0, "6–10": 0, "11+": 0}
+    },
+    "grupo": {
+      "tipo_vista": "grupo",
+      "id_grupo": "G1",
+      "total_productos": 2,
+      "porcentaje_sobre_institucion": 66.67,
+      "productos_por_anio": {"2023": 2},
+      "productos_por_categoria": {"GNC": 2, "DTI": 0, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 100.0, "DTI": 0.0, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 2, "Con soporte": 0, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 100.0, "Con soporte": 0.0, "No avalado": 0.0},
+      "top_5_investigadores": [["I1", 1], ["I2", 1]],
+      "promedio_por_investigador": 1.0,
+      "investigadores": {"I1": 1, "I2": 1},
+      "distribucion_productos_por_investigador": {"0": 1, "1–2": 2, "3–5": 0, "6–10": 0, "11+": 0}
+    },
+    "investigador": {
+      "tipo_vista": "investigador",
+      "id_investigador": "I1",
+      "total_productos": 2,
+      "productos_por_anio": {"2022": 1, "2023": 1},
+      "histograma_productos_por_anio": {"2022": 1, "2023": 1},
+      "productos_por_categoria": {"GNC": 1, "DTI": 1, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 50.0, "DTI": 50.0, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 1, "Con soporte": 1, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 50.0, "Con soporte": 50.0, "No avalado": 0.0},
+      "grupos_participacion": {"G1": 1, "G2": 1},
+      "contribuciones_grupos": {
+        "G1": {"productos_propios_en_grupo": 1, "total_productos_grupo": 2, "porcentaje_aporte": 50.0},
+        "G2": {"productos_propios_en_grupo": 1, "total_productos_grupo": 1, "porcentaje_aporte": 100.0}
+      }
+    }
+  }
+}

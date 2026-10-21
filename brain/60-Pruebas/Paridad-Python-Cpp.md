@@ -59,12 +59,12 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Top 5 grupos | `top_5_grupos()` | `top5Grupos()` | igual | Comparar desempate |
 | Porcentajes por categoría | `porcentajes_por_categoria()` | `porcentajesPorCategoria()` | igual | Comparar precisión y totales |
 | Porcentajes por validación | `porcentajes_por_validacion()` | `porcentajesPorValidacion()` | igual | Comparar precisión y totales |
-| Vista institucional | `obtener_vista_institucional()` | `obtenerVistaInstitucional()` | igual | Falta prueba de contrato JSON diferencial |
-| Vista de grupo | `obtener_vista_grupo()` | `obtenerVistaGrupo()` | igual | Falta prueba de contrato JSON diferencial |
-| Vista de investigador | `obtener_vista_investigador()` | `obtenerVistaInvestigador()` | igual | Falta prueba de contrato JSON diferencial |
+| Vista institucional | `obtener_vista_institucional()` | `obtenerVistaInstitucional()` | Contrato JSON probado con fixture común | Mantener pares de top 5 y distribución por investigador idénticos |
+| Vista de grupo | `obtener_vista_grupo()` | `obtenerVistaGrupo()` | Contrato JSON probado con fixture común | Mantener filtro de grupo y distribución con investigadores sin productos |
+| Vista de investigador | `obtener_vista_investigador()` | `obtenerVistaInvestigador()` | Contrato JSON probado con fixture común | Mantener histogramas y contribuciones a grupos idénticos |
 | Vista de producto | No hay vista estadística pública equivalente | Sin función pública equivalente | falta | Definir una vista solo si está respaldada por el requisito; no inventar métricas |
-| Histograma productos por investigador | `distribucion_productos_por_investigador()` | `distribucionProductosPorInvestigador()` | igual | Casos de rangos cubiertos en `test_filtro_estadisticas.cpp`; falta comparación diferencial |
-| Histograma por año en vista de investigador | `vista_investigador()` | `obtenerVistaInvestigador()` | igual | Cubierto por `test_filtro_estadisticas.cpp`; falta comparación diferencial Python/C++ |
+| Histograma productos por investigador | `distribucion_productos_por_investigador()` | `distribucionProductosPorInvestigador()` | Comparado diferencialmente en vistas institucional y de grupo | El fixture común cubre cero productos y rangos de 1–2 |
+| Histograma por año en vista de investigador | `vista_investigador()` | `obtenerVistaInvestigador()` | Comparado diferencialmente con fixture común | Agregar años y combinaciones si se amplían rangos o filtros |
 | Hipercubo rebanada | `Hipercubo.rebanada()` | `Hipercubo5D` / subcubo | igual | Probar ventana temporal y dimensiones |
 | Enrollar / enrollamiento | `Hipercubo.enrollar()` | `Hipercubo5D` | igual | Comprobar densidad y reagrupación |
 | Filtro de años TODOS | `FiltroAnios.TODOS` | equivalente de servicio | igual | Confirmar salida global |
@@ -92,5 +92,6 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 - Los fixtures SCIENTI de ingesta C++ se resuelven desde una ruta configurada por CMake, no según el directorio de trabajo. La suite CTest se compiló y aprobó también desde un directorio de build independiente al repositorio.
 - Fixtures compartidos verifican que Python y C++ producen los mismos campos para grupos, investigadores, productos y autores, y que ambos conservan dos filas válidas omitiendo la fila 3 inválida. Los casos incluyen UTF-8, alias canónicos, delimitadores, comillas, saltos de línea, valores booleanos y metadatos principales; aún falta contrastar textos completos de los informes y errores.
 - No se ejecutó verificación cruzada CLI contra Python ni conexión autenticada a `pea-prod`; sus conteos reales no se declaran coincidentes.
-- Los estados `igual` describen equivalencia de operación visible en los servicios, no una prueba diferencial exhaustiva. Las tareas de validación de cada fila permanecen pendientes mientras no exista esa prueba.
+- Los estados `igual` describen equivalencia de operación visible, no una prueba diferencial. Las filas con fixture se consideran validadas únicamente en la dimensión que este cubre; las demás continúan pendientes.
+- Las vistas analíticas institucional, grupal e individual se comparan contra `cpp/tests/fixtures/vistas_analiticas.json` en ambos lenguajes. La comparación detectó y corrigió la ausencia del histograma por investigador en dos vistas C++ y la forma JSON de los pares de top 5; otras filas estadísticas siguen requiriendo pruebas diferenciales específicas.
 - Toda discrepancia de comportamiento entre las implementaciones debe resolverse contra Python o registrarse explícitamente antes de cambiar la semántica.
