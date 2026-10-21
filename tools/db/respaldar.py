@@ -41,6 +41,7 @@ TABLAS_A_RESPALDAR = (
     "investigador_reconocimientos",
     "investigador_redes_identificadores",
     "auditoria_cambios",
+    "usuarios_autorizados",
 )
 
 
@@ -357,4 +358,8 @@ def respaldar() -> int:
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--cli"]:
+        from respaldo_cli import respaldar_cli
+
+        sys.exit(respaldar_cli())
     sys.exit(respaldar())

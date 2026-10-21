@@ -1,5 +1,7 @@
 param (
-    [switch]$ConRed
+    [switch]$ConRed,
+    [string]$Msys2 = "C:\msys64",
+    [string]$DirectorioCpp = ""
 )
 
 # scripts/verificar.ps1
@@ -9,6 +11,8 @@ param (
 $ErrorActionPreference = "Continue"
 $codigo_salida = 0
 $tabla_resultados = @()
+Set-Location (Split-Path -Parent $PSScriptRoot)
+$env:PYTHONIOENCODING = "utf-8"
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "PEA-i · VERIFICACION INTEGRAL DEL SISTEMA" -ForegroundColor Cyan
@@ -20,7 +24,7 @@ $py_cmd = if (Test-Path ".venv\Scripts\python.exe") { ".venv\Scripts\python.exe"
 
 & $py_cmd tools\brain\verificar_brain.py
 if ($LASTEXITCODE -eq 0) {
-    $tabla_resultados += [PSCustomObject]@{ Componente = "Boveda Obsidian"; Estado = "OK"; Detalle = "31+ notas integras, 0 errores" }
+    $tabla_resultados += [PSCustomObject]@{ Componente = "Boveda Obsidian"; Estado = "OK"; Detalle = "Notas comprobadas, 0 errores" }
 } else {
     $tabla_resultados += [PSCustomObject]@{ Componente = "Boveda Obsidian"; Estado = "FALLA"; Detalle = "Errores en enlaces o propiedades" }
     $codigo_salida = 1
@@ -43,11 +47,12 @@ if ($LASTEXITCODE -eq 0) {
 
 # 3. Pruebas de C++
 Write-Host "`n[3/4] Verificando nucleo C++..." -ForegroundColor Yellow
-if (Test-Path "C:\msys64\ucrt64\bin") {
-    $env:PATH = "C:\msys64\ucrt64\bin;" + $env:PATH
+$bin_msys = Join-Path $Msys2 "ucrt64\bin"
+if (Test-Path $bin_msys) {
+    $env:PATH = "$bin_msys;" + $env:PATH
 }
 
-$cpp_build_dir = if (Test-Path "cpp\build\CMakeCache.txt") { "cpp\build" } elseif (Test-Path "build\CMakeCache.txt") { "build" } else { "" }
+$cpp_build_dir = if ($DirectorioCpp) { $DirectorioCpp } elseif (Test-Path "cpp\build\CMakeCache.txt") { "cpp\build" } elseif (Test-Path "build\CMakeCache.txt") { "build" } else { "" }
 
 if ($cpp_build_dir -ne "") {
     cmake --build $cpp_build_dir
@@ -91,7 +96,7 @@ Write-Host "============================================================" -Foreg
 $tabla_resultados | Format-Table -AutoSize
 
 if ($codigo_salida -eq 0) {
-    Write-Host "Todo en verde. Sistema integro conforme al contrato.`n" -ForegroundColor Green
+    Write-Host "Las comprobaciones ejecutadas aprobaron. La red y los requisitos pendientes se verifican por separado.`n" -ForegroundColor Green
 } else {
     Write-Host "Verificacion completada con fallas. Revisa los detalles anteriores.`n" -ForegroundColor Red
 }

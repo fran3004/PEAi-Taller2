@@ -787,6 +787,11 @@ class VentanaPrincipal(QMainWindow):
     # 3. Inicialización de Pantallas
     # -----------------------------------------------------------------------
 
+    def iniciar_conexion_automatica(self) -> None:
+        """Inicia la carga del paquete distribuido mediante el trabajador de servicios."""
+        if self._servicio.configuracion_entorno().get("acceso_evaluacion"):
+            self._pantalla_inicio._al_clic_conectar()
+
     def _inicializar_pantallas(self) -> None:
         # Pantallas existentes y marcadores modulares
         self._pantalla_inicio = PantallaInicio(

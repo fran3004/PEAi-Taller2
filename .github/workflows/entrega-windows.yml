@@ -1,0 +1,65 @@
+name: Entrega Windows
+
+on:
+  push:
+    branches: [master, main, 'feat/python-cierre-francisco', 'entrega/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  comprobar-y-empaquetar:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        id: python
+        with:
+          python-version: '3.12'
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-doctest
+            mingw-w64-ucrt-x86_64-openssl
+            git
+      - name: Instalar y compilar desde cero
+        run: |
+          ./scripts/preparar.ps1 -PythonExe '${{ steps.python.outputs.python-path }}' -Msys2 '${{ steps.msys2.outputs.msys2-location }}' -Empaquetado
+      - name: Verificar ambas aplicaciones
+        run: |
+          ./scripts/verificar.ps1 -Msys2 '${{ steps.msys2.outputs.msys2-location }}'
+      - name: Construir wheel Python e informe de versiones
+        run: |
+          ./.venv/Scripts/python.exe -m build --wheel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.venv/Scripts/python.exe -m pip freeze --exclude-editable | Set-Content -Encoding utf8 dist/dependencias-python.txt
+          & '${{ steps.msys2.outputs.msys2-location }}/usr/bin/pacman.exe' -Q | Set-Content -Encoding utf8 dist/dependencias-msys2.txt
+      - name: Empaquetar y probar sin toolchain en PATH
+        run: |
+          ./scripts/empaquetar.ps1 -Msys2 '${{ steps.msys2.outputs.msys2-location }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PEAi-Windows-x64
+          path: |
+            dist/PEAi-Windows-x64.zip
+            dist/SHA256SUMS.txt
+            dist/dependencias-python.txt
+            dist/dependencias-msys2.txt
+            dist/*.whl
+          if-no-files-found: error
+          retention-days: 30

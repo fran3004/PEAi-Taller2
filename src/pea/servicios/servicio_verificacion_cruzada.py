@@ -106,12 +106,19 @@ class ServicioVerificacionCruzada:
         ejecutor: EjecutorProcesos | None = None,
         pasos: tuple[PasoVerificacion, ...] = PASOS_POR_DEFECTO,
     ) -> None:
-        self.raiz = raiz_proyecto or Path(pea.__file__).resolve().parents[2]
+        raiz_predeterminada = (
+            Path(sys.executable).resolve().parent.parent
+            if getattr(sys, "frozen", False)
+            else Path(pea.__file__).resolve().parents[2]
+        )
+        self.raiz = raiz_proyecto or raiz_predeterminada
         self._ejecutor = ejecutor or _ejecutar_proceso
         self.pasos = pasos
 
     # ------------------------------------------------------------------ localización
     def comando_python(self) -> list[str]:
+        if getattr(sys, "frozen", False):
+            return [str(Path(sys.executable).with_name("pea-cli.exe"))]
         return [sys.executable, "-m", "pea.cli"]
 
     def ruta_cpp(self) -> Path | None:
@@ -121,6 +128,7 @@ class ServicioVerificacionCruzada:
             candidatos.append(Path(explicita))
         nombre = "pea-cpp.exe" if os.name == "nt" else "pea-cpp"
         candidatos.append(self.raiz / "cpp" / "build" / nombre)
+        candidatos.append(self.raiz / "PEAi-Cpp" / nombre)
         for candidato in candidatos:
             if candidato.is_file():
                 return candidato
@@ -129,13 +137,14 @@ class ServicioVerificacionCruzada:
     def _entorno_hijo(self, usar_base: bool) -> dict[str, str]:
         entorno = dict(os.environ)
         if not usar_base:
+            entorno["PEA_OMITIR_CONFIG_PUBLICA"] = "1"
             for clave in list(entorno):
                 if clave.startswith("PEA_SUPABASE_") or clave.startswith("PEA_USUARIO_"):
                     del entorno[clave]
         entorno["PYTHONIOENCODING"] = "utf-8"
         ruta_src = str(Path(pea.__file__).resolve().parents[1])
         entorno["PYTHONPATH"] = ruta_src + os.pathsep + entorno.get("PYTHONPATH", "")
-        if os.name == "nt":
+        if os.name == "nt" and not getattr(sys, "frozen", False):
             msys = os.environ.get("PEA_MSYS2_BIN") or r"C:\msys64\ucrt64\bin"
             if Path(msys).is_dir():
                 entorno["PATH"] = msys + os.pathsep + entorno.get("PATH", "")

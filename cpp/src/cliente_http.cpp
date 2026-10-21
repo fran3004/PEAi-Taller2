@@ -39,6 +39,7 @@ void ClienteHTTPSupabase::establecerTokenAcceso(const QString& token) {
 
 void ClienteHTTPSupabase::cerrarSesion() {
     m_tokenAcceso.clear();
+    m_refreshEvaluacion.clear();
 }
 
 QString ClienteHTTPSupabase::tokenAcceso() const {
@@ -69,6 +70,36 @@ QJsonObject ClienteHTTPSupabase::autenticar(const QString& correo, QString clave
     return objeto;
 }
 
+QJsonObject ClienteHTTPSupabase::autenticarEvaluacion() {
+    QNetworkRequest solicitud(QUrl(m_baseUrl + "/auth/v1/signup"));
+    solicitud.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    solicitud.setRawHeader("apikey", m_anonKey.toUtf8());
+    const auto respuesta = ejecutarSolicitud(solicitud, "POST", "{}").object();
+    if (respuesta.value("access_token").toString().isEmpty() ||
+        !respuesta.value("user").toObject().value("is_anonymous").toBool()) {
+        throw ErrorAutenticacion("No se pudo abrir la sesión automática de evaluación.");
+    }
+    establecerTokenAcceso(respuesta.value("access_token").toString());
+    m_refreshEvaluacion = respuesta.value("refresh_token").toString();
+    return respuesta;
+}
+
+QJsonObject ClienteHTTPSupabase::renovarEvaluacion() {
+    if (m_refreshEvaluacion.isEmpty()) throw ErrorAutenticacion("No hay una sesión de evaluación que renovar.");
+    QNetworkRequest solicitud(QUrl(m_baseUrl + "/auth/v1/token?grant_type=refresh_token"));
+    solicitud.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    solicitud.setRawHeader("apikey", m_anonKey.toUtf8());
+    const auto respuesta = ejecutarSolicitud(solicitud, "POST", QJsonDocument(
+        QJsonObject{{"refresh_token", m_refreshEvaluacion}}).toJson(QJsonDocument::Compact)).object();
+    if (respuesta.value("access_token").toString().isEmpty() ||
+        !respuesta.value("user").toObject().value("is_anonymous").toBool()) {
+        throw ErrorAutenticacion("No se pudo renovar la sesión de evaluación.");
+    }
+    establecerTokenAcceso(respuesta.value("access_token").toString());
+    m_refreshEvaluacion = respuesta.value("refresh_token").toString(m_refreshEvaluacion);
+    return respuesta;
+}
+
 bool ClienteHTTPSupabase::soportaTLS() {
     return QSslSocket::supportsSsl();
 }
@@ -84,7 +115,7 @@ QNetworkRequest ClienteHTTPSupabase::prepararSolicitud(const QUrl& url, const QB
 
     if (!m_tokenAcceso.isEmpty()) {
         req.setRawHeader("Authorization", "Bearer " + m_tokenAcceso.toUtf8());
-    } else {
+    } else if (!m_anonKey.startsWith("sb_publishable_")) {
         req.setRawHeader("Authorization", "Bearer " + m_anonKey.toUtf8());
     }
 

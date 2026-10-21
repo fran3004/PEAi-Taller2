@@ -25,6 +25,16 @@ dev = [
     "responses>=0.25.0",
     "vulture>=2.14",
 ]
+empaquetado = [
+    "pyinstaller==6.22.3",
+    "build==1.6.1",
+]
+
+[project.scripts]
+pea-cli = "pea.cli:main"
+
+[project.gui-scripts]
+pea-gui = "pea.gui:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pea"]

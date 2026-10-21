@@ -23,6 +23,9 @@ public:
     void cerrarSesion();
     QString tokenAcceso() const;
     QJsonObject autenticar(const QString& correo, QString clave);
+    QJsonObject autenticarEvaluacion();
+    QJsonObject renovarEvaluacion();
+    bool tieneSesionEvaluacion() const { return !m_refreshEvaluacion.isEmpty(); }
 
     // Métodos REST principales
     QJsonDocument get(const QString& tabla, const QString& queryParams = QString());
@@ -47,6 +50,7 @@ private:
     QString m_anonKey;
     int m_timeoutMs;
     QString m_tokenAcceso;
+    QString m_refreshEvaluacion;
     std::unique_ptr<QNetworkAccessManager> m_manager;
 };
 

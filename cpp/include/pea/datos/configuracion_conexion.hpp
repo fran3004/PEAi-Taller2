@@ -20,6 +20,7 @@ struct ConfiguracionConexion {
     QString correo;
     bool url_configurada{false};
     bool clave_configurada{false};
+    bool acceso_evaluacion{false};
 };
 
 [[nodiscard]] ConfiguracionConexion leer_configuracion_conexion();

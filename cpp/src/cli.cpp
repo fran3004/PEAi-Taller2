@@ -15,6 +15,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QStringList>
+#include <QSslSocket>
 
 namespace pea::cli {
 
@@ -31,6 +32,7 @@ void mostrarAyuda() {
               << "  info                     Muestra información del sistema y arquitectura\n"
               << "  verificar                Verifica conectividad HTTPS, TLS y número de revisión\n"
               << "  ping                     Alias de verificar\n"
+              << "  diagnostico-tls          Comprueba las bibliotecas TLS sin acceder a la red\n"
               << "  resumen [--json]         Muestra el resumen de entidades (o JSON canónico)\n"
               << "  importar-csv -a <f> -t <t> Importa entidades desde archivo CSV (grupos|investigadores|productos|autores)\n"
               << "  importar-url -u <u>        Importa entidades desde URL SCIENTI (GrupLAC o CvLAC)\n"
@@ -356,6 +358,15 @@ static int ejecutar_interno(
     if (comando == "-v" || comando == "--version") {
         std::cout << obtener_version() << "\n";
         std::cout << "Soporte TLS/SSL: " << (ClienteHTTPSupabase::soportaTLS() ? "Activado (" + ClienteHTTPSupabase::backendTLS().toStdString() + ")" : "No disponible") << "\n";
+        return 0;
+    }
+
+    if (comando == "diagnostico-tls") {
+        if (!QSslSocket::supportsSsl()) {
+            std::cerr << "No se encontro un proveedor TLS. Extraiga el paquete completo.\n";
+            return 1;
+        }
+        std::cout << "TLS disponible: " << QSslSocket::activeBackend().toStdString() << "\n";
         return 0;
     }
 

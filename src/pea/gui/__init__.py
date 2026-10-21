@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
@@ -44,4 +45,5 @@ def main(argv: list[str] | None = None) -> int:
         return codigo
 
     ventana.show()
+    QTimer.singleShot(0, ventana.iniciar_conexion_automatica)
     return app.exec()

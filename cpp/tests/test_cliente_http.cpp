@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "pea/cliente_http.hpp"
 #include "pea/datos/configuracion_conexion.hpp"
+#include "pea/datos/sesion.hpp"
 #include "pea/excepciones.hpp"
 
 TEST_CASE("ClienteHTTPSupabase - Configuración y gestión de tokens en memoria") {
@@ -49,4 +50,22 @@ TEST_CASE("Excepciones PEA - Jerarquía y mensajes de error") {
     pea::ConflictoRevision errorRev("Conflicto de revisión concurrente");
     CHECK(errorRev.mensaje() == "Conflicto de revisión concurrente");
     CHECK(errorRev.detalle().empty());
+}
+
+TEST_CASE("Sesión de evaluación conserva el indicador solo durante la sesión") {
+    pea::datos::Sesion sesion;
+    CHECK_FALSE(sesion.es_evaluacion());
+    sesion.iniciar_sesion("ficticio", "Evaluación", 3600, QJsonObject{{"is_anonymous", true}});
+    CHECK(sesion.es_evaluacion());
+    CHECK_FALSE(sesion.necesita_renovacion());
+    sesion.simular_expiracion();
+    CHECK(sesion.necesita_renovacion());
+    sesion.cerrar_sesion();
+    CHECK_FALSE(sesion.es_evaluacion());
+}
+
+TEST_CASE("La renovación sin sesión no hace ninguna petición de red") {
+    pea::ClienteHTTPSupabase cliente("https://ejemplo.supabase.co", "sb_publishable_ficticia");
+    CHECK_FALSE(cliente.tieneSesionEvaluacion());
+    CHECK_THROWS_AS(cliente.renovarEvaluacion(), pea::ErrorAutenticacion);
 }

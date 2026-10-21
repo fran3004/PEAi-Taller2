@@ -17,6 +17,10 @@ public:
     [[nodiscard]] QString rol() const noexcept { return m_rol; }
     [[nodiscard]] bool esta_autenticado() const noexcept;
     [[nodiscard]] bool esta_expirada() const noexcept;
+    [[nodiscard]] bool es_evaluacion() const { return m_metadatos.value("is_anonymous").toBool(); }
+    [[nodiscard]] bool necesita_renovacion() const {
+        return !m_expira_en_epoch || QDateTime::currentSecsSinceEpoch() >= *m_expira_en_epoch - 120;
+    }
 
     void iniciar_sesion(
         const QString& token,

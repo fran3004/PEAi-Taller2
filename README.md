@@ -1,101 +1,268 @@
-# PEA-i · Programa Estadístico de Análisis de Investigación
+# PEA-i · Taller 2 de Estructura de Datos
 
-**Universidad Popular del Cesar (UPC)**  
-*Facultad de Ingenierías y Tecnologías — Ingeniería de Sistemas*  
-*Asignatura: Estructura de Datos (Taller 2)*
+Universidad Popular del Cesar · Ingeniería de Sistemas · Grupo 8
 
----
+PEA-i gestiona grupos, investigadores y productos de investigación. Incluye dos
+aplicaciones: **Python con interfaz gráfica PySide6** y **C++17 con terminal
+interactiva FTXUI**. Comparten PostgreSQL en Supabase mediante HTTPS, Auth y RLS.
 
-## 1. Descripción del Proyecto
-PEA-i (Programa Estadístico de Análisis de Investigación) es una solución integral diseñada para capturar, estructurar, persistir y analizar la producción académica y científica de grupos de investigación e investigadores, tomando como fuente de verdad normativa el **Modelo de Reconocimiento y Medición de Minciencias 2024** (M601PR04G01) y la plataforma **SCIENTI** (GrupLAC y CvLAC).
+La entrega portable se conecta automáticamente a **pea-prod**, la base compartida
+de Supabase. No hay que escribir claves, crear cuentas, configurar variables ni
+instalar herramientas de desarrollo. Solo necesita Windows x64 e Internet.
 
-El sistema consta de dos aplicaciones con paridad arquitectónica:
-- **PEA-i Python**: Aplicación de escritorio desarrollada en **Python 3.12** con **PySide6** (Qt 6).
-- **PEA-i C++**: Aplicación de terminal desarrollada en **C++17** con **FTXUI**; usa **Qt Core y Network** exclusivamente para JSON y HTTPS.
+## 1. Para el profesor: descargar, extraer y abrir
 
-Ambas aplicaciones comparten una única base de datos relacional PostgreSQL alojada en la nube mediante **Supabase**, comunicándose de manera exclusiva a través de protocolos seguros **HTTPS** (REST y RPC), sin conexiones directas al puerto PostgreSQL y sin persistencia de credenciales en disco.
+Entorno de entrega: **Windows 10/11 de 64 bits (x64)**. Se recomienda Windows
+Terminal para C++ y una pantalla de al menos 1100 × 700 píxeles lógicos para Python.
 
----
+1. Abra [la última entrega descargable](https://github.com/fran3004/PEAi-Taller2/releases/latest).
+2. Descargue **`PEAi-Windows-x64.zip`** de **Assets**. **Code → Download ZIP**
+   descarga código fuente, no los ejecutables.
+3. Use **Extraer todo** y abra la carpeta `PEAi-Windows-x64`. No ejecute dentro del
+   ZIP ni separe los `.exe` de sus carpetas `_internal`, DLL y complementos.
+4. Abra `Iniciar-Python.cmd`. La ventana inicia la conexión automáticamente;
+   espere a que termine de cargar los datos de Supabase.
+5. Abra `Iniciar-Cpp.cmd` para la versión de terminal, conectada a la misma base.
 
-## 2. Arquitectura del Sistema
-El proyecto implementa una arquitectura en capas estrictamente desacoplada:
+El paquete incluye Python, PySide6, fuentes, iconos y las DLL de Qt Core/Network,
+OpenSSL y MinGW. No necesita instalar Python, CMake, Qt, PostgreSQL, Node.js,
+Docker ni Supabase CLI para ejecutarlo.
 
-```
-[ Presentación: GUI Python / TUI C++ ]
-       ↓
-[ Capa de Servicios / Aplicación ]
-       ↓
-[ Capa de Estructuras Hechas a Mano ]
-  • Lista doblemente enlazada
-  • Multilista (Producto compartido)
-  • Hipercubo multidimensional (Estadísticas en memoria)
-  • Pila de deshacer (Undo) / Cola de eventos
-       ↓
-[ Repositorios REST / RPC ]
-       ↓ (HTTPS / TLS 1.3)
-[ PostgreSQL en Supabase ] (RLS + Auth)
-```
+Ambas aplicaciones permiten trabajar con los datos reales y guardar cambios.
+No aplique migraciones ni cree otra base. `Iniciar-Cpp-demo.cmd` es una alternativa
+opcional sin red: usa datos ficticios en memoria y **no** representa Supabase.
 
----
+Por decisión expresa del propietario, el acceso académico permite leer y modificar
+los datos compartidos sin identificar al profesor. **Cualquier persona que obtenga
+el paquete tiene los mismos permisos**, incluida la eliminación según las reglas
+de la aplicación. No es una distribución adecuada para información privada.
 
-## 3. Requisitos y Configuración de Entornos
+Puede comprobar el ZIP con `Get-FileHash .\PEAi-Windows-x64.zip -Algorithm SHA256`
+y compararlo con `SHA256SUMS.txt` de la misma Release. Los ejecutables académicos
+no tienen firma digital. Ante una advertencia de Windows, verifique primero el
+origen y la suma; no desactive el antivirus.
 
-### Entorno Python (3.12+)
+## 2. Conexión incluida y alternativa para desarrolladores
+
+El archivo `config/pea.config.json` contiene únicamente la URL de pea-prod,
+su clave **publicable** y la opción de acceso automático. Ambas aplicaciones
+portables lo encuentran junto a sus carpetas, independientemente del directorio
+actual. Supabase Auth crea una sesión anónima autenticada; los tokens se mantienen
+solo en memoria y se renuevan durante el uso. No se incluyen contraseñas ni claves
+administrativas. RLS permanece activo con los permisos académicos documentados en
+[ADR-0025](brain/30-Decisiones/ADR-0025-Acceso-academico-completo.md).
+
+**El profesor puede saltar los comandos siguientes.** Para desarrolladores que
+ejecuten desde código o quieran usar una cuenta personal, existe este iniciador
+opcional; requiere la clave publicable y una cuenta de Supabase Auth.
+
+En PowerShell, situado en la carpeta extraída del paquete:
+
 ```powershell
-# Crear y activar entorno virtual
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Instalar dependencias en modo editable
-pip install -e .
+# Solicita clave publicable, correo y contraseña oculta; abre Python.
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\iniciar-con-base.ps1 -Aplicacion Python
 ```
 
-### Entorno C++ (MSYS2 UCRT64 / Qt 6)
+Para C++, abra otra ventana de PowerShell en la misma carpeta:
+
 ```powershell
-# Configurar y compilar con CMake y Ninja
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\iniciar-con-base.ps1 -Aplicacion Cpp
+```
+
+El iniciador usa `https://wdmchsncexayqbjueamb.supabase.co`, mantiene las credenciales
+en el entorno del proceso mientras está abierto y no las escribe en archivos.
+Funciona también desde el repositorio después de la instalación del apartado 4.
+No se admite `service_role` ni una clave `sb_secret_…`.
+
+Se requiere Internet HTTPS (puerto 443). Si la cuenta no tiene permisos, la sesión
+vence, el servicio está pausado o no hay conexión, se muestra el error. Un paquete
+correctamente instalado no sustituye la disponibilidad de esos servicios.
+
+Las variables de desarrollo son `PEA_SUPABASE_URL`, `PEA_SUPABASE_PUBLISHABLE_KEY`,
+`PEA_USUARIO_CORREO` y `PEA_USUARIO_CLAVE`. Tienen prioridad sobre la configuración
+portable. Desde código Python, el JSON portable no se carga automáticamente;
+use el iniciador de desarrollo. Esto no afecta al paquete descargable.
+
+## 3. Recorrido de evaluación
+
+1. **Python**: Inicio → Grupos → Investigadores → Productos → Análisis de redes.
+   Seleccione filas para ver fichas, cambie filtros anuales y pruebe exportaciones.
+2. **C++**: use las pestañas y el mouse. En directorios, `/` busca; `n` crea;
+   `e` edita; `t` activa/desactiva; `x` elimina con confirmación; `v` abre una ficha;
+   `u` deshace; `r` recarga. Los formularios usan Tab, Enter y Escape. La búsqueda
+   admite, por ejemplo, `categoria:A1`. Ventana recomendada: 100 columnas × 28 filas.
+3. **Persistencia**: con la conexión automática, cree un registro de evaluación, edítelo
+   y recargue. En la otra aplicación compruebe **La base de datos cambió** y
+   recargue. La revisión C++ se consulta cada 30 segundos.
+4. **Importación**: use CSV o URL SCIENTI y revise el informe de filas rechazadas.
+   C++ ofrece `i` para CSV y `w` para URL. Los fixtures ficticios de
+   `tests/fixtures/` y `cpp/tests/fixtures/` permiten revisar el procesamiento sin
+   descargar datos personales. Las fuentes remotas pueden estar indisponibles.
+5. **Interoperabilidad**: en Configuración de Python ejecute la verificación
+   cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
+   escenarios sin red mediante ambas CLI.
+
+No todos los flujos tienen la misma cobertura en ambas interfaces. La ingesta PDF
+C++ y otras diferencias están en la [matriz de paridad](brain/60-Pruebas/Paridad-Python-Cpp.md).
+La compilación correcta no implica que todos los requisitos funcionales pendientes
+estén cerrados.
+
+## 4. Instalar desde el código fuente
+
+### Descargar
+
+```powershell
+git clone https://github.com/fran3004/PEAi-Taller2.git
+cd PEAi-Taller2
+```
+
+También puede usar **Code → Download ZIP** y extraerlo. Ejecute los comandos desde
+la raíz que contiene `README.md` y `pyproject.toml`.
+
+### Requisitos de desarrollo
+
+| Componente | Requisito |
+|---|---|
+| Python | [CPython 3.12 x64](https://www.python.org/downloads/windows/) recomendado, con pip y lanzador `py`; no el Python de MSYS2 |
+| C++ | [MSYS2](https://www.msys2.org/) UCRT64, normalmente en `C:\msys64` |
+| Descargas iniciales | Internet para PyPI, MSYS2 y GitHub (FTXUI) |
+| Git | Para clonar y para la descarga de FTXUI por CMake |
+
+En la consola **MSYS2 UCRT64**:
+
+```bash
+pacman -Syu
+# Si pide cerrar, cierre la consola, abra UCRT64 y repita pacman -Syu.
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-doctest mingw-w64-ucrt-x86_64-openssl git
+```
+
+C++ usa Qt6 **Core + Network**. FTXUI `v5.0.0` se descarga en la primera configuración
+si no hay un paquete instalado. No mezcle DLL o compiladores MINGW64, UCRT64 y MSVC.
+
+### Preparar ambas aplicaciones
+
+Regrese a **PowerShell**, en la raíz:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\preparar.ps1
+```
+
+El script crea `.venv`, instala `.[dev]` con las versiones de
+`requirements/windows.txt`, comprueba dependencias y configura/compila C++ Release.
+No requiere activar el entorno virtual. Para solo Python, añada `-SoloPython`.
+Si MSYS2 está en otra ubicación, añada `-Msys2 D:\msys64` a los scripts que lo usan.
+Sin lanzador `py`, añada `-PythonExe C:\ruta\Python312\python.exe`.
+
+Equivalente manual para Python:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -c requirements/windows.txt -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip check
+```
+
+### Iniciar
+
+```powershell
+# Ventana Python: Configuración → Cargar datos de demostración.
+.\.venv\Scripts\python.exe -m pea.gui
+
+# Terminal C++ en demostración.
 $env:PATH = "C:\msys64\ucrt64\bin;" + $env:PATH
-cmake -S cpp -B cpp/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build cpp/build
+.\cpp\build\pea-cpp.exe --demo
+
+# Ayuda de las interfaces de consola.
+.\.venv\Scripts\python.exe -m pea.cli --help
+.\cpp\build\pea-cpp.exe --help
 ```
 
-Si FTXUI no está disponible como paquete del entorno, CMake descarga la versión
-fijada `v5.0.0` mediante FetchContent. La compilación requiere acceso a GitHub
-solo durante la configuración inicial si la dependencia aún no está en caché.
+Para Supabase use el apartado 2. `--ascii` y `--sin-color` adaptan la TUI a terminales
+con menos capacidades.
 
----
+## 5. Comprobar la instalación
 
-## 4. Ejecución y Pruebas
-
-### Ejecución de Pruebas Automatizadas
-Para ejecutar la suite integral de verificación (Bóveda Obsidian, Pruebas Python y Pruebas C++):
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\verificar.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verificar.ps1
 ```
 
-### PEA-i Python
-Con el entorno virtual activado, la interfaz gráfica se inicia con:
+Valida documentación, ejecuta pruebas Python, recompila C++, ejecuta CTest y
+renderiza la autoprueba TUI. Devuelve código 0 cuando esos pasos aprueban. Las
+pruebas de red se excluyen por defecto. `-ConRed` se reserva a los autores con
+cuenta de pruebas autorizada; no hace falta para comprobar la instalación.
+
+Comprobaciones individuales (mantenga UCRT64 en `PATH` para C++ desde código):
+
 ```powershell
-python -m pea.gui
+.\.venv\Scripts\python.exe -m pytest -q
+ctest --test-dir cpp/build --output-on-failure
+.\cpp\build\pruebas_cpp.exe --no-version
+.\cpp\build\pea-cpp.exe diagnostico-tls
+.\cpp\build\pea-cpp.exe --autoprueba
+.\.venv\Scripts\python.exe -m pea.gui --autoprueba
 ```
 
-Comandos de consola:
+GitHub Actions repite instalación, compilación, pruebas y empaquetado en un Windows
+nuevo, usando solo los archivos versionados. Las dependencias Python directas están
+fijadas en `requirements/windows.txt`; el informe `dependencias-python.txt` registra
+las transitivas resueltas en CI. También se registran las versiones de MSYS2.
+
+## 6. Regenerar los ejecutables
+
 ```powershell
-python -m pea.cli --version
-python -m pea.cli resumen
-python -m pea.cli importar-url --url "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=<codigo>" --privado
-python -m pea.cli importar-url --archivo-grupos datos/fuentes/grupos_upc.txt --privado
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\preparar.ps1 -Empaquetado
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verificar.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\empaquetar.ps1
 ```
 
-Para la importación por lote, crea localmente `datos/fuentes/grupos_upc.txt` con un código GrupLAC autorizado por línea. Se omiten líneas vacías y comentarios que comiencen con `#`; los códigos repetidos se procesan una sola vez. No se incluyen códigos de grupos en el repositorio. `--privado` guarda las transcripciones completas en la carpeta privada de salida; si se van a compartir archivos, añade `--anonimizar`. La opción `--privado` no anonimiza por sí sola.
+Salida: `dist/PEAi-Windows-x64.zip` y `dist/SHA256SUMS.txt`. Se comprueban CLI, TLS,
+interoperabilidad y ambas interfaces con un `PATH` sin Python ni MSYS2 y desde
+un directorio temporal. Para regenerar, mueva primero la salida anterior.
+Los binarios se publican en **Releases**, no se versionan en Git.
 
-### PEA-i C++
-- **Terminal interactiva**: `.\cpp\build\pea-cpp.exe` (opcional `--demo`, `--ascii`, `--sin-color`). En los directorios: `/` busca, `n` crea, `e` edita, `t` activa/desactiva, `x` elimina con confirmación, `v` muestra la ficha, `u` deshace y `r` recarga el catálogo conectado. En Importación, `i` abre importación CSV y `w` abre URL SCIENTI. Use Tab para cambiar de campo, Enter para ejecutar y Escape para cancelar o volver.
-- **CLI no interactiva**: `.\cpp\build\pea-cpp.exe --version` o `.\cpp\build\pea-cpp.exe --help`.
-- **Autoprueba de pantallas**: `.\cpp\build\pea-cpp.exe --autoprueba` (escribe capturas en `datos/capturas/terminal/`).
-- `--demo` permite probar la gestión sin persistir cambios. Las escrituras fuera de demo necesitan conexión autenticada; la eliminación física requiere escribir `ELIMINAR`.
-- La TUI incluye búsqueda textual y filtros `campo:valor` en los tres directorios (nombres de campos canónicos, por ejemplo `categoria:A1`), gestión básica, fichas, análisis anual/coautoría, filtros temporales (todos, últimos cinco años, rango personalizado y Modelo 2024), deshacer e importación interactiva CSV/URL (requiere sesión remota; para URLs el formulario solicita anonimización). La revisión remota se comprueba cada 30 segundos en un hilo con cliente HTTPS independiente; ante cambios se indica recargar con `r`, y ante fallos se muestra el error sin usar la revisión local como sustituto. La ingesta continúa síncrona y la paridad completa sigue pendiente. Consulte [Paridad Python ↔ C++](brain/60-Pruebas/Paridad-Python-Cpp.md).
+## 7. Contenido de la entrega
 
----
+| Ruta | Contenido |
+|---|---|
+| `src/pea/` | GUI/CLI, servicios, estructuras propias, ingesta y repositorios Python |
+| `cpp/` | TUI/CLI, CMake, servicios, estructuras y pruebas C++ |
+| `tests/` | Pruebas Python y fixtures ficticios |
+| `supabase/migrations/` | Esquema SQL histórico; no aplicarlo para conectarse al proyecto existente |
+| `scripts/`, `tools/empaquetado/`, `requirements/` | Instalación, conexión, verificación y empaquetado |
+| `entrega/Taller2_FF_SM.py`, `entrega/Taller2_FF_SM.cpp` | Entradas académicas e índice; necesitan el proyecto modular completo |
+| `entrega/Especificacion_Tecnica_PEAi.docx` | Especificación técnica en Word |
+| `entrega/integrantes.txt` | Identificación de autores |
+| `docs/entrada/` | Enunciado y Modelo Minciencias 2024 |
+| `brain/` | Requisitos, diseño, decisiones, manuales y evidencia |
 
-## 5. Licencia y Créditos
-Desarrollado para fines académicos en la Universidad Popular del Cesar. Prohibida su distribución no autorizada.
+Listas dobles, multilistas, pila, cola e hipercubo están implementados a mano.
+Las estadísticas salen del hipercubo; la presentación llama a servicios y los
+repositorios usan REST/RPC. No hay base SQLite local.
+
+Agentes, preferencias del editor, entornos virtuales, cachés, capturas,
+exportaciones y secretos quedan fuera de Git. La documentación académica se
+conserva. El video exigido por el enunciado debe entregarse mediante su enlace
+real; el repositorio no inventa una URL ni sustituye esa entrega.
+
+## 8. Solución de problemas
+
+| Situación | Qué comprobar |
+|---|---|
+| `No module named pea` | Instale el proyecto y use `.venv\Scripts\python.exe` |
+| Faltan pytest o responses | Instale `.[dev]`, como hace `preparar.ps1` |
+| Faltan Qt6Config.cmake o doctest | Instale los paquetes UCRT64 y use ese CMake |
+| Error descargando FTXUI | Revise acceso a GitHub y que Git esté instalado |
+| Falta DLL o fuente Inter | Extraiga el ZIP completo; desde código añada UCRT64 a PATH |
+| `401`, `403` o sesión vencida | Cierre y abra de nuevo; si persiste, los autores deben verificar Auth/permisos en pea-prod |
+| Sin conexión o proyecto pausado | Revise Internet; los autores deben reactivar pea-prod si fue pausado |
+| Base de datos cambió | Recargue antes de guardar |
+| PowerShell bloquea scripts | Use los comandos con `-ExecutionPolicy Bypass`, limitado a ese proceso |
+| Verificación cruzada no encuentra C++ | Conserve las carpetas hermanas PEAi-Python y PEAi-Cpp, o configure PEA_CPP_EXE |
+| `WinError 5` en temporales pytest | Ejecute en una sesión con acceso a su carpeta temporal de usuario |
+
+El flujo programado `keep-alive.yml` consulta la disponibilidad cada tres días,
+sin modificar datos. Depende de que GitHub Actions esté habilitado; no garantiza
+disponibilidad continua ni evita todas las causas de pausa del plan gratuito.
+
+Desarrollado con fines académicos. Las dependencias conservan sus propias licencias.
+Véanse [diseño de despliegue](brain/20-Diseno/Despliegue.md) y
+[evidencia de entrega](brain/50-Bitacora/2026-10-21-codex-entrega-reproducible.md).

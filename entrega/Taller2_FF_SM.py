@@ -11,9 +11,9 @@ Integrantes:
 
 Índice de implementación:
 Los puntos 1–13 enlazan, en orden, los requisitos R0–R12 documentados en
-brain/10-Requisitos/SPEC.md. El enunciado original numerado 1–14 no está en
-docs/entrada; por ello el punto 14 queda pendiente de cotejo. La sección C++
-se marca pendiente, conforme a la instrucción de entrega.
+brain/10-Requisitos/SPEC.md. El enunciado original numerado 1–14 está en
+docs/entrada/Taller 2 EdD (2026-09-24) - G 8.pdf. Este índice localiza módulos,
+no sustituye la trazabilidad normativa ni certifica los pendientes de paridad.
 
 1. R0, concurrencia y revisión:
    pea.datos.revision.ControladorRevision.verificar_consistencia
@@ -42,12 +42,12 @@ se marca pendiente, conforme a la instrucción de entrega.
     pea.datos.repositorios.RepositorioProductos.crear_con_rpc
 13. R12, extracción e importación:
     pea.ingesta.extractor_url.ExtractorURL.procesar_url
-14. Punto por cotejar con el enunciado original; C++ pendiente:
-    cpp/ (se rehace en terminal; no se declara cumplido).
+14. Complementos del taller y aplicación C++:
+    cpp/ (terminal FTXUI), supabase/, brain/ y README.md.
+    Brechas pendientes en brain/60-Pruebas/Paridad-Python-Cpp.md.
 """
 
 from pea.gui import main
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

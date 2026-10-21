@@ -1,6 +1,9 @@
 #include "pea/datos/configuracion_conexion.hpp"
 
 #include <QByteArray>
+#include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcessEnvironment>
@@ -45,18 +48,35 @@ bool es_clave_no_publicable(const QString& clave) {
 
 ConfiguracionConexion leer_configuracion_conexion() {
     const auto entorno = QProcessEnvironment::systemEnvironment();
+    QJsonObject publica;
+    if (entorno.value("PEA_OMITIR_CONFIG_PUBLICA") != "1") {
+        QFile archivo(QDir(QCoreApplication::applicationDirPath()).filePath("../config/pea.config.json"));
+        if (archivo.exists()) {
+            if (!archivo.open(QIODevice::ReadOnly)) {
+                throw ErrorValidacion("No se pudo leer la configuración pública del paquete.");
+            }
+            publica = QJsonDocument::fromJson(archivo.readAll()).object();
+            if (publica.size() != 3 ||
+                publica.value("url").toString() != "https://wdmchsncexayqbjueamb.supabase.co" ||
+                !publica.value("clave_publishable").toString().startsWith("sb_publishable_") ||
+                !publica.value("acceso_evaluacion").toBool()) {
+                throw ErrorValidacion("La configuración pública no es válida para pea-prod.");
+            }
+        }
+    }
     QString url = primera_variable(entorno, {
         QStringLiteral("PEA_SUPABASE_URL"),
         QStringLiteral("PEA_SUPABASE_URL_PROD"),
         QStringLiteral("PEA_SUPABASE_URL_TEST"),
     });
+    if (url.isEmpty()) url = publica.value("url").toString();
     while (url.endsWith('/')) {
         url.chop(1);
     }
     if (url.endsWith(QStringLiteral("/rest/v1"), Qt::CaseInsensitive)) {
         url.chop(QStringLiteral("/rest/v1").size());
     }
-    const QString clave = primera_variable(entorno, {
+    QString clave = primera_variable(entorno, {
         QStringLiteral("PEA_SUPABASE_PUBLISHABLE_KEY"),
         QStringLiteral("PEA_SUPABASE_ANON_KEY"),
         QStringLiteral("PEA_SUPABASE_KEY_PROD"),
@@ -64,12 +84,14 @@ ConfiguracionConexion leer_configuracion_conexion() {
         QStringLiteral("PEA_SUPABASE_KEY_TEST"),
         QStringLiteral("PEA_SUPABASE_ANON_TEST"),
     });
+    if (clave.isEmpty()) clave = publica.value("clave_publishable").toString();
     return {
         url,
         clave,
         primera_variable(entorno, {QStringLiteral("PEA_USUARIO_CORREO")}),
         !url.isEmpty(),
         !clave.isEmpty(),
+        publica.value("acceso_evaluacion").toBool(),
     };
 }
 
@@ -124,6 +146,16 @@ std::unique_ptr<ClienteHTTPSupabase> crear_cliente_configurado(
                 configuracion.correo,
                 respuesta.value(QStringLiteral("expires_in")).toInt(3600),
                 respuesta.value(QStringLiteral("user")).toObject());
+            *sesion = std::move(nueva_sesion);
+        }
+    }
+    if (configuracion.correo.isEmpty() && configuracion.acceso_evaluacion) {
+        const auto respuesta = cliente->autenticarEvaluacion();
+        if (sesion) {
+            auto nueva_sesion = std::make_shared<Sesion>();
+            nueva_sesion->iniciar_sesion(
+                respuesta.value("access_token").toString(), QStringLiteral("Evaluación automática"),
+                respuesta.value("expires_in").toInt(3600), respuesta.value("user").toObject());
             *sesion = std::move(nueva_sesion);
         }
     }

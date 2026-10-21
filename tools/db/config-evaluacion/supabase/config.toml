@@ -1,0 +1,4 @@
+# Configuracion minima: no sobreescribir otros ajustes del proyecto remoto.
+project_id = "pea-prod"
+[auth]
+enable_anonymous_sign_ins = true

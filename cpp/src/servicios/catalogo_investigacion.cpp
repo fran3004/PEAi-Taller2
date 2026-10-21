@@ -48,6 +48,11 @@ void CatalogoInvestigacion::sincronizarHipercubo() {
 }
 
 void CatalogoInvestigacion::verificar_autenticacion_si_aplica(bool persistir) {
+    if (m_cliente && m_cliente->tieneSesionEvaluacion() && sesion && sesion->necesita_renovacion()) {
+        const auto respuesta = m_cliente->renovarEvaluacion();
+        sesion->iniciar_sesion(respuesta.value("access_token").toString(), "Evaluación automática",
+            respuesta.value("expires_in").toInt(3600), respuesta.value("user").toObject());
+    }
     if (persistir && !m_cliente) {
         throw ErrorConexion("No hay conexión a Supabase; la escritura fue bloqueada.");
     }

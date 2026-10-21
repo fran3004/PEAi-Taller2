@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from pea.cliente_http import ClienteHTTPSupabase
+from pea.datos.configuracion_portable import leer_configuracion_portable
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
@@ -18,10 +19,12 @@ from pea.version import APP_NAME, APP_VERSION, INSTITUCION, obtener_version
 
 
 def _obtener_cliente_desde_entorno() -> ClienteHTTPSupabase | None:
+    publica = leer_configuracion_portable()
     url = (
         os.environ.get("PEA_SUPABASE_URL_PROD")
         or os.environ.get("PEA_SUPABASE_URL_TEST")
         or os.environ.get("PEA_SUPABASE_URL")
+        or publica.get("url")
     )
     key = (
         os.environ.get("PEA_SUPABASE_ANON_PROD")
@@ -29,6 +32,7 @@ def _obtener_cliente_desde_entorno() -> ClienteHTTPSupabase | None:
         or os.environ.get("PEA_SUPABASE_KEY_PROD")
         or os.environ.get("PEA_SUPABASE_KEY_TEST")
         or os.environ.get("PEA_SUPABASE_PUBLISHABLE_KEY")
+        or publica.get("clave_publishable")
     )
     if url and key:
         cliente = ClienteHTTPSupabase(base_url=url, anon_key=key, timeout=10.0)
@@ -43,6 +47,8 @@ def _obtener_cliente_desde_entorno() -> ClienteHTTPSupabase | None:
                 ClienteAuth(cliente, sesion).iniciar_sesion(correo, clave)
             except Exception:
                 pass
+        elif not correo and not clave and publica.get("acceso_evaluacion"):
+            cliente.autenticar_evaluacion()
         return cliente
     return None
 

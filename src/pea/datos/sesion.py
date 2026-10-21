@@ -17,6 +17,10 @@ class Sesion:
         self._metadatos_usuario: dict[str, Any] = {}
 
     @property
+    def es_evaluacion(self) -> bool:
+        return self._metadatos_usuario.get("is_anonymous") is True
+
+    @property
     def token_acceso(self) -> str | None:
         if self.esta_expirada():
             self.cerrar_sesion()
@@ -45,6 +49,9 @@ class Sesion:
         if self._expira_en is None:
             return False
         return time.time() >= self._expira_en
+
+    def necesita_renovacion(self) -> bool:
+        return self._expira_en is None or time.time() >= self._expira_en - 120
 
     def iniciar_sesion(
         self,

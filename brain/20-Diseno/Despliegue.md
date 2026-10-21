@@ -2,107 +2,94 @@
 tipo: nota-de-diseno
 estado: revisado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-21
 relacionado:
   - "[[_Indice]]"
   - "[[Arquitectura]]"
-  - "[[GUI-Diseno-Python]]"
   - "[[GUI-paridad]]"
   - "[[Seguridad-y-credenciales]]"
-  - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"
-origen: "brain/50-Bitacora/AUDITORIA-DISENO-PEAI.md - Fase 11"
+  - "[[ADR-0023-Entrega-reproducible-Windows]]"
+origen: "Entrega mediante repositorio GitHub solicitada por el usuario"
 ---
 
-# Despliegue y Empaquetado para Windows
+# Despliegue y empaquetado Windows
 
-## 1. Alcance de Distribución
+## Alcance
 
-PEA-i debe poder ejecutarse en estaciones de trabajo estándar con **Windows 10 y Windows 11 (x64)** sin necesidad de instalar entornos de desarrollo, compiladores ni intérpretes globales de Python.
+La distribución se dirige a Windows 10/11 x64. El README raíz es la guía de
+instalación y evaluación. Se conserva el código, las pruebas y la documentación;
+los ejecutables se adjuntan a una Release. Se mantiene el proyecto Supabase existente.
 
-El sistema genera dos entregables de escritorio independientes:
-1. **Instalador / Carpeta Portable Python**: `dist/pea-python/pea-gui.exe`
-2. **Instalador / Carpeta Portable C++**: `dist/pea-cpp/pea-cpp.exe`
+## Construcción desde cero
 
-## 2. Empaquetado de la Aplicación Python (PySide6)
+`scripts/preparar.ps1` crea un entorno CPython Windows de 64 bits, instala
+`.[dev]` aplicando `requirements/windows.txt`, verifica dependencias y compila
+C++ Release con MSYS2 UCRT64. El parámetro `-Empaquetado` instala también
+PyInstaller y build. Estas herramientas solo son necesarias para los desarrolladores.
 
-Se utiliza **PyInstaller** configurado en modo directorio (`--onedir`) para optimizar tiempos de arranque y facilitar la actualización de recursos:
+Python 3.12 es la versión elegida para GitHub Actions; el entorno de desarrollo
+local usa Python 3.14. No se presenta la compilación en una máquina de desarrollo
+como prueba de instalación limpia: CI comienza desde checkout y dependencias nuevas.
 
-### 2.1. Estructura del Paquete
+## Distribución portable
+
+`scripts/empaquetar.ps1` genera `dist/PEAi-Windows-x64.zip`:
+
 ```
-dist/pea-python/
-├── pea-gui.exe               # Ejecutable principal sin consola
-├── config/
-│   └── pea.config.json       # Configuración con URL y clave publishable
-├── recursos/
-│   └── logo_upc.png          # Identidad institucional
-├── _internal/                # DLLs de PySide6, librerías Python y C-runtimes
-└── datos/                    # Directorio para caché local de ingesta
-```
-
-### 2.2. Script de Generación
-El script `scripts/empaquetar-python.ps1` automatiza el empaquetado:
-- Valida que el entorno virtual `.venv` esté activo.
-- Invoca `pyinstaller tools/empaquetado/pea.spec --noconfirm --clean`.
-- Copia `config/pea.config.example.json` a `dist/pea-python/config/pea.config.json` si no existe.
-- Copia los recursos de identidad institucional.
-
-## 3. Empaquetado de la Aplicación C++ (Qt 6 Widgets)
-
-Se compila con la cadena de herramientas de **MSYS2 UCRT64** (GCC 13+ / MinGW-w64, CMake y Ninja) y se despliegan las dependencias mediante **windeployqt6**:
-
-### 3.1. Estructura del Paquete
-```
-dist/pea-cpp/
-├── pea-cpp.exe               # Binario C++ compilado en modo Release
-├── config/
-│   └── pea.config.json       # Configuración compartida
-├── recursos/
-│   └── logo_upc.png
-├── Qt6Core.dll, Qt6Gui.dll, Qt6Widgets.dll, Qt6Network.dll
-├── libssl-3-x64.dll, libcrypto-3-x64.dll   # Soporte OpenSSL TLS 1.3
-├── plugins/                  # Plugins de plataforma (platforms/qwindows.dll, tls/)
-└── datos/
+PEAi-Windows-x64/
+  Iniciar-Python.cmd
+  Iniciar-Cpp.cmd
+  Iniciar-Cpp-demo.cmd
+  README.md
+  scripts/iniciar-con-base.ps1
+  config/pea.config.json
+  PEAi-Python/
+    pea-gui.exe
+    pea-cli.exe
+    _internal/
+  PEAi-Cpp/
+    pea-cpp.exe
+    Qt6Core.dll
+    Qt6Network.dll
+    tls/
+    ... DLL transitivas de UCRT64 y OpenSSL, licencias ...
 ```
 
-### 3.2. Script de Generación
-El script `scripts/empaquetar-cpp.ps1`:
-1. Configura el build con CMake: `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`.
-2. Compila el ejecutable con Ninja: `cmake --build build --config Release`.
-3. Ejecuta `windeployqt6 --release --no-translations dist/pea-cpp/pea-cpp.exe`.
-4. Copia las librerías dinámicas de OpenSSL requeridas por `QtNetwork` para HTTPS sobre TLS.
-5. Inyecta la carpeta `config/` y `recursos/`.
+PyInstaller conserva los recursos gráficos y las fuentes Inter. La GUI no tiene
+consola; la CLI empaquetada ejecuta la comparación con C++, evitando interpretar
+un ejecutable congelado como si fuera el intérprete Python.
 
-## 4. Archivo de Configuración Local (`pea.config.json`)
+C++ usa FTXUI y Qt Core/Network, sin GUI de Qt. `windeployqt6` copia complementos;
+se añaden OpenSSL y las DLL transitivas encontradas con `objdump`. No se copian
+DLL del sistema operativo. `diagnostico-tls` prueba la disponibilidad local de TLS
+sin credenciales ni conexión de red.
 
-Para evitar rutas absolutas y desacoplar las credenciales del código compilado, el ejecutable busca su configuración en orden de prelación:
-1. Argumento de línea de comandos `--config <ruta>`.
-2. Archivo `./config/pea.config.json` adyacente al ejecutable.
-3. Variables de entorno del sistema (`PEA_SUPABASE_URL`, etc.).
+## Configuración y acceso
 
-Formato canónico:
-```json
-{
-  "supabase": {
-    "url": "https://xyzcompany.supabase.co",
-    "anon_key": "eyJhbGciOi...",
-    "timeout_segundos": 15
-  },
-  "ingesta": {
-    "pausa_segundos": 1.0,
-    "max_reintentos": 3,
-    "cache_horas": 24
-  },
-  "ui": {
-    "tema": "institucional",
-    "idioma": "es"
-  }
-}
-```
+Los ejecutables cargan `config/pea.config.json` junto a las carpetas del paquete.
+Solo contiene URL, clave publicable y opción automática. La GUI Python conecta
+al abrir; C++ también autentica automáticamente. Auth genera tokens mantenidos
+solo en memoria y los clientes los renuevan durante el uso.
 
-## 5. Criterios de Verificación en Entorno Limpio
+El propietario autorizó acceso completo a los datos reales tras explicar que
+cualquier descargador tendría esos mismos permisos. La migración 007 retira las
+restricciones de evaluación 005/006; RLS sigue activo con las políticas originales
+para authenticated. No es aislamiento por profesor ni protección de datos privados.
+Véase [[ADR-0025-Acceso-academico-completo]]. Auth y migración 007 se aplicaron y
+verificaron en pea-prod después de un respaldo completo de 20 tablas y 3073 filas.
 
-Antes de la entrega final de cada versión empaquetada:
-- Se prueba en una máquina virtual o sandbox sin Python, MSYS2 ni compiladores instalados.
-- Se comprueba la conexión HTTPS a Supabase.
-- Se verifica la carga del logo institucional y la ausencia de caracteres corruptos (UTF-8 verificado en consola y ventanas).
-- Se ejecuta la suite de comprobación sin errores de DLL faltante.
+`scripts/iniciar-con-base.ps1` conserva la conexión manual opcional de desarrollo.
+No forma parte del recorrido del profesor. No se incluye contraseña universal.
+
+## Comprobaciones y publicación
+
+- `scripts/verificar.ps1`: bóveda, pruebas Python, compilación/CTest y TUI.
+- `tools/empaquetado/probar_portable.py`: versiones, TLS, comparación entre CLI,
+  autopruebas Python/C++ y arranque de GUI, sin Python/MSYS2 en PATH.
+- CI Windows: instalación limpia, pruebas y generación de artefactos.
+- La Release adjunta ZIP, SHA256 y versiones de dependencias resueltas.
+
+La comprobación sin toolchain en PATH no equivale a haber probado todos los
+Windows del profesor. La autenticación, RLS y disponibilidad de Supabase requieren
+una comprobación remota separada; no se certifican por pruebas sin red.
+La evidencia concreta se registra en [[2026-10-21-codex-entrega-reproducible]].

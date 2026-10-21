@@ -51,9 +51,25 @@ brain/.obsidian/cache
 # Supabase CLI
 supabase/.temp/
 supabase/.branches/
+tools/db/config-evaluacion/supabase/.temp/
 
 # Herramientas y sistema
 node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Asistentes y preferencias del desarrollador: se conservan solo localmente
+/.agent/
+/.agents/
+/.codex/
+/.vscode/
+/AGENTS.md
+/brain/.obsidian/
+/package.json
+/package-lock.json
+!/config/pea.config.json
+
+# Resultados reproducibles y entornos de comprobación
+/.entrega-validacion/
+/.venv-*/

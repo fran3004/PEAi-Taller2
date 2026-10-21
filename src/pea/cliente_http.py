@@ -32,6 +32,7 @@ class ClienteHTTPSupabase:
         self.anon_key = anon_key.strip()
         self.timeout = timeout
         self._token_acceso: str | None = None
+        self._refresh_evaluacion: str | None = None
         self._sesion = requests.Session()
 
     def establecer_token_acceso(self, token: str | None) -> None:
@@ -41,6 +42,7 @@ class ClienteHTTPSupabase:
     def cerrar_sesion(self) -> None:
         """Elimina el token de sesión de la memoria volátil."""
         self._token_acceso = None
+        self._refresh_evaluacion = None
 
     @property
     def token_acceso(self) -> str | None:
@@ -54,7 +56,7 @@ class ClienteHTTPSupabase:
         }
         if self._token_acceso:
             cabeceras["Authorization"] = f"Bearer {self._token_acceso}"
-        else:
+        elif not self.anon_key.startswith("sb_publishable_"):
             cabeceras["Authorization"] = f"Bearer {self.anon_key}"
 
         if prefer:
@@ -211,6 +213,36 @@ class ClienteHTTPSupabase:
         if not token:
             raise ErrorAutenticacion("Supabase Auth no devolvió un token de acceso")
         self.establecer_token_acceso(str(token))
+        return cuerpo
+
+    def autenticar_evaluacion(self) -> dict[str, Any]:
+        """Obtiene una sesion temporal sin correo ni contrasena; no se guarda en disco."""
+        respuesta = self._ejecutar("POST", "auth/v1/signup", json_data={})
+        cuerpo = respuesta.json()
+        if not isinstance(cuerpo, dict) or not cuerpo.get("access_token"):
+            raise ErrorAutenticacion("No se pudo abrir la sesion automatica de evaluacion.")
+        if cuerpo.get("user", {}).get("is_anonymous") is not True:
+            raise ErrorAutenticacion("Supabase no devolvio una sesion de evaluacion.")
+        self.establecer_token_acceso(cuerpo["access_token"])
+        self._refresh_evaluacion = cuerpo.get("refresh_token")
+        return cuerpo
+
+    @property
+    def tiene_sesion_evaluacion(self) -> bool:
+        return bool(self._refresh_evaluacion)
+
+    def renovar_evaluacion(self) -> dict[str, Any]:
+        if not self._refresh_evaluacion:
+            raise ErrorAutenticacion("No hay una sesión de evaluación que renovar.")
+        respuesta = self._ejecutar(
+            "POST", "auth/v1/token", params={"grant_type": "refresh_token"},
+            json_data={"refresh_token": self._refresh_evaluacion},
+        )
+        cuerpo = respuesta.json()
+        if not cuerpo.get("access_token") or cuerpo.get("user", {}).get("is_anonymous") is not True:
+            raise ErrorAutenticacion("No se pudo renovar la sesión de evaluación.")
+        self.establecer_token_acceso(cuerpo["access_token"])
+        self._refresh_evaluacion = cuerpo.get("refresh_token", self._refresh_evaluacion)
         return cuerpo
 
     def rpc(self, funcion: str, params: dict[str, Any] | None = None) -> Any:

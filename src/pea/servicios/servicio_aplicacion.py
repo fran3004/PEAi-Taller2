@@ -25,6 +25,7 @@ from typing import Any, TypeVar
 from pydantic import ValidationError
 
 from pea.cliente_http import ClienteHTTPSupabase
+from pea.datos.configuracion_portable import leer_configuracion_portable
 from pea.datos.sesion import Sesion
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
@@ -199,11 +200,12 @@ class ServicioAplicacion:
     def configuracion_entorno() -> dict[str, Any]:
         """Valores de conexión obtenidos automáticamente del entorno (sin devolver contraseñas)."""
         _cargar_env_local()
+        publica = leer_configuracion_portable()
         url_cruda = (
             os.environ.get("PEA_SUPABASE_URL")
             or os.environ.get("PEA_SUPABASE_URL_PROD")
             or os.environ.get("PEA_SUPABASE_URL_TEST")
-            or ""
+            or publica.get("url", "")
         )
         url = _normalizar_url_supabase(url_cruda)
         clave = (
@@ -213,13 +215,14 @@ class ServicioAplicacion:
             or os.environ.get("PEA_SUPABASE_ANON_PROD")
             or os.environ.get("PEA_SUPABASE_KEY_TEST")
             or os.environ.get("PEA_SUPABASE_ANON_TEST")
-            or ""
+            or publica.get("clave_publishable", "")
         )
         return {
             "url": url,
             "clave_publicable": clave,
             "correo": os.environ.get("PEA_USUARIO_CORREO", ""),
             "hay_clave_usuario_en_entorno": bool(os.environ.get("PEA_USUARIO_CLAVE")),
+            "acceso_evaluacion": publica.get("acceso_evaluacion", False),
         }
 
     @staticmethod
@@ -258,6 +261,13 @@ class ServicioAplicacion:
                 token=str(cuerpo.get("access_token", "")),
                 correo=correo_final,
                 tiempo_expiracion_segundos=float(cuerpo.get("expires_in", 3600)),
+            )
+        elif not correo_final and not clave_usuario and cfg.get("acceso_evaluacion"):
+            cuerpo = cliente.autenticar_evaluacion()
+            sesion.iniciar_sesion(
+                token=cuerpo["access_token"], correo="Evaluación automática",
+                tiempo_expiracion_segundos=float(cuerpo.get("expires_in", 3600)),
+                metadatos=cuerpo.get("user", {}),
             )
         clave_usuario = ""  # no se conserva la contraseña
 
@@ -322,6 +332,7 @@ class ServicioAplicacion:
         """Consulta meta.revision (o la revisión simulada) y marca si la base cambió."""
         if self._modo == ModoConexion.SUPABASE and self._cliente is not None:
             try:
+                self._catalogo.renovar_sesion_evaluacion()
                 remota = self._catalogo.controlador_revision.consultar_remota(self._cliente)
             except ErrorConexion as err:
                 self._sin_conexion = True

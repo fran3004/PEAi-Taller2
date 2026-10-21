@@ -2,7 +2,7 @@
 tipo: indice
 estado: revisado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-21
 relacionado:
   - "[[00-Inicio]]"
   - "[[SPEC]]"
@@ -38,3 +38,6 @@ Este registro documenta todas las decisiones no triviales de diseño, arquitectu
 | [[ADR-0020-Revision-remota-periodica-cpp]] | Revisión remota periódica en C++ con cliente HTTPS aislado por hilo | Aprobado | 2026-10-20 | [[Arquitectura]], [[TUI-Diseno-Cpp]], [[ADR-0009-RPC-y-control-de-revision-optimista]] |
 | [[ADR-0021-Actualizacion-atomica-grupo-producto]] | Reasignación de grupo de producto con RPC atómica en C++ | Aprobado | 2026-10-20 | [[GUI-paridad]], [[Paridad-Python-Cpp]], [[ADR-0009-RPC-y-control-de-revision-optimista]] |
 | [[ADR-0022-Interpretacion-categoria-legada-csv]] | Interpretar categorías descriptivas del CSV legado de productos | Aprobado | 2026-10-20 | [[Ingesta]], [[SPEC]], [[Modelo-Productos]], [[Paridad-Python-Cpp]] |
+| [[ADR-0023-Entrega-reproducible-Windows]] | Entrega Windows instalable y portable en GitHub sin credenciales | Revisado | 2026-10-21 | [[Despliegue]], [[Seguridad-y-credenciales]] |
+| [[ADR-0024-Acceso-automatico-evaluacion]] | Sesión automática, lectura real y escritura limitada a evaluación | Revisado | 2026-10-21 | [[Despliegue]], [[Seguridad-y-credenciales]] |
+| [[ADR-0025-Acceso-academico-completo]] | Acceso completo automático solicitado para la calificación | Aprobado | 2026-10-21 | [[ADR-0024-Acceso-automatico-evaluacion]], [[Seguridad-y-credenciales]] |

@@ -74,9 +74,22 @@ class CatalogoInvestigacion:
 
     def _verificar_autenticacion_si_aplica(self) -> None:
         """Verifica que la sesión no haya expirado si hay cliente conectado."""
+        self.renovar_sesion_evaluacion()
         if self.cliente is not None and self.sesion.esta_expirada():
             self.sesion.cerrar_sesion()
             raise ErrorAutenticacion("La sesión ha expirado.")
+
+    def renovar_sesion_evaluacion(self) -> None:
+        if (
+            self.cliente is not None
+            and getattr(self.cliente, "tiene_sesion_evaluacion", False)
+            and self.sesion.necesita_renovacion()
+        ):
+            cuerpo = self.cliente.renovar_evaluacion()
+            self.sesion.iniciar_sesion(
+                cuerpo["access_token"], "Evaluación automática", cuerpo.get("expires_in", 3600),
+                metadatos=cuerpo.get("user", {}),
+            )
 
     def sincronizar_hipercubo(self) -> None:
         """Sincroniza el Hipercubo 5D a partir del estado actual de la Multilista."""

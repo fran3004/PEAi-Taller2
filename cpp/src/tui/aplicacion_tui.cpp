@@ -1266,7 +1266,6 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     if (conectado && cliente) {
         const QString url_supabase = cliente->baseUrl();
         const QString clave_publicable = cliente->anonKey();
-        const QString token_acceso = cliente->tokenAcceso();
         try {
             const auto notificar_error =
                 [&pantalla, &mutex_revision, &revision_remota_recibida,
@@ -1279,12 +1278,12 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                     pantalla.PostEvent(Event::Custom);
                 };
             const auto preparar_tarea =
-                [url_supabase, clave_publicable, token_acceso, &pantalla,
+                [url_supabase, clave_publicable, &pantalla,
                  &mutex_revision, &revision_remota_recibida,
                  &error_revision]() -> TrabajadorPeriodico::Tarea {
                     auto cliente_revision = std::make_shared<ClienteHTTPSupabase>(
                         url_supabase, clave_publicable);
-                    cliente_revision->establecerTokenAcceso(token_acceso);
+                    // meta.revision es publica; no copiar una sesion que pueda caducar.
                     return [cliente_revision, &pantalla, &mutex_revision,
                             &revision_remota_recibida, &error_revision] {
                         datos::ControladorRevision lector_revision;
