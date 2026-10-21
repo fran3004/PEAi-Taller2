@@ -28,4 +28,4 @@ Eres el ingeniero de interfaz de la aplicación de **Python**. La interfaz de C+
 - No usas QML, QtWebEngine, matplotlib ni QtCharts (ADR-0017).
 - No tocas cpp/.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

@@ -24,4 +24,4 @@ Eres el ingeniero C++. Reimplementas el comportamiento de Python de forma idiom√
 - No usas std::list, std::vector ni std::map como almacenamiento principal de entidades.
 - No dejas fugas de memoria ni credenciales en logs.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

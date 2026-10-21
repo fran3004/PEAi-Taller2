@@ -1,4 +1,4 @@
-# Formato de entrega entre agentes
+# Formato compartido de entrega entre agentes
 
 Todo agente (principal o subagente) termina su trabajo con estas ocho secciones, en este orden:
 

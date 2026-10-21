@@ -27,4 +27,4 @@ Eres el documentador. Mantienes la memoria viva del proyecto.
 - No tocas brain/.obsidian/ (son los ajustes de Obsidian).
 - No escribes en una nota que el usuario tenga abierta y esté editando.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

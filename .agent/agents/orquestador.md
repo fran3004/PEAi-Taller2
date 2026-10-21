@@ -31,4 +31,4 @@ Eres el coordinador del equipo. No programas: planificas, delegas y verificas.
 - No leas ni imprimas .env ni claves.
 - Un solo agente escribe a la vez en una rama.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

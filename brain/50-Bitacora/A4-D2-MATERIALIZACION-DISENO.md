@@ -2,7 +2,7 @@
 tipo: bitacora
 estado: aprobado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-20
 relacionado:
   - "[[00-Inicio]]"
   - "[[AUDITORIA-DISENO-PEAI]]"
@@ -60,7 +60,7 @@ Formalizar y materializar de manera exhaustiva en la bóveda viva de Obsidian (`
    - Explicitada formalmente la jerarquía de diseño: `AGENTS.md` $\rightarrow$ `docs/entrada/` $\rightarrow$ `SPEC.md` $\rightarrow$ `AUDITORIA-DISENO-PEAI.md` $\rightarrow$ `brain/20-Diseno/` $\rightarrow$ `brain/30-Decisiones/` $\rightarrow$ Código.
 2. `.env.example`:
    - Eliminada la variable prohibida `PEA_SUPABASE_SECRET_TEST=`, garantizando que ninguna clave secreta se sugiera o utilice.
-3. `.opencode/agents/gui.md`:
+3. `.agent/agents/gui.md`:
    - Eliminado el bloque de texto duplicado (líneas 25–50).
 4. `supabase/config.toml`:
    - Descomentada y asegurada la directiva `auto_expose_new_tables = false`.

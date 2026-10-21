@@ -49,10 +49,10 @@ Existe UN solo proyecto: pea-prod. NO existe pea-test. Cuando un prompt, una not
 ## Secretos
 - Nunca leer, imprimir ni commitear .env, claves sb_secret_*, service_role, contraseñas de base de datos ni tokens. Las variables se leen del entorno. Si un secreto aparece por error en un archivo o en el historial, avisa de inmediato para rotarlo.
 
-## Trabajo con dos agentes (Antigravity y OpenCode)
+## Trabajo con agentes
 - Solo UN agente escribe a la vez sobre la misma rama. Antes de empezar: lee las últimas notas de brain/50-Bitacora/ y ejecuta git status. Al terminar: escribe tu nota de bitácora y haz commit.
 - Ramas: main (entrega) ← dev (integración) ← feat/<área>-<persona>. Nunca commits directos a main.
-- Las skills viven en .agent/skills/ (una sola copia, la leen los dos agentes). Las reglas y flujos de Antigravity están en .agent/rules/ y .agent/workflows/.
+- Las skills viven en .agent/skills/ y las configuraciones de agentes en .agent/agents/. Las reglas, protocolos y flujos compartidos están en .agent/rules/, .agent/protocolos/ y .agent/workflows/.
 
 ## Interfaz de terminal de C++
 - La interfaz funcional de Python sigue siendo la fuente de verdad visual del producto: brain/20-Diseno/GUI-Diseno-Python.md (tokens, siete pantallas, componentes, gráficos, estados y criterios de aceptación). La aplicación C++ no reutiliza ese diseño como referencia visible; se reimplementa como terminal moderna con la misma lógica funcional.

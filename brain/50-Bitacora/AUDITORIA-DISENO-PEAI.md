@@ -2,7 +2,7 @@
 tipo: bitacora
 estado: aprobado
 creado: 2026-10-03
-actualizado: 2026-10-03
+actualizado: 2026-10-20
 relacionado:
   - "[[00-Inicio]]"
   - "[[SPEC]]"
@@ -193,10 +193,10 @@ graph TD
 | **C-01** | Disposición de Navegación GUI | `SPEC.md:RF-11` describe "Barra Lateral de Navegación". | Boceto visual objetivo especifica "Barra Superior Azul Oscura" con pestañas. | Media | La GUI debe adoptar la barra superior como menú primario y barras laterales solo para detalles/filtros de entidad. |
 | **C-02** | Ruta de Skills en Contrato | `AGENTS.md:51` dice `.agents/skills/`. | Git commit `49433f7` renombró el directorio a `.agent/skills/`. | Media | Puede confundir a agentes que busquen herramientas en rutas inexistentes. |
 | **C-03** | Variable de Clave Secreta en Ejemplo | `.env.example:6` contiene `PEA_SUPABASE_SECRET_TEST=`. | `AGENTS.md` prohíbe tajantemente el uso de claves secretas en cualquier entorno. | Alta | Riesgo de que un desarrollador introduzca por error la clave `service_role`. |
-| **C-04** | Duplicación en Agente GUI | `.opencode/agents/gui.md:25-50` duplica el texto completo de las líneas 1-24. | `.opencode/protocolos/` exige formato limpio y conciso. | Baja | Desprolijidad que incrementa el uso de tokens sin añadir valor. |
+| **C-04** | Duplicación en Agente GUI | `.agent/agents/gui.md:25-50` duplica el texto completo de las líneas 1-24. | `.agent/protocolos/` exige formato limpio y conciso. | Baja | Desprolijidad que incrementa el uso de tokens sin añadir valor. |
 | **C-05** | Configuración de Exposición en Supabase | `supabase/config.toml:23` tiene `# auto_expose_new_tables = true` comentado (activo por defecto). | `.agent/skills/postgresql-supabase/SKILL.md` exige grants explícitos y mínimo privilegio. | Media | Nuevas tablas podrían quedar expuestas a roles públicos sin RLS estricto. |
 | **C-06** | Referencias a Entidades Secundarias en GUI | El boceto visual muestra pestañas para "Semilleros", "Proyectos", "Centros". | El enunciado y `SPEC.md` concentran el núcleo obligatorio en Grupos, Investigadores e Integrantes y Productos. | Media | Riesgo de dispersión: se deben mantener como vistas secundarias o supuestos sin sobrecargar el modelo de datos. |
-| **C-07** | Puerta de Implementación en Comandos | `.opencode/commands/implementar.md` exige `brain/20-Diseno/Contrato-de-datos.md`. | En `brain/20-Diseno/` no existe aún ningún archivo. | Alta | Impide que el comando de implementación corra hasta que la fase A4 cree el documento. |
+| **C-07** | Puerta de Implementación en Comandos | El flujo histórico de implementación exigía `brain/20-Diseno/Contrato-de-datos.md`. | En `brain/20-Diseno/` no existía aún ningún archivo. | Alta | Impedía ejecutar el flujo de implementación hasta que la fase A4 creara el documento. |
 | **C-08** | Inexistencia del script de verificación | `.agent/workflows/verificar.md` cita `scripts/verificar.ps1`. | En `scripts/` actualmente solo existe `restaurar.ps1`. | Media | El flujo de verificación falla si no se crea el script unificado. |
 | **C-09** | Enfoque de Pruebas destructivas | Documentación previa hablaba de `test_reset()` total. | `AGENTS.md` (Proyecto único) exige que las pruebas solo limpien filas `PRUEBA-` con `es_ejemplo=true`. | Alta | Evita borrar accidentalmente datos reales o de ejemplo oficial. |
 | **C-10** | Manejo de Estado en Cascada de Investigadores | Pregunta abierta #2 sin cerrar: eliminar físico vs desactivar lógico. | `SPEC.md:RNF-06` establece que todo cambio debe ser reversible. | Alta | Necesidad de formalizar la regla de bloqueo si un investigador es único autor. |
@@ -228,7 +228,7 @@ graph TD
 1. **`brain/00-Inicio.md`**: Actualizar la sección de Diseño una vez que se pueble `brain/20-Diseno/`.
 2. **`AGENTS.md`**: Corregir la errata de ruta `.agents/skills/` por `.agent/skills/`.
 3. **`.env.example`**: Eliminar la línea 6 `PEA_SUPABASE_SECRET_TEST=`.
-4. **`.opencode/agents/gui.md`**: Remover el bloque de texto duplicado.
+4. **`.agent/agents/gui.md`**: Remover el bloque de texto duplicado.
 5. **`supabase/config.toml`**: Descomentar `auto_expose_new_tables = false` para forzar el principio de mínimo privilegio.
 
 ---
@@ -239,7 +239,7 @@ graph TD
 |---|---|---|
 | `AGENTS.md` | Corregir ruta de `.agents/` a `.agent/`. | P1 |
 | `.env.example` | Retirar variable de clave secret prohibida. | P1 |
-| `.opencode/agents/gui.md` | Eliminar contenido duplicado. | P2 |
+| `.agent/agents/gui.md` | Eliminar contenido duplicado. | P2 |
 | `supabase/config.toml` | Ajustar seguridad de exposición de tablas. | P1 |
 | `scripts/verificar.ps1` | Crear script unificado de compilación y pruebas. | P0 |
 
@@ -349,7 +349,7 @@ El siguiente prompt (`A4-D2`) deberá materializar la documentación formal del 
 3. **Paso 3: Actualizar correcciones menores detectadas**:
    - Corregir ruta en `AGENTS.md:51`.
    - Limpiar `PEA_SUPABASE_SECRET_TEST` en `.env.example`.
-   - Limpiar duplicado en `.opencode/agents/gui.md`.
+   - Limpiar duplicado en `.agent/agents/gui.md`.
 4. **Paso 4: Verificación y Cierre**:
    - Ejecutar `tools/brain/verificar_brain.py` garantizando 0 errores y 0 advertencias.
    - Bitácora de sesión y commit: `docs: diseno formal y decisiones de arquitectura`.

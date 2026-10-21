@@ -20,4 +20,4 @@ Eres el explorador. Tu trabajo es mirar y contar, no cambiar nada.
 - No lees .env.
 - No sacas conclusiones sin ruta de archivo que las respalde.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

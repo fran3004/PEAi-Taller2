@@ -2,7 +2,7 @@
 tipo: bitacora
 estado: borrador
 creado: 2026-10-02
-actualizado: 2026-10-02
+actualizado: 2026-10-20
 relacionado:
   - "[[Modelo-original]]"
 origen: "Auditoría de punto de partida solicitada por el usuario al orquestador"
@@ -17,7 +17,7 @@ commit: ""
 Auditar el repositorio antes de construir nada, contrastarlo con el contrato de AGENTS.md, clasificar cada pieza y detectar trampas (rama equivocada, pea-test, SQLite, service_role, prompts de proyecto vacío, Modelo HTML en vez de PDF 2024). Sin modificar código.
 
 ## Qué se hizo
-- Se leyó AGENTS.md, .opencode/protocolos/entrega-entre-agentes.md y se comprobó que brain/50-Bitacora/ estaba VACÍA (no hay "últimas 5 notas": nunca se ha usado).
+- Se leyó AGENTS.md, `.agent/protocolos/entrega-entre-agentes.md` y se comprobó que brain/50-Bitacora/ estaba VACÍA (no hay "últimas 5 notas": nunca se ha usado).
 - Inventario completo del árbol: 77 archivos versionados, 3 commits, 0 sin seguimiento, 42 carpetas.
 - Se delegaron en paralelo tres auditorías de solo lectura: seguridad (secretos/ramas/trampas) y documentador (fuentes + bóveda). El subagente explorador no arrancó (error del proveedor) y el inventario se hizo directamente en esta sesión.
 - Toda afirmación se verificó con `git grep`, `git check-ignore`, `git ls-files`, `Test-Path` y lectura directa.
@@ -50,5 +50,5 @@ Auditar el repositorio antes de construir nada, contrastarlo con el contrato de 
 3. Corregir AGENTS.md:51 (`.agents/` → `.agent/`) y AGENTS.md:7 (aclarar que el Modelo es el PDF 2024).
 4. Crear en este orden: ADR-0001 (fuente del Modelo + excepción de host), brain/00-Inicio.md, tools/brain/verificar_brain.py, luego regenerar docs/entrada/Modelo.* y brain/40-Fuentes/Modelo.md, y por último brain/10-Requisitos/SPEC.md (rol requisitos).
 5. Poner `.github/workflows/keep-alive.yml` (la clave en `secrets`, nunca literal) o pea-prod se pausa a la semana sin copias.
-6. Endurecer `opencode.json:39` (`python*` = allow puentea el deny de lectura de .env) y `.gitignore` (sin reglas para `*.pem`, `*.key`, `signing_keys.json`). Añadir los 4 `.gitkeep` que .gitignore declara.
+6. Endurecer la configuración heredada de permisos (`python*` = allow puentea el deny de lectura de .env) y `.gitignore` (sin reglas para `*.pem`, `*.key`, `signing_keys.json`). Añadir los 4 `.gitkeep` que .gitignore declara.
 7. `tools/modelo/extraer_modelo.py`: sin lista blanca de hosts, sin reintentos ni caché, `--nombre` sin sanear y `shutil.rmtree` sin confirmar (línea 205).

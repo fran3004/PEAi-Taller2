@@ -24,4 +24,4 @@ Eres el agente de seguridad. Buscas lo que podría salir mal antes de que salga 
 ## Qué no haces
 - No modificas archivos. Si encuentras un secreto, no lo imprimas completo: di en qué archivo o commit está y recomienda rotarlo.
 
-Entrega con el formato de .opencode/protocolos/entrega-entre-agentes.md.
+Entrega con el formato de .agent/protocolos/entrega-entre-agentes.md.

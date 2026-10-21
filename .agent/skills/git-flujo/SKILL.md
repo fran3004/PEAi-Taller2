@@ -1,6 +1,6 @@
 ---
 name: git-flujo
-description: Usar al crear ramas, hacer commits, preparar un pull request, resolver choques entre Antigravity y OpenCode o decidir cuándo hacer push.
+description: Usar al crear ramas, hacer commits, preparar un pull request, resolver choques entre agentes o decidir cuándo hacer push.
 ---
 # Git en PEA-i
 
@@ -13,9 +13,9 @@ description: Usar al crear ramas, hacer commits, preparar un pull request, resol
 - Uno por tarea, con prefijo: `feat:`, `fix:`, `docs:`, `test:` o `chore:`, y un mensaje claro en español.
 - Revisa antes con `git status` y `git diff`. No incluyas `.env`, datos de `datos/` ni paquetes.
 
-## Dos agentes
+## Coordinación entre agentes
 - Solo UN agente escribe a la vez en una rama. Antes de empezar: `git status` y las últimas bitácoras. Al terminar: bitácora y commit.
-- Si Antigravity y OpenCode chocan: `git status` y `git log --oneline -10` en cada rama, explica qué hizo cada uno y propón cómo unir sin perder trabajo. Espera la confirmación del usuario.
+- Si dos agentes chocan: `git status` y `git log --oneline -10` en cada rama, explica qué hizo cada uno y propón cómo unir sin perder trabajo. Espera la confirmación del usuario.
 
 ## Cosas que NUNCA se hacen
 - `git push --force` o `-f`.
