@@ -43,6 +43,53 @@ CatalogoInvestigacion::CatalogoInvestigacion(ClienteHTTPSupabase* cliente,
     estadisticas.setHipercubo(&hipercubo);
 }
 
+CatalogoInvestigacion::CatalogoInvestigacion(CatalogoInvestigacion&& otro) noexcept
+    : grupos(std::move(otro.grupos)),
+      investigadores(std::move(otro.investigadores)),
+      integrantes(std::move(otro.integrantes)),
+      multilista_productos(std::move(otro.multilista_productos)),
+      proyectos(std::move(otro.proyectos)),
+      pila_deshacer(std::move(otro.pila_deshacer)),
+      cola_importacion(std::move(otro.cola_importacion)),
+      hipercubo(std::move(otro.hipercubo)),
+      sesion(std::move(otro.sesion)),
+      controlador_revision(std::move(otro.controlador_revision)),
+      m_cliente(otro.m_cliente),
+      m_repo_grupos(std::move(otro.m_repo_grupos)),
+      m_repo_investigadores(std::move(otro.m_repo_investigadores)),
+      m_repo_integrantes(std::move(otro.m_repo_integrantes)),
+      m_repo_productos(std::move(otro.m_repo_productos)),
+      m_repo_proyectos(std::move(otro.m_repo_proyectos)) {
+    estadisticas.setHipercubo(&hipercubo);
+    otro.m_cliente = nullptr;
+}
+
+CatalogoInvestigacion& CatalogoInvestigacion::operator=(CatalogoInvestigacion&& otro) noexcept {
+    if (this == &otro) {
+        return *this;
+    }
+
+    grupos = std::move(otro.grupos);
+    investigadores = std::move(otro.investigadores);
+    integrantes = std::move(otro.integrantes);
+    multilista_productos = std::move(otro.multilista_productos);
+    proyectos = std::move(otro.proyectos);
+    pila_deshacer = std::move(otro.pila_deshacer);
+    cola_importacion = std::move(otro.cola_importacion);
+    hipercubo = std::move(otro.hipercubo);
+    sesion = std::move(otro.sesion);
+    controlador_revision = std::move(otro.controlador_revision);
+    m_cliente = otro.m_cliente;
+    m_repo_grupos = std::move(otro.m_repo_grupos);
+    m_repo_investigadores = std::move(otro.m_repo_investigadores);
+    m_repo_integrantes = std::move(otro.m_repo_integrantes);
+    m_repo_productos = std::move(otro.m_repo_productos);
+    m_repo_proyectos = std::move(otro.m_repo_proyectos);
+    estadisticas.setHipercubo(&hipercubo);
+    otro.m_cliente = nullptr;
+    return *this;
+}
+
 void CatalogoInvestigacion::sincronizarHipercubo() {
     hipercubo.poblarDesdeMultilista(multilista_productos);
 }

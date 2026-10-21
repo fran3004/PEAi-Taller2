@@ -38,8 +38,8 @@ public:
 
     CatalogoInvestigacion(const CatalogoInvestigacion&) = delete;
     CatalogoInvestigacion& operator=(const CatalogoInvestigacion&) = delete;
-    CatalogoInvestigacion(CatalogoInvestigacion&&) noexcept = default;
-    CatalogoInvestigacion& operator=(CatalogoInvestigacion&&) noexcept = default;
+    CatalogoInvestigacion(CatalogoInvestigacion&& otro) noexcept;
+    CatalogoInvestigacion& operator=(CatalogoInvestigacion&& otro) noexcept;
 
     // Colecciones del dominio en estructuras propias hechas a mano
     estructuras::ListaDoble<std::shared_ptr<dominio::Grupo>> grupos;
