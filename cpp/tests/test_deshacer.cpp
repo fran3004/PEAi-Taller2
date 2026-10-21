@@ -96,6 +96,51 @@ TEST_CASE("Deshacer - Reversión de edición de producto y sincronización del h
     CHECK(catalogo.estadisticas.productosPorAnio().value(2024) == 1);
 }
 
+TEST_CASE("Actualizar producto cambia o quita grupo y deshacer restaura la relación") {
+    CatalogoInvestigacion catalogo;
+    auto grupo_original = std::make_shared<Grupo>("GRP-ORIGINAL", "Grupo original", "A");
+    auto grupo_nuevo = std::make_shared<Grupo>("GRP-NUEVO", "Grupo nuevo", "B");
+    catalogo.crear_grupo(grupo_original, false);
+    catalogo.crear_grupo(grupo_nuevo, false);
+
+    auto producto = std::make_shared<Producto>(
+        "PRD-GRUPO-01", "Producto", "GNC", "Articulo", 2024);
+    catalogo.crear_producto(producto, grupo_original->codigo_gruplac, {}, false);
+    auto* nodo = catalogo.multilista_productos.buscar_nodo(
+        producto->codigo_identificador);
+    REQUIRE(nodo != nullptr);
+    CHECK(nodo->grupo.get() == grupo_original.get());
+
+    QJsonObject grupo_inexistente;
+    grupo_inexistente["titulo"] = "No se debe aplicar";
+    grupo_inexistente["codigo_grupo"] = "GRP-INEXISTENTE";
+    CHECK_THROWS_AS(
+        catalogo.actualizar_producto(
+            producto->codigo_identificador, grupo_inexistente, false),
+        pea::RecursoNoEncontrado);
+    CHECK(producto->titulo == "Producto");
+    CHECK(nodo->grupo.get() == grupo_original.get());
+
+    QJsonObject cambio_grupo;
+    cambio_grupo["codigo_grupo"] = grupo_nuevo->codigo_gruplac;
+    catalogo.actualizar_producto(producto->codigo_identificador, cambio_grupo, false);
+    CHECK(nodo->grupo.get() == grupo_nuevo.get());
+    CHECK(catalogo.multilista_productos.obtener_productos_grupo(
+              grupo_original->codigo_gruplac).esta_vacia());
+    CHECK(catalogo.multilista_productos.obtener_productos_grupo(
+              grupo_nuevo->codigo_gruplac).tamano() == 1);
+
+    REQUIRE(catalogo.deshacer(false).has_value());
+    CHECK(nodo->grupo.get() == grupo_original.get());
+
+    QJsonObject quitar_grupo;
+    quitar_grupo["codigo_grupo"] = QJsonValue(QJsonValue::Null);
+    catalogo.actualizar_producto(producto->codigo_identificador, quitar_grupo, false);
+    CHECK(nodo->grupo.get() == nullptr);
+    REQUIRE(catalogo.deshacer(false).has_value());
+    CHECK(nodo->grupo.get() == grupo_original.get());
+}
+
 TEST_CASE("Actualizar producto rechaza campos desconocidos sin mutar datos") {
     CatalogoInvestigacion catalogo;
     auto prod = std::make_shared<Producto>("PRD-INVALID-01", "Sin cambios", "ASC", "Artículo", 2024);

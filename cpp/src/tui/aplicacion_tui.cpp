@@ -77,7 +77,8 @@ std::vector<std::string> campos_formulario(int entidad, int accion) {
         if (entidad == 1) return {"Código RH", "Nombre completo nuevo", "Categoría nueva", "Formación nueva"};
         if (entidad == 2) return {"Código GrupLAC", "Nombre nuevo", "Categoría nueva", "Líder nuevo"};
         return {"Código", "Título nuevo", "Tipo mayor nuevo", "Subtipo nuevo",
-                "Año nuevo", "Validación nueva"};
+                "Año nuevo", "Validación nueva", "Código GrupLAC nuevo (opcional)",
+                "Quitar grupo actual (sí/no)"};
     }
     if (accion == 3) return {entidad == 1 ? "Código RH" : entidad == 2 ? "Código GrupLAC" : "Código producto"};
     if (accion == 4) {
@@ -1158,6 +1159,27 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                             throw std::invalid_argument("La validación debe ser Avalado, Con soporte o No avalado.");
                         }
                         cambios["estado_validacion"] = validacion;
+                    }
+                    const QString codigo_grupo = valor(6).trimmed();
+                    if (!codigo_grupo.isEmpty()) {
+                        if (!catalogo.buscar_grupo(codigo_grupo)) {
+                            throw std::invalid_argument("No existe el grupo indicado.");
+                        }
+                        cambios["codigo_grupo"] = codigo_grupo;
+                    }
+                    const QString quitar_grupo = valor(7).trimmed().toLower();
+                    if (!quitar_grupo.isEmpty() && quitar_grupo != "si" &&
+                        quitar_grupo != "sí" &&
+                        quitar_grupo != "no") {
+                        throw std::invalid_argument(
+                            "Para quitar el grupo, escriba sí o no.");
+                    }
+                    if (quitar_grupo == "si" || quitar_grupo == "sí") {
+                        if (!codigo_grupo.isEmpty()) {
+                            throw std::invalid_argument(
+                                "Indique un grupo nuevo o quite el grupo actual, no ambas acciones.");
+                        }
+                        cambios["codigo_grupo"] = QJsonValue(QJsonValue::Null);
                     }
                     if (cambios.isEmpty()) throw std::invalid_argument("Indique al menos un campo para actualizar.");
                     catalogo.actualizar_producto(codigo, cambios, persistir);

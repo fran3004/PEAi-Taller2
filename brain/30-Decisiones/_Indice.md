@@ -36,3 +36,4 @@ Este registro documenta todas las decisiones no triviales de diseño, arquitectu
 | [[ADR-0018-Histogramas-desde-hipercubo]] | Histogramas calculados desde el hipercubo y renderizados con Qt | Revisado | 2026-10-20 | [[Hipercubo]], [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]] |
 | [[ADR-0019-Cpp-terminal-con-ftxui]] | C++ pasa a terminal moderna con FTXUI y sin Qt Widgets/Gui | Aprobado | 2026-10-20 | [[Arquitectura]], [[GUI-paridad]], [[ADR-0017-Tecnologia-de-interfaz-Qt-Widgets]] |
 | [[ADR-0020-Revision-remota-periodica-cpp]] | Revisión remota periódica en C++ con cliente HTTPS aislado por hilo | Aprobado | 2026-10-20 | [[Arquitectura]], [[TUI-Diseno-Cpp]], [[ADR-0009-RPC-y-control-de-revision-optimista]] |
+| [[ADR-0021-Actualizacion-atomica-grupo-producto]] | Reasignación de grupo de producto con RPC atómica en C++ | Aprobado | 2026-10-20 | [[GUI-paridad]], [[Paridad-Python-Cpp]], [[ADR-0009-RPC-y-control-de-revision-optimista]] |

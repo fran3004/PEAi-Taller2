@@ -11,6 +11,7 @@ relacionado:
   - "[[Interoperabilidad]]"
   - "[[ADR-0011-Paridad-arquitectural-Python-Cpp]]"
   - "[[ADR-0019-Cpp-terminal-con-ftxui]]"
+  - "[[ADR-0021-Actualizacion-atomica-grupo-producto]]"
   - "[[SPEC]]"
 origen: "Cambio de rumbo de C++: dejar la GUI Qt y volver a una terminal moderna (2026-10-20)"
 ---
@@ -47,6 +48,11 @@ y las diferencias funcionales en [[Paridad-Python-Cpp]].
 3. **Mismas reglas de negocio**: cascadas, desactivación reversible, eliminación de estructuras y respaldo en memoria al error de persistencia.
 4. **Estadísticas desde el hipercubo**: la agregación vuelve a derivarse del `Hipercubo5D`, no desde consultas SQL.
 5. **Salida y navegación terminal**: pantallas, tablas, menús, visibilidad de estado y atajos de teclado equivalentes a los de la GUI de Python, aunque la implementación se haga en consola.
+
+La edición de producto en C++ permite cambiar el grupo vinculado o quitarlo.
+La persistencia se realiza en una sola RPC con revisión esperada; la migración
+que agrega esa función debe aplicarse a `pea-prod` antes de usar esta operación
+con datos remotos.
 
 ## Lo que C++ no debe intentar
 

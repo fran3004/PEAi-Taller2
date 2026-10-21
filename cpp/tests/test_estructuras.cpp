@@ -160,3 +160,42 @@ TEST_CASE("Multilista - navegación multidireccional y enlaces cruzados") {
     CHECK(multi.buscar_producto("P-01").get() == nullptr);
 
 }
+
+TEST_CASE("Multilista - reasignar grupo conserva enlaces entre productos") {
+    Multilista multi;
+    auto grupo_a = std::make_shared<Grupo>("GRP-A", "Grupo A", "A");
+    auto grupo_b = std::make_shared<Grupo>("GRP-B", "Grupo B", "B");
+    auto producto_a = std::make_shared<Producto>("P-A", "Producto A", "GNC", "Articulo", 2024);
+    auto producto_b = std::make_shared<Producto>("P-B", "Producto B", "GNC", "Articulo", 2024);
+    auto producto_c = std::make_shared<Producto>("P-C", "Producto C", "GNC", "Articulo", 2024);
+
+    multi.agregar_producto(producto_a, grupo_a);
+    multi.agregar_producto(producto_b, grupo_a);
+    multi.agregar_producto(producto_c, grupo_b);
+
+    auto* nodo_a = multi.buscar_nodo("P-A");
+    auto* nodo_b = multi.buscar_nodo("P-B");
+    auto* nodo_c = multi.buscar_nodo("P-C");
+    REQUIRE(nodo_a != nullptr);
+    REQUIRE(nodo_b != nullptr);
+    REQUIRE(nodo_c != nullptr);
+    CHECK(nodo_b->anterior_en_grupo == nodo_a);
+
+    CHECK(multi.cambiar_grupo_de_producto("P-A", grupo_b));
+    CHECK(nodo_a->grupo.get() == grupo_b.get());
+    CHECK(nodo_a->siguiente_en_grupo == nodo_c);
+    CHECK(nodo_c->anterior_en_grupo == nodo_a);
+    CHECK(nodo_b->anterior_en_grupo == nullptr);
+    CHECK(multi.obtener_productos_grupo("GRP-A").tamano() == 1);
+    CHECK(multi.obtener_productos_grupo("GRP-B").tamano() == 2);
+
+    CHECK(multi.cambiar_grupo_de_producto("P-A", nullptr));
+    CHECK(nodo_a->grupo.get() == nullptr);
+    CHECK_FALSE(nodo_a->anterior_en_grupo);
+    CHECK_FALSE(nodo_a->siguiente_en_grupo);
+    CHECK(nodo_c->anterior_en_grupo == nullptr);
+    CHECK(nodo_c->siguiente_en_grupo == nullptr);
+    CHECK(multi.obtener_productos_grupo("GRP-B").tamano() == 1);
+    CHECK(multi.cambiar_grupo_de_producto("P-C", grupo_b));
+    CHECK_FALSE(multi.cambiar_grupo_de_producto("P-INEXISTENTE", grupo_a));
+}

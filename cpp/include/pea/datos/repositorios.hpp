@@ -67,6 +67,11 @@ public:
     [[nodiscard]] estructuras::ListaDoble<dominio::Producto> listar(std::optional<bool> es_ejemplo = std::nullopt);
     [[nodiscard]] std::optional<dominio::Producto> obtener_por_codigo(const QString& codigo_identificador);
     dominio::Producto actualizar(const QString& codigo_identificador, const QJsonObject& datos);
+    qint64 actualizar_con_grupo(
+        const QString& codigo_identificador,
+        const QJsonObject& datos,
+        std::optional<qint64> grupo_id,
+        qint64 revision_esperada);
     qint64 crear_con_rpc(
         const dominio::Producto& producto,
         std::optional<qint64> grupo_id,

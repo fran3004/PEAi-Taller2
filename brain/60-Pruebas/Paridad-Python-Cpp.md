@@ -35,7 +35,7 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Eliminar investigador | `ServicioDominio.eliminar_investigador()` | `CatalogoInvestigacion::eliminar_investigador()` | igual | Comprobar dependencias y cascadas |
 | Crear producto | `ServicioDominio.crear_producto()` | `CatalogoInvestigacion::crear_producto()` | igual | Validaciones de categoría / validación |
 | Buscar producto | `ServicioDominio.buscar_producto()` | `CatalogoInvestigacion::buscar_producto()` | igual | Confirmar que devuelve producto activo e inactivo |
-| Actualizar producto | `ServicioDominio.actualizar_producto()` | `CatalogoInvestigacion::actualizar_producto()` | distinto | C++ actualiza metadatos con compensación y undo; falta cambio de grupo y prueba diferencial |
+| Actualizar producto | `ServicioDominio.actualizar_producto()` | `CatalogoInvestigacion::actualizar_producto()` | Implementado localmente | C++ cambia o quita el grupo en la multilista, deshace la relación y persiste metadatos más vínculo mediante RPC atómica. Migración 004 pendiente de aplicación remota y verificación autenticada |
 | Desactivar producto | `ServicioDominio.desactivar_producto()` | soporte en catálogo/estructura | igual | Confirmar ser reversible |
 | Activar producto | `ServicioDominio.activar_producto()` | soporte en catálogo | igual | Validar estado activo cuando se reanuda |
 | Eliminar producto | `ServicioDominio.eliminar_producto()` | `CatalogoInvestigacion::eliminar_producto()` | igual | Verificar remoción de multilista y relaciones |
@@ -84,7 +84,8 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 
 ## Brechas confirmadas y evidencia
 
-- La edición de producto añadida en esta iteración cubre metadatos y undo local; aún no permite cambiar su grupo, y no se ha probado contra un repositorio remoto.
+- La edición de producto en C++ cubre metadatos y reasignación/desvinculación del grupo con undo y compensación local. La migración RPC está versionada, pero no se ha aplicado ni probado contra `pea-prod`.
+- Las pruebas C++ cubren reasignación y desvinculación en la multilista, orden de enlaces intragrupo, rechazo de grupos inexistentes y deshacer. La autoprueba confirma el formulario de edición; 43 casos/472 aserciones C++ y 4 casos Python de edición pasaron. No se afirma la ejecución SQL ni persistencia remota de la migración 004.
 - La TUI mantiene brechas de paridad: CRUD básico, fichas, análisis de coautoría, filtros temporales e importación interactiva están implementados; filtros por campos, vistas/gráficos estadísticos avanzados y una experiencia modal completa no están terminados.
 - La autoprueba ejecutada renderiza 32 combinaciones de pantalla/tamaño, comprueba búsqueda en los tres directorios, los quince formularios de gestión, formularios CSV/URL y rango, el efecto del filtro Modelo 2024 y una red con coautoría; las capturas no equivalen a snapshots aprobados ni detectan todo truncamiento.
 - Un fixture JSON compartido prueba la exportación integral de grupos, investigadores y productos desde ambos lenguajes, byte a byte, cubriendo encabezados, orden, filas múltiples, valores vacíos, booleanos, UTF-8, comas, comillas, saltos de línea y CRLF. Python escribe los tres archivos a través de su CLI; C++ prueba el serializador de catálogo compartido por su CLI. Falta ejecutar el CLI C++ extremo a extremo y probar fallos de escritura atómica.

@@ -7,6 +7,7 @@ relacionado:
   - "[[Arquitectura]]"
   - "[[GUI-paridad]]"
   - "[[ADR-0019-Cpp-terminal-con-ftxui]]"
+  - "[[ADR-0021-Actualizacion-atomica-grupo-producto]]"
   - "[[Paridad-Python-Cpp]]"
 origen: "Implementación inicial de la terminal C++ con FTXUI y criterios del Taller 2"
 ---
@@ -58,6 +59,7 @@ secundario.
 | Carga remota al inicio con configuración disponible | Implementada; requiere pruebas de red autenticadas |
 | Capturas de autoprueba | 32 archivos generados por `--autoprueba` |
 | Formularios para crear, editar metadatos, activar/desactivar y eliminar; confirmación `ELIMINAR` | Implementados para las tres entidades; formularios verificados por autoprueba de renderizado |
+| Editar grupo vinculado a producto | El formulario permite indicar un código GrupLAC nuevo o escribir `si` para quitar el vínculo. La multilista mantiene el orden y deshacer; la escritura usa una RPC atómica. La migración local aún requiere despliegue en `pea-prod` |
 | Ficha JSON de grupo, investigador y producto | Implementada; la ficha de producto incluye grupo y autores enlazados |
 | Análisis institucional anual y pares frecuentes de coautoría | Implementado desde el catálogo cargado y las relaciones de la multilista; requiere comparación diferencial con Python |
 | Importar CSV (grupos, investigadores, productos o autores) | Implementado desde la pestaña Importar; valida tipo y requiere conexión autenticada |

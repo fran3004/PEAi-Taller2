@@ -153,6 +153,38 @@ public:
         return nodo ? nodo->producto : nullptr;
     }
 
+    bool cambiar_grupo_de_producto(
+        const QString& codigo_identificador,
+        std::shared_ptr<dominio::Grupo> nuevo_grupo) {
+        auto* nodo = buscar_nodo(codigo_identificador);
+        if (!nodo) return false;
+
+        const QString codigo_actual =
+            nodo->grupo ? nodo->grupo->codigo_gruplac : QString();
+        const QString codigo_nuevo =
+            nuevo_grupo ? nuevo_grupo->codigo_gruplac : QString();
+        if (codigo_actual == codigo_nuevo) return true;
+
+        const auto grupo_anterior = nodo->grupo;
+        if (nodo->anterior_en_grupo) {
+            nodo->anterior_en_grupo->siguiente_en_grupo = nodo->siguiente_en_grupo;
+        }
+        if (nodo->siguiente_en_grupo) {
+            nodo->siguiente_en_grupo->anterior_en_grupo = nodo->anterior_en_grupo;
+        }
+        nodo->anterior_en_grupo = nullptr;
+        nodo->siguiente_en_grupo = nullptr;
+        nodo->grupo = std::move(nuevo_grupo);
+
+        if (grupo_anterior) {
+            reconstruir_enlaces_grupo(codigo_actual);
+        }
+        if (nodo->grupo) {
+            reconstruir_enlaces_grupo(codigo_nuevo);
+        }
+        return true;
+    }
+
     [[nodiscard]] ListaDoble<std::shared_ptr<dominio::Producto>> obtener_productos_grupo(const QString& codigo_gruplac) const {
         ListaDoble<std::shared_ptr<dominio::Producto>> resultado;
         auto* actual = m_cabeza_global;
@@ -286,6 +318,25 @@ private:
     NodoProductoMultilista* m_cabeza_global{nullptr};
     NodoProductoMultilista* m_cola_global{nullptr};
     std::size_t m_tamano{0};
+
+    void reconstruir_enlaces_grupo(const QString& codigo_gruplac) {
+        NodoProductoMultilista* anterior = nullptr;
+        auto* actual = m_cabeza_global;
+        while (actual) {
+            if (actual->grupo &&
+                actual->grupo->codigo_gruplac == codigo_gruplac) {
+                actual->anterior_en_grupo = anterior;
+                if (anterior) {
+                    anterior->siguiente_en_grupo = actual;
+                }
+                anterior = actual;
+            }
+            actual = actual->siguiente_global;
+        }
+        if (anterior) {
+            anterior->siguiente_en_grupo = nullptr;
+        }
+    }
 
     void enlazar_en_grupo(NodoProductoMultilista* nodo, const QString& codigo_gruplac) {
         NodoProductoMultilista* ultimo = nullptr;

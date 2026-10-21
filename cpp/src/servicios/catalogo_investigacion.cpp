@@ -657,10 +657,24 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::actualizar_producto(
     exigir_id_remoto(persistir, producto->id, "El producto");
 
     QJsonObject anteriores;
+    bool cambio_grupo = false;
+    QJsonValue valor_grupo;
     for (auto it = datos.constBegin(); it != datos.constEnd(); ++it) {
         const auto& campo = it.key();
         const auto& valor = it.value();
-        if (campo == "titulo" || campo == "tipo_mayor" || campo == "subtipo" ||
+        if (campo == "codigo_grupo" || campo == "grupo" ||
+            campo == "_vinculo_grupo") {
+            if (cambio_grupo) {
+                throw ErrorValidacion(
+                    "Indique solo un campo para cambiar el grupo del producto.");
+            }
+            if (!valor.isString() && !valor.isNull()) {
+                throw ErrorValidacion(
+                    "El código del grupo debe ser texto o nulo.");
+            }
+            cambio_grupo = true;
+            valor_grupo = valor;
+        } else if (campo == "titulo" || campo == "tipo_mayor" || campo == "subtipo" ||
             campo == "pais" || campo == "estado_validacion") {
             if (!valor.isString()) {
                 throw ErrorValidacion("El campo " + campo.toStdString() + " debe ser texto.");
@@ -684,6 +698,24 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::actualizar_producto(
 
     if (datos.isEmpty()) {
         throw ErrorValidacion("Debe indicar al menos un campo para actualizar.");
+    }
+
+    auto* nodo_producto = multilista_productos.buscar_nodo(codigo_identificador);
+    const auto grupo_anterior = nodo_producto->grupo;
+    std::shared_ptr<dominio::Grupo> nuevo_grupo;
+    if (cambio_grupo) {
+        const QString codigo_grupo = valor_grupo.toString();
+        if (!valor_grupo.isNull() && !codigo_grupo.isEmpty()) {
+            nuevo_grupo = buscar_grupo(codigo_grupo);
+            if (!nuevo_grupo) {
+                throw RecursoNoEncontrado(
+                    "Grupo " + codigo_grupo.toStdString() + " no encontrado");
+            }
+            exigir_id_remoto(persistir, nuevo_grupo->id, "El grupo");
+        }
+        anteriores["codigo_grupo"] = grupo_anterior
+                                         ? QJsonValue(grupo_anterior->codigo_gruplac)
+                                         : QJsonValue(QJsonValue::Null);
     }
     if (datos.contains("titulo")) anteriores["titulo"] = producto->titulo;
     if (datos.contains("tipo_mayor")) anteriores["tipo_mayor"] = producto->tipo_mayor;
@@ -715,13 +747,40 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::actualizar_producto(
     };
 
     aplicar(datos);
+    if (cambio_grupo) {
+        multilista_productos.cambiar_grupo_de_producto(
+            codigo_identificador, nuevo_grupo);
+    }
     if (persistir && m_cliente && m_repo_productos && producto->id.has_value()) {
         try {
             controlador_revision.verificar_consistencia(*m_cliente);
-            m_repo_productos->actualizar(codigo_identificador, datos);
-            controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
+            if (cambio_grupo) {
+                QJsonObject datos_producto;
+                for (auto it = datos.constBegin(); it != datos.constEnd(); ++it) {
+                    if (it.key() != "codigo_grupo" && it.key() != "grupo" &&
+                        it.key() != "_vinculo_grupo") {
+                        datos_producto.insert(it.key(), it.value());
+                    }
+                }
+                const std::optional<qint64> id_grupo =
+                    nuevo_grupo ? nuevo_grupo->id : std::nullopt;
+                const qint64 revision = m_repo_productos->actualizar_con_grupo(
+                    codigo_identificador,
+                    datos_producto,
+                    id_grupo,
+                    controlador_revision.revision_local());
+                controlador_revision.actualizar_local(revision);
+            } else {
+                m_repo_productos->actualizar(codigo_identificador, datos);
+                controlador_revision.actualizar_local(
+                    controlador_revision.revision_local() + 1);
+            }
         } catch (...) {
             aplicar(anteriores);
+            if (cambio_grupo) {
+                multilista_productos.cambiar_grupo_de_producto(
+                    codigo_identificador, grupo_anterior);
+            }
             sincronizarHipercubo();
             throw;
         }

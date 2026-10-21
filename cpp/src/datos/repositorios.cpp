@@ -273,6 +273,34 @@ dominio::Producto RepositorioProductos::actualizar(
     return *producto;
 }
 
+qint64 RepositorioProductos::actualizar_con_grupo(
+    const QString& codigo_identificador,
+    const QJsonObject& datos,
+    std::optional<qint64> grupo_id,
+    qint64 revision_esperada) {
+    QJsonObject parametros;
+    parametros["p_codigo_identificador"] = codigo_identificador;
+    parametros["p_datos"] = datos;
+    parametros["p_grupo_id"] = grupo_id.has_value()
+                                   ? QJsonValue(*grupo_id)
+                                   : QJsonValue(QJsonValue::Null);
+    parametros["p_revision_esperada"] = revision_esperada;
+
+    const QJsonDocument respuesta =
+        m_cliente.rpc("transaccion_actualizar_producto_grupo", parametros);
+    if (!respuesta.isObject()) {
+        throw ErrorServidor(
+            "La actualización del grupo del producto devolvió una respuesta inválida.");
+    }
+
+    const QJsonValue revision = respuesta.object().value("revision");
+    if (!revision.isDouble() || revision.toVariant().toLongLong() <= 0) {
+        throw ErrorServidor(
+            "La actualización del grupo del producto no devolvió una revisión válida.");
+    }
+    return revision.toVariant().toLongLong();
+}
+
 qint64 RepositorioProductos::crear_con_rpc(
     const dominio::Producto& producto,
     std::optional<qint64> grupo_id,
