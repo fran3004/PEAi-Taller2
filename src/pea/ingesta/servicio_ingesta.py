@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
-from pea.dominio.producto import Producto
+from pea.dominio.producto import Producto, validar_ano_producto
 from pea.estructuras.cola import Cola, EstadoTarea, TareaIngesta
 from pea.ingesta.extractor_pdf import ExtractorPDF
 from pea.ingesta.extractor_url import ExtractorURL
@@ -145,6 +145,26 @@ class ServicioIngesta:
     # PROCESAMIENTO INTERNO DE TAREAS
     # =========================================================================
 
+    @staticmethod
+    def _validar_ano_producto_url(
+        ano: int | None,
+        fuente: str,
+        indice: int,
+        informe: InformeIngesta,
+    ) -> int | None:
+        if ano is None:
+            informe.advertencias.append(
+                f"Se omitió el producto {fuente} #{indice}: la fuente no informa el año."
+            )
+            return None
+        try:
+            return validar_ano_producto(ano)
+        except ValueError as err:
+            informe.advertencias.append(
+                f"Se omitió el producto {fuente} #{indice}: {err}"
+            )
+            return None
+
     def _procesar_tarea_url(self, tarea: TareaIngesta) -> InformeIngesta:
         detalles = tarea.detalles or {}
         persistir = bool(detalles.get("persistir", False))
@@ -195,6 +215,11 @@ class ServicioIngesta:
                 grupo_ing.articulos + grupo_ing.libros + grupo_ing.capitulos + grupo_ing.softwares,
                 start=1,
             ):
+                ano_producto = self._validar_ano_producto_url(
+                    prod_ing.ano, "GrupLAC", idx, informe
+                )
+                if ano_producto is None:
+                    continue
                 cod_prod = f"PROD-{grupo_ing.codigo_gruplac}-{idx:04d}"
                 if self.catalogo.buscar_producto(cod_prod) is None:
                     p = Producto(
@@ -202,7 +227,7 @@ class ServicioIngesta:
                         titulo=prod_ing.titulo,
                         tipo_mayor=prod_ing.tipo_mayor,
                         subtipo=prod_ing.subtipo or prod_ing.tipo,
-                        ano=prod_ing.ano or 2024,
+                        ano=ano_producto,
                         estado_validacion="Avalado",
                         detalles={"origen": "GrupLAC", "fuente": tarea.origen},
                     )
@@ -247,6 +272,11 @@ class ServicioIngesta:
                 inv_ing.articulos + inv_ing.capitulos + inv_ing.softwares,
                 start=1,
             ):
+                ano_producto = self._validar_ano_producto_url(
+                    prod_ing.ano, "CvLAC", idx, informe
+                )
+                if ano_producto is None:
+                    continue
                 cod_prod = f"PROD-CVLAC-{inv_ing.codigo_rh}-{idx:04d}"
                 prod_existente = self.catalogo.buscar_producto(cod_prod)
                 if prod_existente is None:
@@ -255,7 +285,7 @@ class ServicioIngesta:
                         titulo=prod_ing.titulo,
                         tipo_mayor=prod_ing.tipo_mayor,
                         subtipo=prod_ing.subtipo or prod_ing.tipo,
-                        ano=prod_ing.ano or 2024,
+                        ano=ano_producto,
                         estado_validacion="Avalado",
                         detalles={"origen": "CvLAC", "fuente": tarea.origen},
                     )

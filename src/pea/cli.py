@@ -224,6 +224,8 @@ def comando_importar_url(
         print("Archivos generados:")
         for k, v in informe.archivos_generados.items():
             print(f" - {k}: {v}")
+        for advertencia in informe.advertencias:
+            print(f"Advertencia: {advertencia}", file=sys.stderr)
         print("============================================================")
         return 0
     else:
@@ -306,6 +308,8 @@ def comando_importar_url_lote(
         )
         for tipo, ruta in informe.archivos_generados.items():
             print(f" - {tipo}: {ruta}")
+        for advertencia in informe.advertencias:
+            print(f"Advertencia: {advertencia}", file=sys.stderr)
 
     if len(informes) != len(codigos):
         print(

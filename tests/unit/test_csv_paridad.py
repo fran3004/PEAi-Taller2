@@ -163,6 +163,39 @@ def test_importacion_de_los_tipos_restantes_comparte_campos_python_cpp(
     ]
 
 
+def test_categoria_legada_se_normaliza_y_rechaza_valores_ambiguos(
+    tmp_path: Path,
+) -> None:
+    archivo_fixture = (
+        Path(__file__).parents[2] / "cpp" / "tests" / "fixtures" / "csv_importacion.json"
+    )
+    fixture = json.loads(archivo_fixture.read_text(encoding="utf-8"))
+
+    legado = fixture["productos_categoria_legada"]
+    ruta_legada = tmp_path / "productos_categoria_legada.csv"
+    ruta_legada.write_text(legado["contenido"], encoding="utf-8")
+    productos, errores = LectorCSV.leer_productos(ruta_legada)
+
+    assert errores == []
+    assert len(productos) == len(legado["esperados"])
+    for (producto, _), esperado in zip(productos, legado["esperados"], strict=True):
+        assert producto.codigo_identificador == esperado["codigo_identificador"]
+        assert producto.tipo_mayor == esperado["tipo_mayor"]
+        assert producto.subtipo == esperado["subtipo"]
+        assert producto.estado_validacion == esperado["estado_validacion"]
+
+    invalido = fixture["productos_categoria_invalida"]
+    ruta_invalida = tmp_path / "productos_categoria_invalida.csv"
+    ruta_invalida.write_text(invalido["contenido"], encoding="utf-8")
+    productos_invalidos, errores_invalidos = LectorCSV.leer_productos(ruta_invalida)
+
+    assert productos_invalidos == []
+    assert [
+        {"fila": error["fila"], "mensaje": error["error"]}
+        for error in errores_invalidos
+    ] == invalido["errores"]
+
+
 def test_lectores_csv_aceptan_cabeceras_sin_distinguir_mayusculas(
     tmp_path: Path,
 ) -> None:

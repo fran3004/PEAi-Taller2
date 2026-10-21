@@ -41,6 +41,43 @@
       "detalles": {"fuente": "csv", "version": 1}
     }
   },
+  "productos_categoria_legada": {
+    "contenido": "codigo_identificador,titulo,tipo_categoria,subtipo,ano,estado_validacion\r\nPRUEBA-PROD-CAT-01,Producto categoría A1,Artículo Tipo A1,,2023,Avalado\r\nPRUEBA-PROD-CAT-02,Producto software,Software,,2024,Con soporte\r\nPRUEBA-PROD-CAT-03,Producto ASC,ESTRATEGÍAS PEDAGÓGICAS,,2024,Con soporte\r\nPRUEBA-PROD-CAT-04,Producto FRH,Tesis de doctorado,,2025,No avalado\r\n",
+    "esperados": [
+      {
+        "codigo_identificador": "PRUEBA-PROD-CAT-01",
+        "tipo_mayor": "GNC",
+        "subtipo": "Artículo Tipo A1",
+        "estado_validacion": "Avalado"
+      },
+      {
+        "codigo_identificador": "PRUEBA-PROD-CAT-02",
+        "tipo_mayor": "DTI",
+        "subtipo": "Software",
+        "estado_validacion": "Con soporte"
+      },
+      {
+        "codigo_identificador": "PRUEBA-PROD-CAT-03",
+        "tipo_mayor": "ASC",
+        "subtipo": "ESTRATEGÍAS PEDAGÓGICAS",
+        "estado_validacion": "Con soporte"
+      },
+      {
+        "codigo_identificador": "PRUEBA-PROD-CAT-04",
+        "tipo_mayor": "FRH",
+        "subtipo": "Tesis de doctorado",
+        "estado_validacion": "No avalado"
+      }
+    ]
+  },
+  "productos_categoria_invalida": {
+    "contenido": "codigo_identificador,titulo,tipo_categoria,tipo_mayor,ano\r\nPRUEBA-PROD-CAT-ERR-01,Producto desconocido,Área inventada,,2024\r\nPRUEBA-PROD-CAT-ERR-02,Producto contradictorio,Artículo Tipo A1,DTI,2024\r\nPRUEBA-PROD-CAT-ERR-03,Tipo mayor inválido,,XYZ,2024\r\n",
+    "errores": [
+      {"fila": 2, "mensaje": "Categoría de producto no reconocida: Área inventada"},
+      {"fila": 3, "mensaje": "La categoría de producto no coincide con el tipo mayor."},
+      {"fila": 4, "mensaje": "El tipo mayor debe ser GNC, DTI, ASC o FRH."}
+    ]
+  },
   "autores": {
     "contenido": "producto_codigo,investigador_codigo,orden_autoria\r\nPRUEBA-PROD-CSV-01,PRUEBA-RH-CSV-01,2\r\n",
     "esperado": {

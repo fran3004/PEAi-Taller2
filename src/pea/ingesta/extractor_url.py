@@ -46,6 +46,11 @@ USER_AGENT_UPC = (
     "PEAi-Taller2-UPC/1.0 (Proyecto Academico Estructura de Datos; "
     "Universidad Popular del Cesar; contact: fandresfernandez@unicesar.edu.co)"
 )
+_PATRON_ANO_CON_VOLUMEN = re.compile(
+    r",\s*(19\d{2}|20\d{2})\s+vol(?:umen)?\s*:",
+    re.IGNORECASE,
+)
+_PATRON_ANO_TRAS_COMA = re.compile(r",\s*(19\d{2}|20\d{2})\b")
 
 
 def normalizar_texto(texto: str | None) -> str:
@@ -54,6 +59,14 @@ def normalizar_texto(texto: str | None) -> str:
         return ""
     limpio = " ".join(texto.split()).strip()
     return unicodedata.normalize("NFC", limpio)
+
+
+def _extraer_ano_producto(texto: str) -> int | None:
+    """Busca el año en la posición bibliográfica, evitando ISSN, ISBN y DOI."""
+    coincidencias = list(_PATRON_ANO_CON_VOLUMEN.finditer(texto))
+    if not coincidencias:
+        coincidencias = list(_PATRON_ANO_TRAS_COMA.finditer(texto))
+    return int(coincidencias[-1].group(1)) if coincidencias else None
 
 
 def anonimizar_datos_personales(texto: str) -> str:
@@ -330,8 +343,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Artículos publicados" not in txt and len(txt) > 10:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             grupo.articulos.append(
                                 ProductoIngesta(
                                     tipo="Articulo",
@@ -357,8 +369,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Libros publicados" not in txt and len(txt) > 10:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             grupo.libros.append(
                                 ProductoIngesta(
                                     tipo="Libro",
@@ -384,8 +395,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Capítulos de libro" not in txt and len(txt) > 10:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             grupo.capitulos.append(
                                 ProductoIngesta(
                                     tipo="Capitulo",
@@ -411,8 +421,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Softwares" not in txt and len(txt) > 10:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             grupo.softwares.append(
                                 ProductoIngesta(
                                     tipo="Software",
@@ -587,8 +596,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Artículos" not in txt and len(txt) > 20:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             inv.articulos.append(
                                 ProductoIngesta(
                                     tipo="Articulo",
@@ -614,8 +622,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Capítulos de libro" not in txt and len(txt) > 20:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             inv.capitulos.append(
                                 ProductoIngesta(
                                     tipo="Capitulo",
@@ -641,8 +648,7 @@ class ExtractorURL:
                     for td in tds:
                         txt = normalizar_texto(td.get_text())
                         if txt and "Softwares" not in txt and len(txt) > 20:
-                            ano_m = re.search(r"\b(19\d{2}|20\d{2})\b", txt)
-                            ano_val = int(ano_m.group(1)) if ano_m else None
+                            ano_val = _extraer_ano_producto(txt)
                             inv.softwares.append(
                                 ProductoIngesta(
                                     tipo="Software",
@@ -740,21 +746,23 @@ class ExtractorURL:
                     writer.writerow([
                         "codigo_identificador",
                         "titulo",
-                        "tipo_categoria",
+                        "tipo_mayor",
+                        "subtipo",
                         "anio",
                         "estado_validacion",
                         "grupo_codigo",
                     ])
 
                 for idx, (prod, grp_cod, _) in enumerate(productos_a_escribir, start=1):
-                    # Generar identificador determinista
-                    codigo_prod = f"PROD-{prod.tipo_mayor}-{prod.ano or 2024}-{idx:04d}"
+                    anio = str(prod.ano) if prod.ano is not None else "SIN-ANO"
+                    codigo_prod = f"PROD-{prod.tipo_mayor}-{anio}-{idx:04d}"
                     writer.writerow([
                         codigo_prod,
                         prod.titulo,
-                        prod.tipo,
-                        prod.ano or 2024,
-                        "Aprobado",
+                        prod.tipo_mayor,
+                        prod.subtipo or prod.tipo,
+                        prod.ano if prod.ano is not None else "",
+                        "Avalado",
                         grp_cod or "",
                     ])
             archivos_creados["productos_csv"] = str(ruta_prod)

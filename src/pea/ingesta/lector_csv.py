@@ -13,6 +13,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import unicodedata
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,97 @@ from pea.ingesta.modelos import (
     FilaInvestigadorCSV,
     FilaProductoCSV,
 )
+
+_TIPOS_MAYORES = {
+    "gnc": "GNC",
+    "dti": "DTI",
+    "asc": "ASC",
+    "frh": "FRH",
+}
+_CATEGORIAS_CSV_POR_TIPO = {
+    "articulo tipo a1": "GNC",
+    "articulo tipo a2": "GNC",
+    "articulo tipo b": "GNC",
+    "articulo tipo c": "GNC",
+    "articulo de investigacion a1": "GNC",
+    "articulo de investigacion a2": "GNC",
+    "articulo de investigacion b": "GNC",
+    "articulo de investigacion c": "GNC",
+    "articulos a1": "GNC",
+    "articulos a2": "GNC",
+    "articulos b": "GNC",
+    "articulos c": "GNC",
+    "libro resultado de investigacion": "GNC",
+    "libros resultado de investigacion": "GNC",
+    "capitulo de libro": "GNC",
+    "capitulos de libro": "GNC",
+    "patente de invencion": "GNC",
+    "patentes de invencion": "GNC",
+    "diseno industrial": "DTI",
+    "disenos industriales": "DTI",
+    "software": "DTI",
+    "planta piloto": "DTI",
+    "plantas piloto": "DTI",
+    "prototipo": "DTI",
+    "prototipos": "DTI",
+    "secreto empresarial": "DTI",
+    "secretos empresariales": "DTI",
+    "estrategia pedagogica": "ASC",
+    "estrategias pedagogicas": "ASC",
+    "evento cientifico": "ASC",
+    "eventos cientificos": "ASC",
+    "informe tecnico final": "ASC",
+    "informes tecnicos finales": "ASC",
+    "obra de arte/diseno": "ASC",
+    "obras de arte/diseno": "ASC",
+    "tesis de doctorado": "FRH",
+    "trabajo de grado de maestria": "FRH",
+    "trabajos de grado de maestria": "FRH",
+    "trabajo de pregrado": "FRH",
+    "trabajos de pregrado": "FRH",
+    "proyecto de investigacion y desarrollo": "FRH",
+    "proyectos de investigacion y desarrollo": "FRH",
+}
+
+
+def _normalizar_categoria_csv(valor: str) -> str:
+    """Normaliza una etiqueta para comparar categorías sin tildes ni variación de espacios."""
+    descompuesta = unicodedata.normalize("NFKD", valor.strip().casefold())
+    sin_tildes = "".join(
+        caracter
+        for caracter in descompuesta
+        if not unicodedata.combining(caracter)
+    )
+    return " ".join(sin_tildes.split())
+
+
+def _normalizar_tipo_producto_csv(
+    categoria_legada: str | None,
+    tipo_mayor: str | None,
+    subtipo: str | None,
+) -> tuple[str, str | None]:
+    categoria = categoria_legada.strip() if categoria_legada else ""
+    mayor_explicito = tipo_mayor.strip() if tipo_mayor else ""
+    subtipo_resultado = subtipo.strip() if subtipo and subtipo.strip() else None
+
+    mayor = _TIPOS_MAYORES.get(mayor_explicito.casefold())
+    if mayor_explicito and mayor is None:
+        raise ValueError("El tipo mayor debe ser GNC, DTI, ASC o FRH.")
+
+    if categoria:
+        categoria_normalizada = _normalizar_categoria_csv(categoria)
+        mayor_categoria = _TIPOS_MAYORES.get(categoria_normalizada)
+        if mayor_categoria is None:
+            mayor_categoria = _CATEGORIAS_CSV_POR_TIPO.get(categoria_normalizada)
+        if mayor_categoria is None:
+            raise ValueError(f"Categoría de producto no reconocida: {categoria}")
+        if mayor and mayor != mayor_categoria:
+            raise ValueError("La categoría de producto no coincide con el tipo mayor.")
+        mayor = mayor_categoria
+        if categoria_normalizada not in _TIPOS_MAYORES and subtipo_resultado is None:
+            subtipo_resultado = categoria
+
+    return mayor or "GNC", subtipo_resultado
 
 
 class LectorCSV:
@@ -249,7 +341,7 @@ class LectorCSV:
                             raise ValueError("Año fuera del rango permitido")
                         datos_fila["ano"] = ano
                     elif k_limpio in ("tipo_categoria", "tipo_mayor"):
-                        datos_fila["tipo_mayor"] = val
+                        datos_fila[k_limpio] = val
                     elif k_limpio in ("grupo_codigo", "codigo_gruplac"):
                         datos_fila["grupo_codigo"] = val
                     elif k_limpio == "detalles":
@@ -270,6 +362,15 @@ class LectorCSV:
 
                 if "ano" not in datos_fila:
                     raise ValueError("Año no numérico o ausente")
+
+                tipo_mayor, subtipo = _normalizar_tipo_producto_csv(
+                    datos_fila.pop("tipo_categoria", None),
+                    datos_fila.get("tipo_mayor"),
+                    datos_fila.get("subtipo"),
+                )
+                datos_fila["tipo_mayor"] = tipo_mayor
+                if subtipo is not None:
+                    datos_fila["subtipo"] = subtipo
 
                 cls._normalizar_booleanos(datos_fila)
                 fila_validada = FilaProductoCSV.model_validate(datos_fila)

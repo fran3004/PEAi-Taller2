@@ -73,8 +73,9 @@ def test_importa_lote_desde_fixture_sin_conexion_de_red(
         ]
     )
 
-    salida = capsys.readouterr().out
-    assert codigo_salida == 0
+    capturado = capsys.readouterr()
+    salida = capturado.out
+    assert codigo_salida == 0, capturado.err
     assert solicitudes == [url]
     assert f"GrupLAC {codigo}: 1 grupo(s)" in salida
     assert (tmp_path / "salida" / f"GrupLAC-{codigo}" / f"GrupLAC-{codigo}.json").exists()

@@ -58,7 +58,13 @@ def test_zona_soltar_archivo(qapp: QApplication, qtbot: Any) -> None:
     zona.establecer_ruta("C:/datos/investigadores.csv")
     assert zona.ruta() == "C:/datos/investigadores.csv"
     assert not zona.btn_limpiar.isHidden()
-    assert "investigadores.csv" in zona._lbl_principal.text()
+    nombre_visible = zona._lbl_principal.text()
+    assert nombre_visible == "investigadores.csv" or (
+        nombre_visible.startswith("inves")
+        and nombre_visible.endswith(".csv")
+        and "\u2026" in nombre_visible
+    )
+    assert zona._lbl_principal.toolTip() == "investigadores.csv"
     assert len(senales) == 1
     assert senales[0] == "C:/datos/investigadores.csv"
 

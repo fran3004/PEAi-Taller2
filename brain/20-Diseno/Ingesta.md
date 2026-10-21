@@ -74,6 +74,12 @@ El scraping web está sujeto a las reglas estrictas de [[ADR-0010-Limites-y-resp
 
 La CLI acepta `importar-url --archivo-grupos datos/fuentes/grupos_upc.txt`. El archivo UTF-8 contiene un código GrupLAC por línea; se omiten líneas vacías y comentarios iniciados con `#`, y se descartan duplicados. Cada código se valida como una secuencia de dígitos antes de construir la URL oficial de GrupLAC. Las tareas se encolan y procesan secuencialmente con una única instancia de `ServicioIngesta` y `ExtractorURL`, por lo que se conservan la pausa mínima entre solicitudes, los reintentos, la caché y la validación de host y HTTPS descritos arriba. Los resultados de cada grupo se guardan en su propio subdirectorio. No se incluyen códigos de grupos en el repositorio; deben proceder de una fuente autorizada.
 
+El año de los productos se extrae de la posición bibliográfica de la fecha, no
+del primer número de cuatro cifras (que puede ser parte de un ISSN o DOI). Si
+la fuente no ofrece un año dentro del rango permitido, el producto no se
+agrega al catálogo, se informa como advertencia y la exportación deja el año
+vacío; nunca se sustituye por un año predeterminado.
+
 ## 3. Vía B: Importación por Archivos Tabulares (CSV)
 
 Para contingencias sin conexión o migraciones masivas, PEA-i define un formato canónico de 4 archivos CSV (codificados en UTF-8 sin BOM, delimitador por coma `,` y comillas dobles para texto):
@@ -92,8 +98,8 @@ codigo_cvlac,nombre_completo,categoria,nacionalidad
 
 ### 3.3. `productos.csv`
 ```csv
-codigo_identificador,titulo,tipo_categoria,anio,estado_validacion,grupo_codigo
-ART-2023-001,Análisis de Grafos en Redes Complejas,Artículo Tipo A1,2023,Aprobado,COL0008543
+codigo_identificador,titulo,tipo_mayor,subtipo,anio,estado_validacion,grupo_codigo
+ART-2023-001,Análisis de Grafos en Redes Complejas,GNC,Artículo Tipo A1,2023,Avalado,COL0008543
 ```
 
 ### 3.4. `autores.csv`
@@ -117,7 +123,7 @@ estos nombres equivalentes:
 | Investigadores | `nombre_completo` | `nombre` |
 | Investigadores | `categoria` | `categoria_declarada` |
 | Investigadores | `formacion_academica` | `formacion` |
-| Productos | `tipo_categoria` | `tipo_mayor` |
+| Productos | `tipo_mayor` | `tipo_categoria` (encabezado legado; conversión documentada abajo) |
 | Productos | `anio` | `ano` |
 | Productos | `grupo_codigo` | `codigo_gruplac` |
 
@@ -136,10 +142,22 @@ vacío usa el valor predeterminado del modelo (`activo=true`,
 no está presente se usa `1`, pero un valor vacío o no numérico se informa como
 error de fila.
 
-**Pendiente de aclaración normativa**: el alias `tipo_categoria` aparece en el
-ejemplo con el valor `Artículo Tipo A1`, mientras que RF-04 define `tipo_mayor`
-como `GNC`, `DTI`, `ASC` o `FRH`. No se infiere una transformación entre ambos
-vocabularios hasta contrastarla con el Modelo y su tabla oficial de productos.
+El encabezado legado `tipo_categoria` contiene una etiqueta de producto, no
+necesariamente el código de `tipo_mayor`. De acuerdo con RF-04 de [[SPEC]] y
+el catálogo de [[Modelo-Productos]], los lectores reconocen etiquetas de
+artículos A1, A2, B y C, libros y capítulos resultado de investigación,
+patentes de invención, productos DTI, productos ASC y productos FRH. Por
+ejemplo, `Artículo Tipo A1` se asigna a `GNC`; si no se proporciona `subtipo`,
+la etiqueta original se conserva allí. Los códigos explícitos `GNC`, `DTI`,
+`ASC` y `FRH` también se aceptan. La comparación ignora mayúsculas, tildes y
+espacios redundantes.
+
+Esta interpretación del encabezado legado no está definida directamente por
+el Modelo, así que se registra como supuesto de compatibilidad en
+[[ADR-0022-Interpretacion-categoria-legada-csv]]. Si se informan
+simultáneamente `tipo_categoria` y `tipo_mayor`, ambos deben corresponder a la
+misma tipología; una categoría no reconocida o contradictoria produce un
+error de fila. Un `subtipo` explícito se conserva sin reemplazarlo.
 
 ## 4. Normalización, Detección de Duplicados y Desduplicación
 

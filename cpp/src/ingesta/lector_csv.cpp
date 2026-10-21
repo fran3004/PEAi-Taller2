@@ -1,12 +1,124 @@
 #include "pea/ingesta/lector_csv.hpp"
 #include <algorithm>
 #include <QDate>
+#include <QHash>
 #include <QFile>
 #include <QFileInfo>
 #include <optional>
+#include <stdexcept>
 
 namespace pea::ingesta {
 namespace {
+
+QString normalizar_etiqueta_categoria(const QString& valor) {
+    const QString descompuesta =
+        valor.trimmed().toLower().normalized(QString::NormalizationForm_D);
+    QString sin_tildes;
+    for (const QChar caracter : descompuesta) {
+        const auto categoria = caracter.category();
+        if (categoria != QChar::Mark_NonSpacing &&
+            categoria != QChar::Mark_SpacingCombining &&
+            categoria != QChar::Mark_Enclosing) {
+            sin_tildes.append(caracter);
+        }
+    }
+    return sin_tildes.simplified();
+}
+
+std::pair<QString, QString> normalizar_tipo_producto(
+    const std::optional<QString>& categoria_legada,
+    const std::optional<QString>& tipo_mayor_explicito,
+    const std::optional<QString>& subtipo_explicito) {
+    static const QHash<QString, QString> tipos_mayores{
+        {QStringLiteral("gnc"), QStringLiteral("GNC")},
+        {QStringLiteral("dti"), QStringLiteral("DTI")},
+        {QStringLiteral("asc"), QStringLiteral("ASC")},
+        {QStringLiteral("frh"), QStringLiteral("FRH")},
+    };
+    static const QHash<QString, QString> categorias{
+        {QStringLiteral("articulo tipo a1"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo tipo a2"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo tipo b"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo tipo c"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo de investigacion a1"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo de investigacion a2"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo de investigacion b"), QStringLiteral("GNC")},
+        {QStringLiteral("articulo de investigacion c"), QStringLiteral("GNC")},
+        {QStringLiteral("articulos a1"), QStringLiteral("GNC")},
+        {QStringLiteral("articulos a2"), QStringLiteral("GNC")},
+        {QStringLiteral("articulos b"), QStringLiteral("GNC")},
+        {QStringLiteral("articulos c"), QStringLiteral("GNC")},
+        {QStringLiteral("libro resultado de investigacion"), QStringLiteral("GNC")},
+        {QStringLiteral("libros resultado de investigacion"), QStringLiteral("GNC")},
+        {QStringLiteral("capitulo de libro"), QStringLiteral("GNC")},
+        {QStringLiteral("capitulos de libro"), QStringLiteral("GNC")},
+        {QStringLiteral("patente de invencion"), QStringLiteral("GNC")},
+        {QStringLiteral("patentes de invencion"), QStringLiteral("GNC")},
+        {QStringLiteral("diseno industrial"), QStringLiteral("DTI")},
+        {QStringLiteral("disenos industriales"), QStringLiteral("DTI")},
+        {QStringLiteral("software"), QStringLiteral("DTI")},
+        {QStringLiteral("planta piloto"), QStringLiteral("DTI")},
+        {QStringLiteral("plantas piloto"), QStringLiteral("DTI")},
+        {QStringLiteral("prototipo"), QStringLiteral("DTI")},
+        {QStringLiteral("prototipos"), QStringLiteral("DTI")},
+        {QStringLiteral("secreto empresarial"), QStringLiteral("DTI")},
+        {QStringLiteral("secretos empresariales"), QStringLiteral("DTI")},
+        {QStringLiteral("estrategia pedagogica"), QStringLiteral("ASC")},
+        {QStringLiteral("estrategias pedagogicas"), QStringLiteral("ASC")},
+        {QStringLiteral("evento cientifico"), QStringLiteral("ASC")},
+        {QStringLiteral("eventos cientificos"), QStringLiteral("ASC")},
+        {QStringLiteral("informe tecnico final"), QStringLiteral("ASC")},
+        {QStringLiteral("informes tecnicos finales"), QStringLiteral("ASC")},
+        {QStringLiteral("obra de arte/diseno"), QStringLiteral("ASC")},
+        {QStringLiteral("obras de arte/diseno"), QStringLiteral("ASC")},
+        {QStringLiteral("tesis de doctorado"), QStringLiteral("FRH")},
+        {QStringLiteral("trabajo de grado de maestria"), QStringLiteral("FRH")},
+        {QStringLiteral("trabajos de grado de maestria"), QStringLiteral("FRH")},
+        {QStringLiteral("trabajo de pregrado"), QStringLiteral("FRH")},
+        {QStringLiteral("trabajos de pregrado"), QStringLiteral("FRH")},
+        {QStringLiteral("proyecto de investigacion y desarrollo"), QStringLiteral("FRH")},
+        {QStringLiteral("proyectos de investigacion y desarrollo"), QStringLiteral("FRH")},
+    };
+
+    QString mayor = QStringLiteral("GNC");
+    if (tipo_mayor_explicito) {
+        const QString codigo = tipo_mayor_explicito->trimmed().toLower();
+        const auto tipo = tipos_mayores.constFind(codigo);
+        if (tipo == tipos_mayores.cend()) {
+            throw std::invalid_argument("El tipo mayor debe ser GNC, DTI, ASC o FRH.");
+        }
+        mayor = tipo.value();
+    }
+
+    QString subtipo = subtipo_explicito.value_or(QString()).trimmed();
+    if (categoria_legada) {
+        const QString etiqueta = categoria_legada->trimmed();
+        const QString categoria_normalizada = normalizar_etiqueta_categoria(etiqueta);
+        QString mayor_categoria;
+        const auto tipo = tipos_mayores.constFind(categoria_normalizada);
+        if (tipo != tipos_mayores.cend()) {
+            mayor_categoria = tipo.value();
+        } else {
+            const auto categoria = categorias.constFind(categoria_normalizada);
+            if (categoria == categorias.cend()) {
+                throw std::invalid_argument(
+                    (QStringLiteral("Categoría de producto no reconocida: ") + etiqueta)
+                        .toUtf8()
+                        .toStdString());
+            }
+            mayor_categoria = categoria.value();
+            if (subtipo.isEmpty()) subtipo = etiqueta;
+        }
+
+        if (tipo_mayor_explicito && mayor != mayor_categoria) {
+            throw std::invalid_argument(
+                "La categoría de producto no coincide con el tipo mayor.");
+        }
+        mayor = mayor_categoria;
+    }
+
+    return {mayor, subtipo};
+}
 
 bool leer_booleano_csv(const QString& valor, bool predeterminado = true) {
     const QString normalizado = valor.trimmed().toLower();
@@ -327,7 +439,6 @@ std::pair<QList<std::pair<dominio::Producto, QString>>, QList<QString>> LectorCS
         try {
             int idx_cod = mapa_col.value(QStringLiteral("codigo_identificador"), -1);
             int idx_tit = mapa_col.value(QStringLiteral("titulo"), -1);
-            int idx_tipo = mapa_col.value(QStringLiteral("tipo_categoria"), mapa_col.value(QStringLiteral("tipo_mayor"), -1));
             int idx_ano = mapa_col.value(QStringLiteral("anio"), mapa_col.value(QStringLiteral("ano"), -1));
             int idx_grp = mapa_col.value(QStringLiteral("grupo_codigo"), mapa_col.value(QStringLiteral("codigo_gruplac"), -1));
 
@@ -356,11 +467,13 @@ std::pair<QList<std::pair<dominio::Producto, QString>>, QList<QString>> LectorCS
             dominio::Producto p;
             p.codigo_identificador = f[idx_cod].trimmed();
             p.titulo = f[idx_tit].trimmed();
-            p.tipo_mayor = (idx_tipo != -1 && idx_tipo < f.size() && !f[idx_tipo].trimmed().isEmpty())
-                               ? f[idx_tipo].trimmed()
-                               : QStringLiteral("GNC");
+            const auto [tipo_mayor, subtipo] = normalizar_tipo_producto(
+                valor_columna(f, mapa_col, QStringLiteral("tipo_categoria")),
+                valor_columna(f, mapa_col, QStringLiteral("tipo_mayor")),
+                valor_columna(f, mapa_col, QStringLiteral("subtipo")));
+            p.tipo_mayor = tipo_mayor;
             p.ano = ano_val;
-            p.subtipo = valor_columna(f, mapa_col, QStringLiteral("subtipo")).value_or(QString());
+            p.subtipo = subtipo;
             const auto mes = valor_columna(f, mapa_col, QStringLiteral("mes"));
             if (mes) {
                 bool valido = false;
@@ -385,7 +498,9 @@ std::pair<QList<std::pair<dominio::Producto, QString>>, QList<QString>> LectorCS
             QString grp_cod = (idx_grp != -1 && idx_grp < f.size()) ? f[idx_grp].trimmed() : QString();
             prods.append({p, grp_cod});
         } catch (const std::exception& e) {
-            errores.append(QStringLiteral("Fila %1: Error de análisis: %2").arg(num + 1).arg(e.what()));
+            errores.append(QStringLiteral("Fila %1: Error de análisis: %2")
+                               .arg(num + 1)
+                               .arg(QString::fromUtf8(e.what())));
         }
     }
 

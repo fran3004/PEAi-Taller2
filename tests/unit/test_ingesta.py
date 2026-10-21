@@ -19,6 +19,12 @@ from pea.ingesta.extractor_url import (
     normalizar_texto,
 )
 from pea.ingesta.lector_csv import LectorCSV
+from pea.ingesta.modelos import (
+    GrupoIngesta,
+    InformeIngesta,
+    MetadatosOrigen,
+    ProductoIngesta,
+)
 from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 
@@ -84,6 +90,11 @@ class TestExtractorURL:
         assert len(grupo.instituciones) >= 1
         assert len(grupo.integrantes) >= 1
         assert len(grupo.articulos) >= 1
+        assert grupo.articulos[0].ano == 2026
+        assert all(
+            producto.ano is None or 1970 <= producto.ano <= date.today().year
+            for producto in grupo.articulos
+        )
         assert "Transcripción Integral GrupLAC" in md_text
         assert metricas["articulos"] >= 1
 
@@ -91,6 +102,21 @@ class TestExtractorURL:
         csv_archivos = extractor.exportar_a_csv_canonico(tmp_path / "csv", grupo=grupo)
         assert Path(csv_archivos["grupos_csv"]).exists()
         assert Path(csv_archivos["productos_csv"]).exists()
+
+        grupo.articulos[0].ano = None
+        csv_sin_ano = extractor.exportar_a_csv_canonico(
+            tmp_path / "csv_sin_ano",
+            grupo=grupo,
+        )
+        with Path(csv_sin_ano["productos_csv"]).open(
+            encoding="utf-8",
+            newline="",
+        ) as archivo_productos:
+            fila_producto = next(csv.DictReader(archivo_productos))
+        assert fila_producto["tipo_mayor"] == "GNC"
+        assert fila_producto["subtipo"] == "Articulo"
+        assert fila_producto["anio"] == ""
+        assert fila_producto["estado_validacion"] == "Avalado"
 
     def test_parsear_cvlac_offline_fixture(self, tmp_path: Path):
         fixture_html = Path("tests/fixtures/scienti/cvlac_0000494917.html")
@@ -114,6 +140,10 @@ class TestExtractorURL:
         assert len(inv.formacion) >= 1
         assert len(inv.articulos) >= 1
         assert metricas["articulos"] >= 1
+        assert all(
+            producto.ano is None or 1970 <= producto.ano <= date.today().year
+            for producto in inv.articulos + inv.capitulos + inv.softwares
+        )
 
         # Probar exportación a CSV canónico
         csv_archivos = extractor.exportar_a_csv_canonico(tmp_path / "csv", investigador=inv)
@@ -233,9 +263,9 @@ class TestLectorCSV:
         writer.writerow([
             "PROD-001",
             'Análisis de "Redes Complejas", con comas y comillas',
-            "Articulo",
+            "Artículo Tipo A1",
             "2023",
-            "Aprobado",
+            "Avalado",
             "COL0008543",
         ])
         ruta = tmp_path / "prods_comillas.csv"
@@ -253,9 +283,9 @@ class TestLectorCSV:
         # Archivo con 3 filas: fila 1 válida, fila 2 INVÁLIDA (año no numérico en productos), fila 3 válida
         contenido = (
             "codigo_identificador,titulo,tipo_categoria,anio,estado_validacion\n"
-            "PROD-001,Producto Válido 1,Articulo,2021,Aprobado\n"
-            "PROD-002,Producto Fila Rota,Articulo,AÑO_INVALIDO,Aprobado\n"
-            "PROD-003,Producto Válido 3,Software,2023,Aprobado\n"
+            "PROD-001,Producto Válido 1,Artículo Tipo A1,2021,Avalado\n"
+            "PROD-002,Producto Fila Rota,Artículo Tipo A1,AÑO_INVALIDO,Avalado\n"
+            "PROD-003,Producto Válido 3,Software,2023,Con soporte\n"
         )
         ruta = tmp_path / "prods_con_error.csv"
         ruta.write_text(contenido, encoding="utf-8")
@@ -276,6 +306,68 @@ class TestLectorCSV:
 
 class TestServicioIngestaYCola:
     """Verifica la Cola FIFO de tareas, transiciones de estado, desduplicación y Catálogo."""
+
+    def test_url_omite_productos_sin_ano_y_no_inventa_2024(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        url = (
+            "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/"
+            "visualizagr.jsp?nro=00000000000001"
+        )
+        grupo = GrupoIngesta(
+            codigo_gruplac="PRUEBA-URL-GRUPO",
+            nombre_grupo="Grupo de prueba",
+            articulos=[
+                ProductoIngesta(
+                    tipo="Articulo",
+                    tipo_mayor="GNC",
+                    subtipo="Artículo Tipo A1",
+                    titulo="Producto sin año informado",
+                    ano=None,
+                )
+            ],
+            origen=MetadatosOrigen(url=url, sha256="fixture"),
+        )
+        informe_extraccion = InformeIngesta(
+            origen=url,
+            tipo_fuente="url_gruplac",
+            exito=True,
+        )
+
+        class ExtractorSinAno:
+            def validar_url(self, url: str) -> tuple[str, str]:
+                return "gruplac", ""
+
+            def procesar_url(self, url: str, **_kwargs: object) -> InformeIngesta:
+                return informe_extraccion
+
+            def descargar_o_cargar_cache(
+                self,
+                url: str,
+                alias: str | None = None,
+            ) -> tuple[bytes, dict[str, str]]:
+                return b"", {"encoding_utilizada": "utf-8"}
+
+            def parsear_gruplac(
+                self,
+                html_text: str,
+                meta: dict[str, str],
+            ) -> tuple[GrupoIngesta, str, dict[str, int]]:
+                return grupo, "", {}
+
+        catalogo = CatalogoInvestigacion()
+        servicio = ServicioIngesta(catalogo, extractor_url=ExtractorSinAno())
+        servicio.encolar_url(url, salida_dir=tmp_path)
+        informe = servicio.procesar_siguiente()
+
+        assert informe is not None
+        assert informe.exito is True
+        assert informe.advertencias == [
+            "Se omitió el producto GrupLAC #1: la fuente no informa el año."
+        ]
+        assert catalogo.buscar_grupo("PRUEBA-URL-GRUPO") is not None
+        assert catalogo.buscar_producto("PROD-PRUEBA-URL-GRUPO-0001") is None
 
     def test_informe_csv_completo_y_error_de_lectura_comparten_contrato(
         self, tmp_path: Path
@@ -388,7 +480,7 @@ class TestServicioIngestaYCola:
         csv_prods = tmp_path / "prods.csv"
         csv_prods.write_text(
             "codigo_identificador,titulo,tipo_categoria,anio,grupo_codigo\n"
-            "P-001,Artículo Base,Articulo,2023,GRP-01\n",
+            "P-001,Artículo Base,Artículo Tipo A1,2023,GRP-01\n",
             encoding="utf-8",
         )
         csv_autores = tmp_path / "autores.csv"

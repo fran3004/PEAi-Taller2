@@ -300,7 +300,7 @@ TEST_CASE("Ingesta C++ - LectorCSV Delimitadores, BOM y Tolerancia a Filas") {
         QFile f(ruta);
         REQUIRE(f.open(QIODevice::WriteOnly | QIODevice::Text));
         f.write("codigo_identificador,titulo,tipo_categoria,anio,estado_validacion,grupo_codigo\n"
-                "PROD-001,\"Analisis de \"\"Redes Complejas\"\", con comas y comillas\",Articulo,2023,Aprobado,COL0008543\n");
+                "PROD-001,\"Analisis de \"\"Redes Complejas\"\", con comas y comillas\",Artículo Tipo A1,2023,Avalado,COL0008543\n");
         f.close();
 
         auto [prods, errores] = LectorCSV::leer_productos(ruta);
@@ -316,9 +316,9 @@ TEST_CASE("Ingesta C++ - LectorCSV Delimitadores, BOM y Tolerancia a Filas") {
         QFile f(ruta);
         REQUIRE(f.open(QIODevice::WriteOnly | QIODevice::Text));
         f.write("codigo_identificador,titulo,tipo_categoria,anio,estado_validacion\n"
-                "PROD-001,Producto Valido 1,Articulo,2021,Aprobado\n"
-                "PROD-002,Producto Fila Rota,Articulo,ANO_INVALIDO,Aprobado\n"
-                "PROD-003,Producto Valido 3,Software,2023,Aprobado\n");
+                "PROD-001,Producto Valido 1,Artículo Tipo A1,2021,Avalado\n"
+                "PROD-002,Producto Fila Rota,Artículo Tipo A1,ANO_INVALIDO,Avalado\n"
+                "PROD-003,Producto Valido 3,Software,2023,Con soporte\n");
         f.close();
 
         auto [prods, errores] = LectorCSV::leer_productos(ruta);
@@ -382,7 +382,7 @@ TEST_CASE("Ingesta C++ - ServicioIngesta y Cola de Tareas") {
         QFile fp(csv_prods);
         REQUIRE(fp.open(QIODevice::WriteOnly | QIODevice::Text));
         fp.write("codigo_identificador,titulo,tipo_categoria,anio,grupo_codigo\n"
-                 "P-001,Articulo Base,Articulo,2023,GRP-01\n");
+                 "P-001,Articulo Base,Artículo Tipo A1,2023,GRP-01\n");
         fp.close();
 
         QString csv_autores = temp_dir.filePath(QStringLiteral("autores.csv"));
@@ -486,6 +486,55 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
     CHECK(producto.detalles == valores_producto.value("detalles").toObject());
     CHECK(producto.activo == valores_producto.value("activo").toBool());
     CHECK(producto.es_ejemplo == valores_producto.value("es_ejemplo").toBool());
+
+    const QJsonObject categorias_legadas = datos.value("productos_categoria_legada").toObject();
+    const QString ruta_categorias_legadas =
+        temporal.filePath(QStringLiteral("productos_categoria_legada.csv"));
+    QFile archivo_categorias_legadas(ruta_categorias_legadas);
+    REQUIRE(archivo_categorias_legadas.open(QIODevice::WriteOnly));
+    const QByteArray bytes_categorias_legadas =
+        categorias_legadas.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_categorias_legadas.write(bytes_categorias_legadas) ==
+            bytes_categorias_legadas.size());
+    archivo_categorias_legadas.close();
+    const auto [productos_legados, errores_legados] =
+        LectorCSV::leer_productos(ruta_categorias_legadas);
+    const QJsonArray productos_legados_esperados = categorias_legadas.value("esperados").toArray();
+    CHECK(errores_legados.isEmpty());
+    REQUIRE(productos_legados.size() == productos_legados_esperados.size());
+    for (qsizetype indice = 0; indice < productos_legados_esperados.size(); ++indice) {
+        const QJsonObject esperado_legado = productos_legados_esperados.at(indice).toObject();
+        const auto& producto_legado = productos_legados.at(indice).first;
+        CHECK(producto_legado.codigo_identificador ==
+              esperado_legado.value("codigo_identificador").toString());
+        CHECK(producto_legado.tipo_mayor == esperado_legado.value("tipo_mayor").toString());
+        CHECK(producto_legado.subtipo == esperado_legado.value("subtipo").toString());
+        CHECK(producto_legado.estado_validacion ==
+              esperado_legado.value("estado_validacion").toString());
+    }
+
+    const QJsonObject categorias_invalidas = datos.value("productos_categoria_invalida").toObject();
+    const QString ruta_categorias_invalidas =
+        temporal.filePath(QStringLiteral("productos_categoria_invalida.csv"));
+    QFile archivo_categorias_invalidas(ruta_categorias_invalidas);
+    REQUIRE(archivo_categorias_invalidas.open(QIODevice::WriteOnly));
+    const QByteArray bytes_categorias_invalidas =
+        categorias_invalidas.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_categorias_invalidas.write(bytes_categorias_invalidas) ==
+            bytes_categorias_invalidas.size());
+    archivo_categorias_invalidas.close();
+    const auto [productos_categoria_rechazados, errores_categoria] =
+        LectorCSV::leer_productos(ruta_categorias_invalidas);
+    const QJsonArray errores_categoria_esperados = categorias_invalidas.value("errores").toArray();
+    CHECK(productos_categoria_rechazados.isEmpty());
+    REQUIRE(errores_categoria.size() == errores_categoria_esperados.size());
+    for (qsizetype indice = 0; indice < errores_categoria_esperados.size(); ++indice) {
+        const QJsonObject error_esperado = errores_categoria_esperados.at(indice).toObject();
+        CHECK(errores_categoria.at(indice) ==
+              QStringLiteral("Fila %1: Error de análisis: %2")
+                  .arg(error_esperado.value("fila").toInt())
+                  .arg(error_esperado.value("mensaje").toString()));
+    }
 
     const QJsonObject esperado_autor = datos.value("autores").toObject();
     const QString ruta_autores = temporal.filePath(QStringLiteral("autores.csv"));
