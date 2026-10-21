@@ -32,7 +32,7 @@ void mostrarAyuda() {
               << "  verificar                Verifica conectividad HTTPS, TLS y número de revisión\n"
               << "  ping                     Alias de verificar\n"
               << "  resumen [--json]         Muestra el resumen de entidades (o JSON canónico)\n"
-              << "  importar-csv -a <f> -t <t> Importa entidades desde archivo CSV (grupos|investigadores|productos)\n"
+              << "  importar-csv -a <f> -t <t> Importa entidades desde archivo CSV (grupos|investigadores|productos|autores)\n"
               << "  importar-url -u <u>        Importa entidades desde URL SCIENTI (GrupLAC o CvLAC)\n"
               << "  exportar-csv -d <dir>    Exporta entidades del catálogo a archivos CSV\n"
               << "  cargar-ejemplo           Carga datos oficiales de prueba con prefijo PRUEBA-\n"
@@ -128,6 +128,7 @@ int comandoImportarCsv(const QString& rutaArchivo, const QString& tipo) {
     std::cout << "Importación completada: " << total << " entidades procesadas con éxito.\n";
     if (!informe->filas_erroneas.isEmpty()) {
         std::cout << "Aviso: " << informe->filas_erroneas.size() << " filas omitidas por inconsistencias.\n";
+        std::cout << formatear_errores_importacion_csv(informe->filas_erroneas).toStdString() << "\n";
     }
     return 0;
 }
@@ -322,6 +323,20 @@ int comandoAplicarEscenario() {
 }
 
 } // namespace
+
+QString formatear_errores_importacion_csv(const QStringList& filas_erroneas) {
+    if (filas_erroneas.isEmpty()) {
+        return {};
+    }
+
+    QStringList lineas;
+    lineas.reserve(filas_erroneas.size() + 1);
+    lineas.append(QStringLiteral("Filas con errores:"));
+    for (const auto& error : filas_erroneas) {
+        lineas.append(QStringLiteral("  - %1").arg(error));
+    }
+    return lineas.join(QLatin1Char('\n'));
+}
 
 static int ejecutar_interno(
     const QStringList& args,

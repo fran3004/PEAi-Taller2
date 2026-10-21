@@ -5,7 +5,9 @@
 #include <QFileInfo>
 #include <QTemporaryDir>
 
+#include <iostream>
 #include <memory>
+#include <sstream>
 
 #include "pea/cli.hpp"
 #include "pea/datos/exportador_csv.hpp"
@@ -84,4 +86,26 @@ TEST_CASE("Escritura CSV atómica informa errores y limpia archivos temporales")
     CHECK(archivos.size() == 2);
     CHECK(archivos.contains("bloqueado.csv"));
     CHECK(archivos.contains("correcto.csv"));
+}
+
+TEST_CASE("CLI formatea los errores CSV individuales") {
+    const QString salida = pea::cli::formatear_errores_importacion_csv(
+        {QStringLiteral("Fila 2: Nombre ausente"),
+         QStringLiteral("Fila 4: Año fuera del rango permitido")});
+
+    CHECK(salida ==
+          QStringLiteral("Filas con errores:\n"
+                         "  - Fila 2: Nombre ausente\n"
+                         "  - Fila 4: Año fuera del rango permitido"));
+    CHECK(pea::cli::formatear_errores_importacion_csv({}).isEmpty());
+}
+
+TEST_CASE("La ayuda CLI anuncia el tipo CSV de autores") {
+    std::ostringstream salida;
+    std::streambuf* salida_anterior = std::cout.rdbuf(salida.rdbuf());
+    const int resultado = pea::cli::ejecutar({"--help"});
+    std::cout.rdbuf(salida_anterior);
+
+    CHECK(resultado == 0);
+    CHECK(salida.str().find("grupos|investigadores|productos|autores") != std::string::npos);
 }

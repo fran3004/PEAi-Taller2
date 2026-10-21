@@ -17,5 +17,6 @@ int ejecutar(const QStringList& argumentos);
 int ejecutar(
     const QStringList& argumentos,
     const CargadorCatalogoCsv& cargar_catalogo_csv);
+QString formatear_errores_importacion_csv(const QStringList& filas_erroneas);
 
 } // namespace pea::cli

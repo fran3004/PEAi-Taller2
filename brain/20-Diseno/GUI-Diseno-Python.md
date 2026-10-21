@@ -295,7 +295,7 @@ Referencia: ![[ref-red-coautorias.png]]. Detalle técnico en [[ADR-0015-Analisis
 
 - **Disposición**: arriba, tres tarjetas de fuente en fila (**CSV**, **PDF**, **URL de SCIENTI**); abajo, la tarjeta «Cola de importación».
 - **Tarjetas de fuente**: ícono, título, descripción de una línea, campo o zona para **arrastrar y soltar** (CSV y PDF), y botón primario «Encolar». El de CSV conserva el combo de tipo (Detección automática · Grupos · Investigadores · Productos · Autores / Relaciones).
-- **Cola**: encabezado «Tareas pendientes: N» con **«Procesar siguiente»** (primario) y **«Procesar todas»**; tabla con **píldora de estado** (Pendiente · En proceso · Completada · Falló). Mientras procesa: barra de progreso indeterminada y botones deshabilitados; al terminar, toast con el resumen (grupos, investigadores, productos).
+- **Cola**: encabezado «Tareas pendientes: N» con **«Procesar siguiente»** (primario) y **«Procesar todas»**; tabla con **píldora de estado** (Pendiente · En proceso · Completada · Falló). Mientras procesa: barra de progreso indeterminada y botones deshabilitados; al terminar, toast con el resumen (grupos, investigadores, productos y autores) y el conteo de filas con errores, también acumulado al procesar toda la cola.
 - **Servicios**: `encolar_csv`, `encolar_pdf`, `encolar_url`, `procesar_siguiente_tarea`, `tareas_pendientes`, `tabla_cola`.
 
 ### 6.7 Configuración

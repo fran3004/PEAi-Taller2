@@ -588,11 +588,14 @@ class PantallaImportar(QWidget):
                         f"Procesada con éxito.\n"
                         f"Grupos: {res.get('grupos', 0)} · "
                         f"Investigadores: {res.get('investigadores', 0)} · "
-                        f"Productos: {res.get('productos', 0)}"
+                        f"Productos: {res.get('productos', 0)} · "
+                        f"Autores: {res.get('autores', 0)}\n"
+                        f"Filas con errores: {res.get('filas_erroneas', 0)}"
                     )
                     self._notificar_aviso(msg, titulo="Tarea Completada", exito=True)
                 else:
                     err_msg = str(res.get("mensaje") or "Fallo al procesar la tarea")
+                    err_msg += f"\nFilas con errores: {res.get('filas_erroneas', 0)}"
                     self._notificar_aviso(err_msg, titulo="Fallo en Tarea", exito=False)
 
         def al_fallar(err: Exception, detalle: str) -> None:
@@ -618,11 +621,13 @@ class PantallaImportar(QWidget):
 
         self._establecer_estado_procesando(True)
 
-        def trabajo() -> tuple[int, int, int, int]:
+        def trabajo() -> tuple[int, int, int, int, int, int]:
             procesadas = 0
             grupos = 0
             investigadores = 0
             productos = 0
+            autores = 0
+            filas_erroneas = 0
             while self.servicio.tareas_pendientes() > 0:
                 res = self.servicio.procesar_siguiente_tarea()
                 procesadas += 1
@@ -630,16 +635,20 @@ class PantallaImportar(QWidget):
                     grupos += int(res.get("grupos", 0))
                     investigadores += int(res.get("investigadores", 0))
                     productos += int(res.get("productos", 0))
-            return procesadas, grupos, investigadores, productos
+                    autores += int(res.get("autores", 0))
+                    filas_erroneas += int(res.get("filas_erroneas", 0))
+            return procesadas, grupos, investigadores, productos, autores, filas_erroneas
 
-        def al_terminar(datos: tuple[int, int, int, int]) -> None:
+        def al_terminar(datos: tuple[int, int, int, int, int, int]) -> None:
             self._establecer_estado_procesando(False)
             self.refrescar()
             self.datos_modificados.emit()
-            procesadas, grupos, investigadores, productos = datos
+            procesadas, grupos, investigadores, productos, autores, filas_erroneas = datos
             msg = (
                 f"Se procesaron {procesadas} tareas.\n"
-                f"Grupos: {grupos} · Investigadores: {investigadores} · Productos: {productos}"
+                f"Grupos: {grupos} · Investigadores: {investigadores} · "
+                f"Productos: {productos} · Autores: {autores}\n"
+                f"Filas con errores: {filas_erroneas}"
             )
             self._notificar_aviso(msg, titulo="Cola Procesada", exito=True)
 

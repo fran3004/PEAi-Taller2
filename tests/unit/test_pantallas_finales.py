@@ -115,6 +115,74 @@ def test_pantalla_importar_estructura_y_encolamiento(
     pantalla.refrescar()
 
 
+def test_pantalla_importar_muestra_conteos_de_tarea(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any, monkeypatch: Any
+) -> None:
+    pantalla = PantallaImportar(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    avisos: list[tuple[str, str, bool]] = []
+    monkeypatch.setattr(
+        pantalla,
+        "_notificar_aviso",
+        lambda mensaje, titulo="Aviso", exito=True: avisos.append((mensaje, titulo, exito)),
+    )
+    monkeypatch.setattr(pantalla, "refrescar", lambda: None)
+    monkeypatch.setattr(servicio_demo, "tareas_pendientes", lambda: 1)
+    monkeypatch.setattr(
+        servicio_demo,
+        "procesar_siguiente_tarea",
+        lambda: {
+            "exito": True,
+            "grupos": 1,
+            "investigadores": 2,
+            "productos": 3,
+            "autores": 4,
+            "filas_erroneas": 5,
+        },
+    )
+
+    pantalla._al_procesar_siguiente()
+
+    assert len(avisos) == 1
+    assert "Autores: 4" in avisos[0][0]
+    assert "Filas con errores: 5" in avisos[0][0]
+
+
+def test_pantalla_importar_acumula_errores_al_procesar_cola(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any, monkeypatch: Any
+) -> None:
+    pantalla = PantallaImportar(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    avisos: list[tuple[str, str, bool]] = []
+    monkeypatch.setattr(
+        pantalla,
+        "_notificar_aviso",
+        lambda mensaje, titulo="Aviso", exito=True: avisos.append((mensaje, titulo, exito)),
+    )
+    monkeypatch.setattr(pantalla, "refrescar", lambda: None)
+
+    pendientes = [2]
+    resultados = iter(
+        [
+            {"grupos": 1, "investigadores": 0, "productos": 0, "autores": 2, "filas_erroneas": 3},
+            {"grupos": 0, "investigadores": 1, "productos": 2, "autores": 0, "filas_erroneas": 4},
+        ]
+    )
+
+    def procesar_siguiente() -> dict[str, int]:
+        pendientes[0] -= 1
+        return next(resultados)
+
+    monkeypatch.setattr(servicio_demo, "tareas_pendientes", lambda: pendientes[0])
+    monkeypatch.setattr(servicio_demo, "procesar_siguiente_tarea", procesar_siguiente)
+
+    pantalla._al_procesar_todas()
+
+    assert len(avisos) == 1
+    assert "Autores: 2" in avisos[0][0]
+    assert "Filas con errores: 7" in avisos[0][0]
+
+
 def test_zona_soltar_archivo_formatos_aceptados_adaptable(
     servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any
 ) -> None:
