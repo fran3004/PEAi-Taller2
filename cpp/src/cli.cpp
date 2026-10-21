@@ -13,35 +13,12 @@
 #include <exception>
 #include <array>
 #include <QDir>
-#include <QFile>
 #include <QFileInfo>
-#include <QSaveFile>
-#include <QProcessEnvironment>
-#include <QTextStream>
 #include <QStringList>
 
 namespace pea::cli {
 
 namespace {
-
-bool guardarCsvAtomico(const QString& ruta, const QString& contenido, QString& error) {
-    QSaveFile archivo(ruta);
-    if (!archivo.open(QIODevice::WriteOnly)) {
-        error = archivo.errorString();
-        return false;
-    }
-    const QByteArray bytes = contenido.toUtf8();
-    if (archivo.write(bytes) != bytes.size()) {
-        error = archivo.errorString();
-        archivo.cancelWriting();
-        return false;
-    }
-    if (!archivo.commit()) {
-        error = archivo.errorString();
-        return false;
-    }
-    return true;
-}
 
 std::unique_ptr<ClienteHTTPSupabase> obtenerClienteDesdeEntorno() {
     return datos::crear_cliente_configurado();
@@ -191,18 +168,27 @@ int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
     }
 }
 
-int comandoExportarCsv(const QString& dirDestino) {
+int comandoExportarCsv(
+    const QString& dirDestino,
+    const CargadorCatalogoCsv& cargar_catalogo_csv) {
     QDir dir(dirDestino);
-    auto cliente = obtenerClienteDesdeEntorno();
-    if (!cliente) {
+    std::unique_ptr<ClienteHTTPSupabase> cliente;
+    if (!cargar_catalogo_csv) {
+        cliente = obtenerClienteDesdeEntorno();
+    }
+    if (!cargar_catalogo_csv && !cliente) {
         std::cerr << "Error: conectar con Supabase antes de exportar el catálogo.\n";
         return 1;
     }
     servicios::CatalogoInvestigacion catalogo(cliente.get());
     try {
-        catalogo.recargar_todo();
+        if (cargar_catalogo_csv) {
+            cargar_catalogo_csv(catalogo);
+        } else {
+            catalogo.recargar_todo();
+        }
     } catch (const std::exception& err) {
-        std::cerr << "Error: no se pudo recargar el catálogo remoto; exportación cancelada ("
+        std::cerr << "Error: no se pudo cargar el catálogo; exportación cancelada ("
                   << err.what() << ").\n";
         return 1;
     }
@@ -217,7 +203,7 @@ int comandoExportarCsv(const QString& dirDestino) {
     for (std::size_t indice = 0; indice < nombres.size(); ++indice) {
         const QString ruta = dir.filePath(nombres[indice]);
         QString error;
-        if (!guardarCsvAtomico(ruta, contenidos[indice], error)) {
+        if (!datos::guardar_csv_atomico(ruta, contenidos[indice], error)) {
             std::cerr << "Error: no se pudo guardar " << ruta.toStdString()
                       << " (" << error.toStdString() << ").\n";
             return 1;
@@ -337,7 +323,9 @@ int comandoAplicarEscenario() {
 
 } // namespace
 
-static int ejecutar_interno(const QStringList& args) {
+static int ejecutar_interno(
+    const QStringList& args,
+    const CargadorCatalogoCsv& cargar_catalogo_csv) {
     if (args.isEmpty()) {
         mostrarAyuda();
         return 0;
@@ -413,7 +401,7 @@ static int ejecutar_interno(const QStringList& args) {
                 dirDestino = args[++i];
             }
         }
-        return comandoExportarCsv(dirDestino);
+        return comandoExportarCsv(dirDestino, cargar_catalogo_csv);
     }
 
     if (comando == "cargar-ejemplo") {
@@ -429,8 +417,14 @@ static int ejecutar_interno(const QStringList& args) {
 }
 
 int ejecutar(const QStringList& args) {
+    return ejecutar(args, {});
+}
+
+int ejecutar(
+    const QStringList& args,
+    const CargadorCatalogoCsv& cargar_catalogo_csv) {
     try {
-        return ejecutar_interno(args);
+        return ejecutar_interno(args, cargar_catalogo_csv);
     } catch (const std::exception& error) {
         std::cerr << "Error: " << error.what() << '\n';
         return 1;

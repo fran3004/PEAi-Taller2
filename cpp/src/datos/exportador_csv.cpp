@@ -3,6 +3,8 @@
 #include "pea/datos/serializador_csv.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
 
+#include <QSaveFile>
+
 namespace pea::datos {
 
 std::array<QString, 3> serializar_catalogo_csv(
@@ -43,6 +45,29 @@ std::array<QString, 3> serializar_catalogo_csv(
     }
 
     return {grupos, investigadores, productos};
+}
+
+bool guardar_csv_atomico(
+    const QString& ruta,
+    const QString& contenido,
+    QString& error) {
+    error.clear();
+    QSaveFile archivo(ruta);
+    if (!archivo.open(QIODevice::WriteOnly)) {
+        error = archivo.errorString();
+        return false;
+    }
+    const QByteArray bytes = contenido.toUtf8();
+    if (archivo.write(bytes) != bytes.size()) {
+        error = archivo.errorString();
+        archivo.cancelWriting();
+        return false;
+    }
+    if (!archivo.commit()) {
+        error = archivo.errorString();
+        return false;
+    }
+    return true;
 }
 
 } // namespace pea::datos
