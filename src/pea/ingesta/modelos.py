@@ -186,6 +186,7 @@ class FilaProductoCSV(BaseModel):
     pais: str | None = None
     estado_validacion: str = "No avalado"
     grupo_codigo: str | None = None
+    detalles: dict[str, Any] = Field(default_factory=dict)
     activo: bool = True
     es_ejemplo: bool = False
 

@@ -12,11 +12,13 @@ bool leer_booleano_csv(const QString& valor, bool predeterminado = true) {
     const QString normalizado = valor.trimmed().toLower();
     if (normalizado.isEmpty()) return predeterminado;
     if (normalizado == "true" || normalizado == "1" || normalizado == "yes" ||
+        normalizado == "t" ||
         normalizado == "y" || normalizado == "on" || normalizado == "si" ||
         normalizado == "sí") {
         return true;
     }
     if (normalizado == "false" || normalizado == "0" || normalizado == "no" ||
+        normalizado == "f" ||
         normalizado == "n" || normalizado == "off") {
         return false;
     }
@@ -421,10 +423,17 @@ std::pair<QList<FilaAutorCSV>, QList<QString>> LectorCSV::leer_autores(
             }
 
             int orden = 1;
-            if (idx_ord != -1 && idx_ord < f.size()) {
+            if (idx_ord != -1) {
+                if (idx_ord >= f.size() || f[idx_ord].trimmed().isEmpty()) {
+                    errores.append(QStringLiteral("Fila %1: Orden de autoría no numérica").arg(num + 1));
+                    continue;
+                }
                 bool ok = false;
-                int val = f[idx_ord].trimmed().toInt(&ok);
-                if (ok && val > 0) orden = val;
+                orden = f[idx_ord].trimmed().toInt(&ok);
+                if (!ok) {
+                    errores.append(QStringLiteral("Fila %1: Orden de autoría no numérica").arg(num + 1));
+                    continue;
+                }
             }
 
             FilaAutorCSV fa;

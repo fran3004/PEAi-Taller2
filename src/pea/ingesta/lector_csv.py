@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,16 @@ class LectorCSV:
         cuenta_comas = primera_linea.count(",")
         cuenta_puntos_coma = primera_linea.count(";")
         return ";" if cuenta_puntos_coma > cuenta_comas else ","
+
+    @staticmethod
+    def _normalizar_booleanos(datos_fila: dict[str, Any]) -> None:
+        for campo, predeterminado in (("activo", True), ("es_ejemplo", False)):
+            valor = datos_fila.get(campo)
+            if valor is None or (isinstance(valor, str) and not valor.strip()):
+                if campo in datos_fila:
+                    datos_fila[campo] = predeterminado
+            elif isinstance(valor, str) and valor.strip().lower() in ("si", "sí"):
+                datos_fila[campo] = True
 
     @staticmethod
     def leer_texto(ruta_csv: Path | str) -> tuple[str, str]:
@@ -116,7 +127,7 @@ class LectorCSV:
                 for k, v in fila.items():
                     if k is None:
                         continue
-                    k_limpio = k.strip()
+                    k_limpio = k.strip().lower()
                     val = v.strip() if isinstance(v, str) else v
                     if k_limpio in ("codigo_minciencias", "codigo_gruplac"):
                         datos_fila["codigo_gruplac"] = val
@@ -129,6 +140,7 @@ class LectorCSV:
                     else:
                         datos_fila[k_limpio] = val
 
+                cls._normalizar_booleanos(datos_fila)
                 fila_validada = FilaGrupoCSV.model_validate(datos_fila)
                 grupo = Grupo(
                     codigo_gruplac=fila_validada.codigo_gruplac,
@@ -170,7 +182,7 @@ class LectorCSV:
                 for k, v in fila.items():
                     if k is None:
                         continue
-                    k_limpio = k.strip()
+                    k_limpio = k.strip().lower()
                     val = v.strip() if isinstance(v, str) else v
                     if k_limpio in ("codigo_cvlac", "codigo_rh"):
                         datos_fila["codigo_rh"] = val
@@ -183,6 +195,7 @@ class LectorCSV:
                     else:
                         datos_fila[k_limpio] = val
 
+                cls._normalizar_booleanos(datos_fila)
                 fila_validada = FilaInvestigadorCSV.model_validate(datos_fila)
                 inv = Investigador(
                     codigo_rh=fila_validada.codigo_rh,
@@ -223,7 +236,7 @@ class LectorCSV:
                 for k, v in fila.items():
                     if k is None:
                         continue
-                    k_limpio = k.strip()
+                    k_limpio = k.strip().lower()
                     val = v.strip() if isinstance(v, str) else v
                     if k_limpio in ("anio", "ano"):
                         if not val:
@@ -239,12 +252,26 @@ class LectorCSV:
                         datos_fila["tipo_mayor"] = val
                     elif k_limpio in ("grupo_codigo", "codigo_gruplac"):
                         datos_fila["grupo_codigo"] = val
+                    elif k_limpio == "detalles":
+                        if not val:
+                            datos_fila["detalles"] = {}
+                        else:
+                            try:
+                                detalles = json.loads(val)
+                            except json.JSONDecodeError as err:
+                                raise ValueError(
+                                    "El campo detalles debe contener un objeto JSON."
+                                ) from err
+                            if not isinstance(detalles, dict):
+                                raise ValueError("El campo detalles debe contener un objeto JSON.")
+                            datos_fila["detalles"] = detalles
                     else:
                         datos_fila[k_limpio] = val
 
                 if "ano" not in datos_fila:
                     raise ValueError("Año no numérico o ausente")
 
+                cls._normalizar_booleanos(datos_fila)
                 fila_validada = FilaProductoCSV.model_validate(datos_fila)
                 prod = Producto(
                     codigo_identificador=fila_validada.codigo_identificador,
@@ -255,6 +282,7 @@ class LectorCSV:
                     mes=fila_validada.mes,
                     pais=fila_validada.pais,
                     estado_validacion=fila_validada.estado_validacion,
+                    detalles=fila_validada.detalles,
                     activo=fila_validada.activo,
                     es_ejemplo=fila_validada.es_ejemplo,
                 )
@@ -285,9 +313,17 @@ class LectorCSV:
                 for k, v in fila.items():
                     if k is None:
                         continue
-                    k_limpio = k.strip()
+                    k_limpio = k.strip().lower()
                     val = v.strip() if isinstance(v, str) else v
-                    datos_fila[k_limpio] = val
+                    if k_limpio == "orden_autoria":
+                        if not val:
+                            raise ValueError("Orden de autoría no numérica")
+                        try:
+                            datos_fila[k_limpio] = int(val)
+                        except ValueError as err:
+                            raise ValueError("Orden de autoría no numérica") from err
+                    else:
+                        datos_fila[k_limpio] = val
 
                 fila_validada = FilaAutorCSV.model_validate(datos_fila)
                 autores_validos.append(fila_validada)

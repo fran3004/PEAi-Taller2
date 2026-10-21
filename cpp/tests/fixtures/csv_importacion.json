@@ -1,16 +1,16 @@
 {
-  "contenido": "codigo_gruplac;nombre;categoria;institucion_principal;lider;activo;es_ejemplo\r\nPRUEBA-CSV-01;\"Grupo, \"\"Investigación\"\"\ny extensión\";A1;Universidad Popular del Cesar;PRUEBA-LIDER;false;true\r\n",
+  "contenido": "codigo_gruplac;nombre;categoria;institucion_principal;lider;activo;es_ejemplo\r\nPRUEBA-CSV-01;\"Grupo, \"\"Investigación\"\"\ny extensión\";A1;Universidad Popular del Cesar;PRUEBA-LIDER;sí;\r\n",
   "esperado": {
     "codigo_gruplac": "PRUEBA-CSV-01",
     "nombre": "Grupo, \"Investigación\"\ny extensión",
     "categoria": "A1",
     "institucion_principal": "Universidad Popular del Cesar",
     "lider": "PRUEBA-LIDER",
-    "activo": false,
-    "es_ejemplo": true
+    "activo": true,
+    "es_ejemplo": false
   },
   "investigadores": {
-    "contenido": "codigo_rh,nombre_completo,categoria,formacion_academica,nacionalidad,nombre_en_citas,documento_identidad,sexo,activo,es_ejemplo\r\nPRUEBA-RH-CSV-01,\"Investigador, \"\"Prueba\"\"\" ,Junior,Maestría,Colombiana,\"Prueba, I.\",PRUEBA-DOC-01,No,0,1\r\n",
+    "contenido": "codigo_rh,nombre_completo,categoria,formacion_academica,nacionalidad,nombre_en_citas,documento_identidad,sexo,activo,es_ejemplo\r\nPRUEBA-RH-CSV-01,\"Investigador, \"\"Prueba\"\"\" ,Junior,Maestría,Colombiana,\"Prueba, I.\",PRUEBA-DOC-01,No,f,t\r\n",
     "esperado": {
       "codigo_rh": "PRUEBA-RH-CSV-01",
       "nombre_completo": "Investigador, \"Prueba\"",
@@ -25,7 +25,7 @@
     }
   },
   "productos": {
-    "contenido": "codigo_identificador,titulo,tipo_mayor,subtipo,ano,mes,pais,estado_validacion,grupo_codigo,activo,es_ejemplo\r\nPRUEBA-PROD-CSV-01,\"Producto, \"\"Especial\"\"\",DTI,Software,2023,7,Colombia,Con soporte,PRUEBA-CSV-01,false,true\r\n",
+    "contenido": "codigo_identificador,titulo,tipo_mayor,subtipo,ano,mes,pais,estado_validacion,grupo_codigo,activo,es_ejemplo,detalles\r\nPRUEBA-PROD-CSV-01,\"Producto, \"\"Especial\"\"\",DTI,Software,2023,7,Colombia,Con soporte,PRUEBA-CSV-01,false,true,\"{\"\"fuente\"\":\"\"csv\"\",\"\"version\"\":1}\"\r\n",
     "esperado": {
       "codigo_identificador": "PRUEBA-PROD-CSV-01",
       "titulo": "Producto, \"Especial\"",
@@ -37,7 +37,8 @@
       "estado_validacion": "Con soporte",
       "grupo_codigo": "PRUEBA-CSV-01",
       "activo": false,
-      "es_ejemplo": true
+      "es_ejemplo": true,
+      "detalles": {"fuente": "csv", "version": 1}
     }
   },
   "autores": {
@@ -47,6 +48,18 @@
       "investigador_codigo": "PRUEBA-RH-CSV-01",
       "orden_autoria": 2
     }
+  },
+  "autores_invalidos": {
+    "contenido": "producto_codigo,investigador_codigo,orden_autoria\r\nPRUEBA-PROD-CSV-01,PRUEBA-RH-CSV-01,no-numérico\r\nPRUEBA-PROD-CSV-02,PRUEBA-RH-CSV-02,\r\n",
+    "errores": [
+      {"fila": 2, "mensaje": "Orden de autoría no numérica"},
+      {"fila": 3, "mensaje": "Orden de autoría no numérica"}
+    ]
+  },
+  "productos_detalles_invalidos": {
+    "contenido": "codigo_identificador,titulo,tipo_mayor,ano,detalles\r\nPRUEBA-PROD-ERR-DET-01,Producto con detalles inválidos,GNC,2024,\"[1,2]\"\r\n",
+    "fila_error": 2,
+    "mensaje": "El campo detalles debe contener un objeto JSON."
   },
   "filas_invalidas": {
     "contenido": "codigo_identificador,titulo,tipo_mayor,ano\r\nPRUEBA-PROD-OK-01,Producto válido,GNC,2022\r\nPRUEBA-PROD-ERR-01,Producto año inválido,GNC,NO-ES-AÑO\r\nPRUEBA-PROD-OK-02,Producto año mínimo,GNC,1970\r\nPRUEBA-PROD-ERR-02,Producto año vacío,GNC,\r\nPRUEBA-PROD-ERR-03,Producto año anterior al límite,GNC,1969\r\nPRUEBA-PROD-ERR-04,Producto año futuro,GNC,9999\r\nPRUEBA-PROD-OK-03,Producto año actual,DTI,ANIO_ACTUAL\r\n",

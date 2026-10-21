@@ -483,6 +483,7 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
     CHECK(producto.mes == valores_producto.value("mes").toInt());
     CHECK(producto.pais == valores_producto.value("pais").toString());
     CHECK(producto.estado_validacion == valores_producto.value("estado_validacion").toString());
+    CHECK(producto.detalles == valores_producto.value("detalles").toObject());
     CHECK(producto.activo == valores_producto.value("activo").toBool());
     CHECK(producto.es_ejemplo == valores_producto.value("es_ejemplo").toBool());
 
@@ -500,6 +501,47 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
     CHECK(autores[0].producto_codigo == valores_autor.value("producto_codigo").toString());
     CHECK(autores[0].investigador_codigo == valores_autor.value("investigador_codigo").toString());
     CHECK(autores[0].orden_autoria == valores_autor.value("orden_autoria").toInt());
+
+    const QJsonObject autores_invalidos = datos.value("autores_invalidos").toObject();
+    const QString ruta_autores_invalidos = temporal.filePath(QStringLiteral("autores_invalidos.csv"));
+    QFile archivo_autores_invalidos(ruta_autores_invalidos);
+    REQUIRE(archivo_autores_invalidos.open(QIODevice::WriteOnly));
+    const QByteArray bytes_autores_invalidos =
+        autores_invalidos.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_autores_invalidos.write(bytes_autores_invalidos) ==
+            bytes_autores_invalidos.size());
+    archivo_autores_invalidos.close();
+    const auto [autores_rechazados, errores_autores_invalidos] =
+        LectorCSV::leer_autores(ruta_autores_invalidos);
+    CHECK(autores_rechazados.isEmpty());
+    const QJsonArray errores_autores_esperados = autores_invalidos.value("errores").toArray();
+    REQUIRE(errores_autores_invalidos.size() == errores_autores_esperados.size());
+    for (qsizetype indice = 0; indice < errores_autores_esperados.size(); ++indice) {
+        const QJsonObject error = errores_autores_esperados.at(indice).toObject();
+        CHECK(errores_autores_invalidos.at(indice) ==
+              QStringLiteral("Fila %1: %2")
+                  .arg(error.value("fila").toInt())
+                  .arg(error.value("mensaje").toString()));
+    }
+
+    const QJsonObject detalles_invalidos = datos.value("productos_detalles_invalidos").toObject();
+    const QString ruta_detalles_invalidos =
+        temporal.filePath(QStringLiteral("productos_detalles_invalidos.csv"));
+    QFile archivo_detalles_invalidos(ruta_detalles_invalidos);
+    REQUIRE(archivo_detalles_invalidos.open(QIODevice::WriteOnly));
+    const QByteArray bytes_detalles_invalidos =
+        detalles_invalidos.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_detalles_invalidos.write(bytes_detalles_invalidos) ==
+            bytes_detalles_invalidos.size());
+    archivo_detalles_invalidos.close();
+    const auto [productos_detalles_invalidos, errores_detalles] =
+        LectorCSV::leer_productos(ruta_detalles_invalidos);
+    CHECK(productos_detalles_invalidos.isEmpty());
+    REQUIRE(errores_detalles.size() == 1);
+    CHECK(errores_detalles.front() ==
+          QStringLiteral("Fila %1: Error de análisis: %2")
+              .arg(detalles_invalidos.value("fila_error").toInt())
+              .arg(detalles_invalidos.value("mensaje").toString()));
 
     const QJsonObject filas_invalidas = datos.value("filas_invalidas").toObject();
     const QString ruta_filas_invalidas = temporal.filePath(QStringLiteral("productos_con_errores.csv"));
@@ -546,6 +588,67 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
           QStringLiteral("Fila %1: %2")
               .arg(sin_columna_ano.value("fila_error").toInt())
               .arg(sin_columna_ano.value("mensaje").toString()));
+}
+
+TEST_CASE("LectorCSV acepta cabeceras sin distinguir mayúsculas") {
+    QFile fixture(QStringLiteral(PEA_TEST_FIXTURES_DIR) + "/csv_importacion.json");
+    REQUIRE(fixture.open(QIODevice::ReadOnly));
+    const QJsonObject datos = QJsonDocument::fromJson(fixture.readAll()).object();
+    QTemporaryDir temporal;
+    REQUIRE(temporal.isValid());
+
+    const auto escribir_cabecera_mayuscula =
+        [&temporal](const QString& nombre, const QString& contenido) {
+            const qsizetype fin_cabecera = contenido.indexOf(QStringLiteral("\r\n"));
+            if (fin_cabecera < 0) return false;
+            const QString contenido_mayuscula =
+                contenido.left(fin_cabecera).toUpper() + contenido.mid(fin_cabecera);
+            QFile archivo(temporal.filePath(nombre));
+            if (!archivo.open(QIODevice::WriteOnly)) return false;
+            const QByteArray bytes = contenido_mayuscula.toUtf8();
+            const bool escrito = archivo.write(bytes) == bytes.size();
+            archivo.close();
+            return escrito;
+        };
+
+    REQUIRE(escribir_cabecera_mayuscula(
+        QStringLiteral("grupos.csv"), datos.value("contenido").toString()));
+    const auto [grupos, errores_grupos] =
+        LectorCSV::leer_grupos(temporal.filePath(QStringLiteral("grupos.csv")));
+    CHECK(errores_grupos.isEmpty());
+    REQUIRE(grupos.tamano() == 1);
+    CHECK(grupos.cabeza()->dato.codigo_gruplac == QStringLiteral("PRUEBA-CSV-01"));
+
+    const QJsonObject datos_investigadores = datos.value("investigadores").toObject();
+    REQUIRE(escribir_cabecera_mayuscula(
+        QStringLiteral("investigadores.csv"),
+        datos_investigadores.value("contenido").toString()));
+    const auto [investigadores, errores_investigadores] =
+        LectorCSV::leer_investigadores(temporal.filePath(QStringLiteral("investigadores.csv")));
+    CHECK(errores_investigadores.isEmpty());
+    REQUIRE(investigadores.tamano() == 1);
+    CHECK(investigadores.cabeza()->dato.codigo_rh == QStringLiteral("PRUEBA-RH-CSV-01"));
+
+    const QJsonObject datos_productos = datos.value("productos").toObject();
+    REQUIRE(escribir_cabecera_mayuscula(
+        QStringLiteral("productos.csv"), datos_productos.value("contenido").toString()));
+    const auto [productos, errores_productos] =
+        LectorCSV::leer_productos(temporal.filePath(QStringLiteral("productos.csv")));
+    CHECK(errores_productos.isEmpty());
+    REQUIRE(productos.size() == 1);
+    CHECK(productos.front().first.codigo_identificador ==
+          QStringLiteral("PRUEBA-PROD-CSV-01"));
+    CHECK(productos.front().first.detalles ==
+          datos_productos.value("esperado").toObject().value("detalles").toObject());
+
+    const QJsonObject datos_autores = datos.value("autores").toObject();
+    REQUIRE(escribir_cabecera_mayuscula(
+        QStringLiteral("autores.csv"), datos_autores.value("contenido").toString()));
+    const auto [autores, errores_autores] =
+        LectorCSV::leer_autores(temporal.filePath(QStringLiteral("autores.csv")));
+    CHECK(errores_autores.isEmpty());
+    REQUIRE(autores.size() == 1);
+    CHECK(autores.front().producto_codigo == QStringLiteral("PRUEBA-PROD-CSV-01"));
 }
 
 TEST_CASE("Informe CSV completo conserva paridad entre Python y C++") {

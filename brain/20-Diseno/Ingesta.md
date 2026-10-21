@@ -102,6 +102,45 @@ producto_codigo,investigador_codigo,orden_autoria
 ART-2023-001,0000494917,1
 ```
 
+### 3.5. Alias y campos opcionales
+
+Los encabezados se comparan sin distinguir mayúsculas y minúsculas. Se aceptan
+estos nombres equivalentes:
+
+| Archivo | Nombre canónico | Alias admitido |
+|---|---|---|
+| Grupos | `codigo_minciencias` | `codigo_gruplac` |
+| Grupos | `nombre` | `nombre_grupo` |
+| Grupos | `clasificacion` | `categoria` |
+| Grupos | `institucion` | `institucion_principal` |
+| Investigadores | `codigo_cvlac` | `codigo_rh` |
+| Investigadores | `nombre_completo` | `nombre` |
+| Investigadores | `categoria` | `categoria_declarada` |
+| Investigadores | `formacion_academica` | `formacion` |
+| Productos | `tipo_categoria` | `tipo_mayor` |
+| Productos | `anio` | `ano` |
+| Productos | `grupo_codigo` | `codigo_gruplac` |
+
+Además de los campos de los ejemplos, grupos admiten `lider`, `pais`,
+`departamento_ciudad`, `gran_area_ocde`, `area_ocde`, `activo` y `es_ejemplo`;
+investigadores admiten `formacion_academica`, `nombre_en_citas`,
+`documento_identidad`, `sexo`, `activo` y `es_ejemplo`; productos admiten
+`subtipo`, `mes`, `pais`, `activo`, `es_ejemplo` y `detalles`. El campo
+`detalles` de productos, si se incluye, debe ser un objeto JSON y se conserva
+en `PRODUCTO.detalles`.
+
+Para campos booleanos se reconocen `true`/`false`, `1`/`0`, `yes`/`no`,
+`y`/`n`, `t`/`f`, `on`/`off` y `si`/`sí` (también en mayúsculas). Un valor
+vacío usa el valor predeterminado del modelo (`activo=true`,
+`es_ejemplo=false`). `orden_autoria` se interpreta como entero; si la columna
+no está presente se usa `1`, pero un valor vacío o no numérico se informa como
+error de fila.
+
+**Pendiente de aclaración normativa**: el alias `tipo_categoria` aparece en el
+ejemplo con el valor `Artículo Tipo A1`, mientras que RF-04 define `tipo_mayor`
+como `GNC`, `DTI`, `ASC` o `FRH`. No se infiere una transformación entre ambos
+vocabularios hasta contrastarla con el Modelo y su tabla oficial de productos.
+
 ## 4. Normalización, Detección de Duplicados y Desduplicación
 
 Antes de que un elemento ingrese en la [[Cola-importacion]], se aplican las siguientes reglas:

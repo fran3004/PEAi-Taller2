@@ -78,6 +78,7 @@ def test_importacion_de_los_tipos_restantes_comparte_campos_python_cpp(
     assert codigo_grupo == esperado_producto["grupo_codigo"]
     assert producto.activo is esperado_producto["activo"]
     assert producto.es_ejemplo is esperado_producto["es_ejemplo"]
+    assert producto.detalles == esperado_producto["detalles"]
     for campo in (
         "codigo_identificador",
         "titulo",
@@ -97,6 +98,38 @@ def test_importacion_de_los_tipos_restantes_comparte_campos_python_cpp(
     assert len(autores) == 1
     for campo, valor in fixture["autores"]["esperado"].items():
         assert getattr(autores[0], campo) == valor
+
+    ruta_autores_invalidos = tmp_path / "autores_invalidos.csv"
+    ruta_autores_invalidos.write_text(
+        fixture["autores_invalidos"]["contenido"], encoding="utf-8"
+    )
+    autores_invalidos, errores_autores_invalidos = LectorCSV.leer_autores(
+        ruta_autores_invalidos
+    )
+    assert autores_invalidos == []
+    assert [
+        {"fila": error["fila"], "mensaje": error["error"]}
+        for error in errores_autores_invalidos
+    ] == fixture["autores_invalidos"]["errores"]
+
+    detalles_invalidos = fixture["productos_detalles_invalidos"]
+    ruta_detalles_invalidos = tmp_path / "productos_detalles_invalidos.csv"
+    ruta_detalles_invalidos.write_text(
+        detalles_invalidos["contenido"], encoding="utf-8"
+    )
+    productos_con_detalles_invalidos, errores_detalles = LectorCSV.leer_productos(
+        ruta_detalles_invalidos
+    )
+    assert productos_con_detalles_invalidos == []
+    assert [
+        {"fila": error["fila"], "mensaje": error["error"]}
+        for error in errores_detalles
+    ] == [
+        {
+            "fila": detalles_invalidos["fila_error"],
+            "mensaje": detalles_invalidos["mensaje"],
+        }
+    ]
 
     ruta_con_errores = tmp_path / "productos_con_errores.csv"
     contenido_con_ano_actual = fixture["filas_invalidas"]["contenido"].replace(
@@ -128,3 +161,49 @@ def test_importacion_de_los_tipos_restantes_comparte_campos_python_cpp(
             "error": sin_columna_ano["mensaje"],
         }
     ]
+
+
+def test_lectores_csv_aceptan_cabeceras_sin_distinguir_mayusculas(
+    tmp_path: Path,
+) -> None:
+    archivo_fixture = (
+        Path(__file__).parents[2] / "cpp" / "tests" / "fixtures" / "csv_importacion.json"
+    )
+    fixture = json.loads(archivo_fixture.read_text(encoding="utf-8"))
+
+    def escribir_cabecera_mayuscula(nombre: str, contenido: str) -> Path:
+        cabecera, separador, filas = contenido.partition("\r\n")
+        assert separador
+        ruta = tmp_path / nombre
+        ruta.write_text(f"{cabecera.upper()}{separador}{filas}", encoding="utf-8")
+        return ruta
+
+    grupos, errores_grupos = LectorCSV.leer_grupos(
+        escribir_cabecera_mayuscula("grupos.csv", fixture["contenido"])
+    )
+    assert errores_grupos == []
+    assert [grupo.codigo_gruplac for grupo in grupos] == ["PRUEBA-CSV-01"]
+
+    investigadores, errores_investigadores = LectorCSV.leer_investigadores(
+        escribir_cabecera_mayuscula(
+            "investigadores.csv", fixture["investigadores"]["contenido"]
+        )
+    )
+    assert errores_investigadores == []
+    assert [investigador.codigo_rh for investigador in investigadores] == [
+        "PRUEBA-RH-CSV-01"
+    ]
+
+    productos, errores_productos = LectorCSV.leer_productos(
+        escribir_cabecera_mayuscula("productos.csv", fixture["productos"]["contenido"])
+    )
+    assert errores_productos == []
+    assert [producto.codigo_identificador for producto, _ in productos] == [
+        "PRUEBA-PROD-CSV-01"
+    ]
+
+    autores, errores_autores = LectorCSV.leer_autores(
+        escribir_cabecera_mayuscula("autores.csv", fixture["autores"]["contenido"])
+    )
+    assert errores_autores == []
+    assert [autor.producto_codigo for autor in autores] == ["PRUEBA-PROD-CSV-01"]
