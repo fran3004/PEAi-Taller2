@@ -11,6 +11,8 @@ estructuras::Hipercubo5D ServicioEstadisticas::resolverCubo(
     const estructuras::Hipercubo5D* cubo,
     std::optional<int> ventanaAnios,
     bool modelo2024,
+    std::optional<int> anioInicio,
+    std::optional<int> anioFin,
     int anioReferencia
 ) const {
     const estructuras::Hipercubo5D* base = cubo ? cubo : m_hipercubo;
@@ -18,6 +20,9 @@ estructuras::Hipercubo5D ServicioEstadisticas::resolverCubo(
 
     if (modelo2024) {
         return base->subcuboModelo2024(2023);
+    }
+    if (anioInicio.has_value() || anioFin.has_value()) {
+        return base->subcuboPorVentana(anioInicio, anioFin);
     }
     if (ventanaAnios.has_value() && *ventanaAnios > 0) {
         int inicio = anioReferencia - *ventanaAnios + 1;
@@ -271,8 +276,11 @@ QMap<QString, double> ServicioEstadisticas::porcentajesPorValidacion(const estru
 QJsonObject ServicioEstadisticas::obtenerVistaInstitucional(
     std::optional<int> ventanaAnios,
     bool modelo2024,
+    std::optional<int> anioInicio,
+    std::optional<int> anioFin,
     const QSet<QString>& codigosInvestigadores) const {
-    estructuras::Hipercubo5D c = resolverCubo(nullptr, ventanaAnios, modelo2024);
+    estructuras::Hipercubo5D c =
+        resolverCubo(nullptr, ventanaAnios, modelo2024, anioInicio, anioFin);
     QJsonObject obj;
     obj["tipo_vista"] = "institucional";
     obj["total_productos"] = c.totalProductosUnicos();
@@ -346,8 +354,11 @@ QJsonObject ServicioEstadisticas::obtenerVistaGrupo(
     const QString& idGrupo,
     std::optional<int> ventanaAnios,
     bool modelo2024,
+    std::optional<int> anioInicio,
+    std::optional<int> anioFin,
     const QSet<QString>& codigosInvestigadores) const {
-    estructuras::Hipercubo5D cInst = resolverCubo(nullptr, ventanaAnios, modelo2024);
+    estructuras::Hipercubo5D cInst =
+        resolverCubo(nullptr, ventanaAnios, modelo2024, anioInicio, anioFin);
     estructuras::Hipercubo5D cGrp = cInst.rebanada(estructuras::Hipercubo5D::DIM_GRUPO, idGrupo);
 
     int totGrp = cGrp.totalProductosUnicos();
@@ -423,8 +434,14 @@ QJsonObject ServicioEstadisticas::obtenerVistaGrupo(
     return obj;
 }
 
-QJsonObject ServicioEstadisticas::obtenerVistaInvestigador(const QString& idInvestigador, std::optional<int> ventanaAnios, bool modelo2024) const {
-    estructuras::Hipercubo5D cInst = resolverCubo(nullptr, ventanaAnios, modelo2024);
+QJsonObject ServicioEstadisticas::obtenerVistaInvestigador(
+    const QString& idInvestigador,
+    std::optional<int> ventanaAnios,
+    bool modelo2024,
+    std::optional<int> anioInicio,
+    std::optional<int> anioFin) const {
+    estructuras::Hipercubo5D cInst =
+        resolverCubo(nullptr, ventanaAnios, modelo2024, anioInicio, anioFin);
     estructuras::Hipercubo5D cInv = cInst.rebanada(estructuras::Hipercubo5D::DIM_INVESTIGADOR, idInvestigador);
 
     int totInv = cInv.totalProductosUnicos();

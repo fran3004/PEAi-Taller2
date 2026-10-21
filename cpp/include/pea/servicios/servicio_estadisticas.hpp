@@ -65,15 +65,24 @@ public:
     [[nodiscard]] QJsonObject obtenerVistaInstitucional(
         std::optional<int> ventanaAnios = std::nullopt,
         bool modelo2024 = false,
+        std::optional<int> anioInicio = std::nullopt,
+        std::optional<int> anioFin = std::nullopt,
         const QSet<QString>& codigosInvestigadores = {}) const;
 
     [[nodiscard]] QJsonObject obtenerVistaGrupo(
         const QString& idGrupo,
         std::optional<int> ventanaAnios = std::nullopt,
         bool modelo2024 = false,
+        std::optional<int> anioInicio = std::nullopt,
+        std::optional<int> anioFin = std::nullopt,
         const QSet<QString>& codigosInvestigadores = {}) const;
 
-    [[nodiscard]] QJsonObject obtenerVistaInvestigador(const QString& idInvestigador, std::optional<int> ventanaAnios = std::nullopt, bool modelo2024 = false) const;
+    [[nodiscard]] QJsonObject obtenerVistaInvestigador(
+        const QString& idInvestigador,
+        std::optional<int> ventanaAnios = std::nullopt,
+        bool modelo2024 = false,
+        std::optional<int> anioInicio = std::nullopt,
+        std::optional<int> anioFin = std::nullopt) const;
 
 private:
     estructuras::Hipercubo5D* m_hipercubo{nullptr};
@@ -82,6 +91,8 @@ private:
         const estructuras::Hipercubo5D* cubo,
         std::optional<int> ventanaAnios,
         bool modelo2024,
+        std::optional<int> anioInicio = std::nullopt,
+        std::optional<int> anioFin = std::nullopt,
         int anioReferencia = 2024
     ) const;
 };

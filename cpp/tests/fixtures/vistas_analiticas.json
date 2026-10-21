@@ -50,5 +50,99 @@
         "G2": {"productos_propios_en_grupo": 1, "total_productos_grupo": 1, "porcentaje_aporte": 100.0}
       }
     }
-  }
+  },
+  "esperado_rango_2023": {
+    "institucional": {
+      "tipo_vista": "institucional",
+      "total_productos": 2,
+      "productos_por_anio": {"2023": 2},
+      "productos_por_categoria": {"GNC": 2, "DTI": 0, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 100.0, "DTI": 0.0, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 2, "Con soporte": 0, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 100.0, "Con soporte": 0.0, "No avalado": 0.0},
+      "top_5_investigadores": [["I1", 1], ["I2", 1]],
+      "top_5_grupos": [["G1", 2]],
+      "promedio_por_investigador": 1.0,
+      "distribucion_productos_por_investigador": {"0": 1, "1–2": 2, "3–5": 0, "6–10": 0, "11+": 0}
+    },
+    "grupo": {
+      "tipo_vista": "grupo",
+      "id_grupo": "G1",
+      "total_productos": 2,
+      "porcentaje_sobre_institucion": 100.0,
+      "productos_por_anio": {"2023": 2},
+      "productos_por_categoria": {"GNC": 2, "DTI": 0, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 100.0, "DTI": 0.0, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 2, "Con soporte": 0, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 100.0, "Con soporte": 0.0, "No avalado": 0.0},
+      "top_5_investigadores": [["I1", 1], ["I2", 1]],
+      "promedio_por_investigador": 1.0,
+      "investigadores": {"I1": 1, "I2": 1},
+      "distribucion_productos_por_investigador": {"0": 1, "1–2": 2, "3–5": 0, "6–10": 0, "11+": 0}
+    },
+    "investigador": {
+      "tipo_vista": "investigador",
+      "id_investigador": "I1",
+      "total_productos": 1,
+      "productos_por_anio": {"2023": 1},
+      "histograma_productos_por_anio": {"2023": 1},
+      "productos_por_categoria": {"GNC": 1, "DTI": 0, "ASC": 0, "FRH": 0},
+      "porcentajes_categoria": {"GNC": 100.0, "DTI": 0.0, "ASC": 0.0, "FRH": 0.0},
+      "productos_por_validacion": {"Avalado": 1, "Con soporte": 0, "No avalado": 0},
+      "porcentajes_validacion": {"Avalado": 100.0, "Con soporte": 0.0, "No avalado": 0.0},
+      "grupos_participacion": {"G1": 1},
+      "contribuciones_grupos": {
+        "G1": {"productos_propios_en_grupo": 1, "total_productos_grupo": 2, "porcentaje_aporte": 50.0}
+      }
+    }
+  },
+  "productos_temporales": [
+      {"grupo": "G1", "investigador": "I1", "categoria": "GNC", "anio": 2012, "validacion": "Avalado", "id": "PT1"},
+      {"grupo": "G1", "investigador": "I1", "categoria": "GNC_LIBRO", "anio": 2015, "validacion": "Avalado", "id": "PT2"},
+      {"grupo": "G1", "investigador": "I1", "categoria": "GNC", "anio": 2019, "validacion": "Avalado", "id": "PT3"},
+      {"grupo": "G1", "investigador": "I1", "categoria": "DTI", "anio": 2023, "validacion": "Avalado", "id": "PT4"},
+      {"grupo": "G1", "investigador": "I1", "categoria": "DTI", "anio": 2024, "validacion": "Avalado", "id": "PT5"}
+    ],
+    "casos_temporales": [
+      {
+        "nombre": "inicio_abierto",
+        "anio_inicio": 2023,
+        "esperado": {"total_productos": 2, "productos_por_anio": {"2023": 1, "2024": 1}}
+      },
+      {
+        "nombre": "fin_abierto",
+        "anio_fin": 2022,
+        "esperado": {"total_productos": 3, "productos_por_anio": {"2012": 1, "2015": 1, "2019": 1}}
+      },
+      {
+        "nombre": "limites_invertidos",
+        "anio_inicio": 2023,
+        "anio_fin": 2022,
+        "esperado": {"total_productos": 0, "productos_por_anio": {}}
+      },
+      {
+        "nombre": "ultimos_cinco",
+        "ventana_anios": 5,
+        "esperado": {"total_productos": 2, "productos_por_anio": {"2023": 1, "2024": 1}}
+      },
+      {
+        "nombre": "modelo_2024",
+        "modelo_2024": true,
+        "esperado": {"total_productos": 3, "productos_por_anio": {"2015": 1, "2019": 1, "2023": 1}}
+      },
+      {
+        "nombre": "modelo_prioritario",
+        "modelo_2024": true,
+        "anio_inicio": 2023,
+        "anio_fin": 2023,
+        "esperado": {"total_productos": 3, "productos_por_anio": {"2015": 1, "2019": 1, "2023": 1}}
+      },
+      {
+        "nombre": "rango_prioritario",
+        "ventana_anios": 5,
+        "anio_inicio": 2012,
+        "anio_fin": 2012,
+        "esperado": {"total_productos": 1, "productos_por_anio": {"2012": 1}}
+      }
+    ]
 }

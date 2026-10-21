@@ -59,9 +59,9 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Top 5 grupos | `top_5_grupos()` | `top5Grupos()` | igual | Comparar desempate |
 | Porcentajes por categoría | `porcentajes_por_categoria()` | `porcentajesPorCategoria()` | igual | Comparar precisión y totales |
 | Porcentajes por validación | `porcentajes_por_validacion()` | `porcentajesPorValidacion()` | igual | Comparar precisión y totales |
-| Vista institucional | `obtener_vista_institucional()` | `obtenerVistaInstitucional()` | Contrato JSON probado con fixture común | Mantener pares de top 5 y distribución por investigador idénticos |
-| Vista de grupo | `obtener_vista_grupo()` | `obtenerVistaGrupo()` | Contrato JSON probado con fixture común | Mantener filtro de grupo y distribución con investigadores sin productos |
-| Vista de investigador | `obtener_vista_investigador()` | `obtenerVistaInvestigador()` | Contrato JSON probado con fixture común | Mantener histogramas y contribuciones a grupos idénticos |
+| Vista institucional | `obtener_vista_institucional()` | `obtenerVistaInstitucional()` | Contrato JSON y rango explícito probados con fixture común | Mantener pares de top 5 y distribución por investigador idénticos |
+| Vista de grupo | `obtener_vista_grupo()` | `obtenerVistaGrupo()` | Contrato JSON y rango explícito probados con fixture común | Mantener filtro de grupo y distribución con investigadores sin productos |
+| Vista de investigador | `obtener_vista_investigador()` | `obtenerVistaInvestigador()` | Contrato JSON y rango explícito probados con fixture común | Mantener histogramas y contribuciones a grupos idénticos |
 | Vista de producto | No hay vista estadística pública equivalente | Sin función pública equivalente | falta | Definir una vista solo si está respaldada por el requisito; no inventar métricas |
 | Histograma productos por investigador | `distribucion_productos_por_investigador()` | `distribucionProductosPorInvestigador()` | Comparado diferencialmente en vistas institucional y de grupo | El fixture común cubre cero productos y rangos de 1–2 |
 | Histograma por año en vista de investigador | `vista_investigador()` | `obtenerVistaInvestigador()` | Comparado diferencialmente con fixture común | Agregar años y combinaciones si se amplían rangos o filtros |
@@ -69,7 +69,7 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Enrollar / enrollamiento | `Hipercubo.enrollar()` | `Hipercubo5D` | igual | Comprobar densidad y reagrupación |
 | Filtro de años TODOS | `FiltroAnios.TODOS` | equivalente de servicio | igual | Confirmar salida global |
 | Filtro de años ULTIMOS N | `FiltroAnios.ULTIMOS` | funcional equivalente | igual | Validar `N` y texto descriptivo |
-| Filtro de años RANGO | `FiltroAnios.RANGO` | equivalente | igual | Ordenar desde/hasta y revertir si aplica |
+| Filtro de años RANGO | `FiltroAnios.RANGO` | equivalente | Vistas C++ aceptan límites inicial/final; fixture diferencial cubre rangos abiertos e invertidos | Mantener equivalencia si se amplían filtros por dimensión |
 | Filtro de años MODELO_2024 | `FiltroAnios.MODELO_2024` | equivalente | igual | Validar ventanas según tipología |
 | Descripción textual del filtro | `descripcion()` | `FiltroAnios` / `ServicioEstadisticas` | igual | Mantener textos de pantalla |
 | Importación CSV | `LectorCSV` | `LectorCSV` / `ServicioIngesta` y formulario TUI | fixtures compartidos para grupos, investigadores, productos, autores y omisión de fila inválida aprobados | Comparar textos completos de informe/error y ampliar alias/campos del esquema |
@@ -94,4 +94,5 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 - No se ejecutó verificación cruzada CLI contra Python ni conexión autenticada a `pea-prod`; sus conteos reales no se declaran coincidentes.
 - Los estados `igual` describen equivalencia de operación visible, no una prueba diferencial. Las filas con fixture se consideran validadas únicamente en la dimensión que este cubre; las demás continúan pendientes.
 - Las vistas analíticas institucional, grupal e individual se comparan contra `cpp/tests/fixtures/vistas_analiticas.json` en ambos lenguajes. La comparación detectó y corrigió la ausencia del histograma por investigador en dos vistas C++ y la forma JSON de los pares de top 5; otras filas estadísticas siguen requiriendo pruebas diferenciales específicas.
+- Las tres vistas C++ aceptan ahora límites temporales explícitos y resuelven Modelo 2024, rango y ventana de últimos años en el mismo orden que Python. El fixture común verifica el rango cerrado 2023–2023, límites abiertos e invertidos, últimos cinco años y precedencia entre filtros.
 - Toda discrepancia de comportamiento entre las implementaciones debe resolverse contra Python o registrarse explícitamente antes de cambiar la semántica.
