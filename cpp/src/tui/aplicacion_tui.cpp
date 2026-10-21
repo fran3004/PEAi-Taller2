@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <condition_variable>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -11,7 +10,6 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 
 #ifdef _WIN32
@@ -42,6 +40,7 @@
 #include "pea/datos/configuracion_conexion.hpp"
 #include "pea/ingesta/servicio_ingesta.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
+#include "pea/tui/trabajador_periodico.hpp"
 #include "pea/version.hpp"
 
 namespace pea::tui {
@@ -1259,46 +1258,46 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     auto pantalla = ScreenInteractive::Fullscreen();
     auto salir = pantalla.ExitLoopClosure();
     std::mutex mutex_revision;
-    std::condition_variable condicion_revision;
-    bool detener_revision = false;
     std::optional<qint64> revision_remota_recibida;
     std::string error_revision;
-    std::thread trabajador_revision;
+    std::unique_ptr<TrabajadorPeriodico> trabajador_revision;
     if (conectado && cliente) {
         const QString url_supabase = cliente->baseUrl();
         const QString clave_publicable = cliente->anonKey();
         const QString token_acceso = cliente->tokenAcceso();
         try {
-            trabajador_revision = std::thread(
-                [&, url_supabase, clave_publicable, token_acceso] {
-                    ClienteHTTPSupabase cliente_revision(url_supabase, clave_publicable);
-                    cliente_revision.establecerTokenAcceso(token_acceso);
-                    while (true) {
-                        try {
-                            datos::ControladorRevision lector_revision;
-                            const qint64 revision =
-                                lector_revision.consultar_remota(cliente_revision);
+            const auto notificar_error =
+                [&pantalla, &mutex_revision, &revision_remota_recibida,
+                 &error_revision](const std::string& error) {
+                    {
+                        std::lock_guard<std::mutex> bloqueo(mutex_revision);
+                        revision_remota_recibida.reset();
+                        error_revision = error;
+                    }
+                    pantalla.PostEvent(Event::Custom);
+                };
+            const auto preparar_tarea =
+                [url_supabase, clave_publicable, token_acceso, &pantalla,
+                 &mutex_revision, &revision_remota_recibida,
+                 &error_revision]() -> TrabajadorPeriodico::Tarea {
+                    auto cliente_revision = std::make_shared<ClienteHTTPSupabase>(
+                        url_supabase, clave_publicable);
+                    cliente_revision->establecerTokenAcceso(token_acceso);
+                    return [cliente_revision, &pantalla, &mutex_revision,
+                            &revision_remota_recibida, &error_revision] {
+                        datos::ControladorRevision lector_revision;
+                        const qint64 revision =
+                            lector_revision.consultar_remota(*cliente_revision);
+                        {
                             std::lock_guard<std::mutex> bloqueo(mutex_revision);
                             revision_remota_recibida = revision;
                             error_revision.clear();
-                        } catch (const std::exception& error) {
-                            std::lock_guard<std::mutex> bloqueo(mutex_revision);
-                            revision_remota_recibida.reset();
-                            error_revision = error.what();
-                        } catch (...) {
-                            std::lock_guard<std::mutex> bloqueo(mutex_revision);
-                            revision_remota_recibida.reset();
-                            error_revision = "Error desconocido al consultar Supabase.";
                         }
                         pantalla.PostEvent(Event::Custom);
-                        std::unique_lock<std::mutex> bloqueo(mutex_revision);
-                        if (condicion_revision.wait_for(
-                                bloqueo, std::chrono::seconds(30),
-                                [&detener_revision] { return detener_revision; })) {
-                            break;
-                        }
-                    }
-                });
+                    };
+                };
+            trabajador_revision = std::make_unique<TrabajadorPeriodico>(
+                preparar_tarea, notificar_error, std::chrono::seconds(30));
         } catch (const std::exception& error) {
             mensaje_estado = std::string("No se pudo iniciar la revisión periódica: ") +
                              error.what();
@@ -1492,13 +1491,8 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     });
 
     pantalla.Loop(aplicacion);
-    if (trabajador_revision.joinable()) {
-        {
-            std::lock_guard<std::mutex> bloqueo(mutex_revision);
-            detener_revision = true;
-        }
-        condicion_revision.notify_all();
-        trabajador_revision.join();
+    if (trabajador_revision) {
+        trabajador_revision->detener();
     }
     return 0;
 }

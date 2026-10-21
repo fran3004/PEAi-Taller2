@@ -80,7 +80,7 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | CRUD básico, fichas, búsqueda de texto y `campo:valor`, análisis de coautoría, filtros temporales (todos/últimos/rango/Modelo 2024) e importación CSV/URL ya están implementados; faltan experiencia con modales, vistas estadísticas y revisión visual completa |
 | Red de coautoría | `ServicioAplicacion.red_coautoria()` | Conteo de productos con coautoría y pares frecuentes en la TUI | distinto | Comparar contrato, nodos, enlaces, filtros y métricas contra la implementación Python |
 | Escritura desconectada | Bloqueada en `ServicioAplicacion` | TUI bloquea CRUD sin catálogo remoto; servicios permiten `persistir=false` para demo/pruebas y rechazan persistencia sin cliente | equivalente en la superficie interactiva | Mantener explícita la separación de datos demo y remotos y probar errores de persistencia |
-| Revisión remota periódica | Verificación de aplicación Python | Hilo de consulta C++ cada 30 s, evento a TUI y acción manual `r` | equivalente de detección; aún sin prueba diferencial de eventos | Confirmar expiración/renovación de sesión y probar fallo de RPC y meta |
+| Revisión remota periódica | Verificación de aplicación Python | `TrabajadorPeriodico` consulta C++ cada 30 s, notifica por evento y la TUI ofrece `r` para recargar | Paridad de detección implementada; ciclo de vida y reporte de errores probados sin red | Falta probar con sesión autenticada la expiración del token y las respuestas reales de RPC/meta |
 
 ## Brechas confirmadas y evidencia
 

@@ -53,8 +53,11 @@ le hace `join`.
   y solicita una recarga explícita con `r`.
 - Los errores de red o autenticación quedan visibles; un token vencido no se
   renueva automáticamente y se vuelve a intentar en el ciclo siguiente.
+- `TrabajadorPeriodico` separa el ciclo de ejecución, la espera interrumpible y
+  la notificación de errores. Las pruebas unitarias cubren inicio en hilo
+  separado, repetición, parada durante la espera y propagación de errores.
 - El hilo tiene un cliente Qt Network propio; al cerrar la TUI, una solicitud
   en curso puede demorar el cierre hasta el timeout HTTP.
 - La ingesta interactiva permanece síncrona y fuera del alcance de esta
-  decisión. La interacción del ciclo de vida y la expiración de token aún
-  requieren pruebas de integración.
+  decisión. La expiración real del token y la consulta contra una sesión
+  autenticada aún requieren pruebas de integración.

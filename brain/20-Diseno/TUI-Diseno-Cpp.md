@@ -69,7 +69,7 @@ secundario.
 | Modales de confirmación accesibles | Pendientes; la eliminación usa un campo de confirmación textual |
 | Inicio compacto a 80×24 | Implementado; otras vistas aún requieren revisión visual |
 | Marcos ASCII `+ - |` | Implementados y comprobados por `--autoprueba`; temas claro/alto contraste pendientes |
-| Revisión de versión remota | Implementada cada 30 segundos en un hilo con cliente HTTPS independiente; los eventos se aplican en el hilo TUI. Los fallos se muestran explícitamente y no se sustituyen por la revisión local |
+| Revisión de versión remota | Implementada cada 30 segundos con cliente HTTPS propio del hilo; `TrabajadorPeriodico` tiene pruebas de inicio, repetición, parada y errores. Los eventos se aplican en el hilo TUI y los fallos se muestran explícitamente. Sigue pendiente la prueba autenticada y la expiración real del token |
 | Operaciones de red asíncronas | Pendientes para la ingesta interactiva; las consultas periódicas ya son asíncronas |
 
 ## Criterios de aceptación

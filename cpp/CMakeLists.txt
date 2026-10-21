@@ -36,6 +36,7 @@ add_library(pea_core STATIC
     include/pea/cli.hpp
     include/pea/aplicacion.hpp
     include/pea/tui/aplicacion_tui.hpp
+    include/pea/tui/trabajador_periodico.hpp
     include/pea/estructuras/nodo.hpp
     include/pea/estructuras/lista_doble.hpp
     include/pea/estructuras/multilista.hpp
@@ -63,6 +64,7 @@ add_library(pea_core STATIC
     include/pea/ingesta/servicio_ingesta.hpp
     src/aplicacion.cpp
     src/tui/aplicacion_tui.cpp
+    src/tui/trabajador_periodico.cpp
     src/cliente_http.cpp
     src/datos/sesion.cpp
     src/datos/configuracion_conexion.cpp
@@ -110,6 +112,7 @@ add_executable(pruebas_cpp
     tests/test_hipercubo.cpp
     tests/test_filtro_estadisticas.cpp
     tests/test_serializador_csv.cpp
+    tests/test_trabajador_periodico.cpp
 )
 
 target_link_libraries(pruebas_cpp PRIVATE
