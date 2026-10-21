@@ -1,5 +1,8 @@
 #include <doctest/doctest.h>
 
+#include <utility>
+
+#include "pea/servicios/catalogo_investigacion.hpp"
 #include "pea/servicios/filtro_anios.hpp"
 #include "pea/servicios/servicio_estadisticas.hpp"
 
@@ -70,6 +73,22 @@ TEST_CASE("Estadísticas construyen la serie anual por categoría y los histogra
     CHECK(histograma.value("3–5") == 0);
     CHECK(histograma.value("6–10") == 0);
     CHECK(histograma.value("11+") == 0);
+}
+
+TEST_CASE("El catálogo conserva el vínculo del hipercubo después de moverse") {
+    pea::servicios::CatalogoInvestigacion destino;
+    {
+        pea::servicios::CatalogoInvestigacion origen;
+        origen.hipercubo.acumular("G1", "I1", "GNC", 2024, "Avalado", "P1");
+        destino = std::move(origen);
+    }
+
+    CHECK(destino.estadisticas.hipercubo() == &destino.hipercubo);
+    CHECK(destino.estadisticas.obtenerVistaInstitucional()["total_productos"].toInt() == 1);
+
+    pea::servicios::CatalogoInvestigacion trasladado(std::move(destino));
+    CHECK(trasladado.estadisticas.hipercubo() == &trasladado.hipercubo);
+    CHECK(trasladado.estadisticas.obtenerVistaInstitucional()["total_productos"].toInt() == 1);
 }
 
 TEST_CASE("FiltroAnios aplica rangos generales y ventana normativa desde el hipercubo") {

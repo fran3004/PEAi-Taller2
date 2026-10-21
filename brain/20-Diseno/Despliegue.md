@@ -84,6 +84,8 @@ No forma parte del recorrido del profesor. No se incluye contraseña universal.
 ## Comprobaciones y publicación
 
 - `scripts/verificar.ps1`: bóveda, pruebas Python, compilación/CTest y TUI.
+- CTest incluye una regresión para asegurar que el catálogo conectado conserva
+  la referencia al hipercubo después de moverlo al iniciar la TUI.
 - `tools/empaquetado/probar_portable.py`: versiones, TLS, comparación entre CLI,
   autopruebas Python/C++ y arranque de GUI, sin Python/MSYS2 en PATH.
 - CI Windows: instalación limpia, pruebas y generación de artefactos.
