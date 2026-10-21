@@ -57,10 +57,13 @@ secundario.
 | Insignia de demo/Supabase/sin datos y mensaje de conexión | Implementada |
 | Carga remota al inicio con configuración disponible | Implementada; requiere pruebas de red autenticadas |
 | Capturas de autoprueba | 32 archivos generados por `--autoprueba` |
-| Formularios CRUD, ficha, modales y búsqueda | Pendientes |
-| Gráficos, red de coautoría y filtros interactivos | Pendientes |
+| Formularios para crear, editar metadatos, activar/desactivar y eliminar; confirmación `ELIMINAR` | Implementados para las tres entidades; formularios verificados por autoprueba de renderizado |
+| Ficha JSON de grupo, investigador y producto | Implementada; la ficha de producto incluye grupo y autores enlazados |
+| Análisis institucional anual y pares frecuentes de coautoría | Implementado desde el catálogo cargado y las relaciones de la multilista; requiere comparación diferencial con Python |
+| Filtros interactivos por campos y filtros estadísticos de años | Pendientes; la búsqueda actual solo consulta el texto visible del directorio |
+| Modales de confirmación accesibles | Pendientes; la eliminación usa un campo de confirmación textual |
 | Inicio compacto a 80×24 | Implementado; otras vistas aún requieren revisión visual |
-| Tema claro/alto contraste y marcos ASCII `+ - |` | Pendientes |
+| Marcos ASCII `+ - |` | Implementados y comprobados por `--autoprueba`; temas claro/alto contraste pendientes |
 | Revisión periódica en segundo plano y operaciones de red asíncronas | Pendientes |
 
 ## Criterios de aceptación
@@ -73,7 +76,8 @@ secundario.
   renderizan, se guardan, muestran las ocho pestañas y el título de la vista,
   y no exceden el ancho de su `Screen`; en Inicio a 80×24 también deben verse
   las cuatro etiquetas KPI. Se comprueba además una búsqueda sensible a
-  mayúsculas en los tres directorios con entidades de demostración.
+  mayúsculas en los tres directorios con entidades de demostración, el
+  renderizado de los quince formularios de gestión y una red con coautoría.
 - Las vistas y las operaciones pendientes deben marcarse como tales; un
   marcador de posición no cuenta como funcionalidad.
 
@@ -87,8 +91,8 @@ secundario.
 
 - La lectura de Supabase requiere una sesión y políticas RLS adecuadas; no se
   valida con una clave privilegiada.
-- FTXUI dibuja bordes Unicode; el modo ASCII requiere completar un marco con
-  caracteres `+`, `-` y `|`.
+- La autoprueba valida renderizado, no el flujo de eventos del teclado ni la
+  persistencia de CRUD; estos requieren pruebas de integración adicionales.
 - La prueba de tamaño no sustituye snapshots revisados ni comprueba todos los
   casos de truncamiento.
 - El filtro es temporal y solo busca en el texto mostrado; no reemplaza filtros

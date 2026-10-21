@@ -74,19 +74,20 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Descripción textual del filtro | `descripcion()` | `FiltroAnios` / `ServicioEstadisticas` | igual | Mantener textos de pantalla |
 | Importación CSV | lector en Python | `ServicioIngesta` / `lector_csv` | igual | Probar filas omitidas y errores |
 | Importación URL | extractor URL / parseador | `ServicioIngesta` + `extractor_url` | igual | Validar política de scraping y límites |
-| Exportación CSV | `exportar_tabla_csv()` y CLI | `comandoExportarCsv()` | distinto | Alinear columnas/orden y probar byte a byte |
+| Exportación CSV | `exportar_tabla_csv()` y CLI | `comandoExportarCsv()` | equivalente pendiente de comparación | Columnas, orden, UTF-8, CRLF y reglas de escape alineadas; verificar byte a byte con fixtures compartidos |
 | Exportación Markdown y JSON de vista | `ServicioAplicacion` | Sin salida equivalente comprobada | falta | Implementar los formatos exigidos |
 | Modo no interactivo / CLI | `pea.cli` | `pea-cpp` + `pea::cli::ejecutar` | distinto | Comparar salida, argumentos y códigos de salida |
-| Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | Faltan CRUD interactivo, fichas, filtros, gráficos, modales y estados completos |
-| Red de coautoría | `ServicioAplicacion.red_coautoria()` | Sin función equivalente | falta | Implementar datos y métricas de red desde las relaciones cargadas |
-| Escritura desconectada | Bloqueada en `ServicioAplicacion` | Servicios C++ sin cliente aceptan `persistir=true` como operación solo en memoria en varios flujos | distinto | Distinguir explícitamente modo demo/local y bloquear escrituras presentadas como remotas |
+| Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | CRUD básico, fichas, búsqueda textual y análisis de coautoría ya están implementados; faltan filtros avanzados, experiencia con modales, vistas estadísticas y revisión visual completa |
+| Red de coautoría | `ServicioAplicacion.red_coautoria()` | Conteo de productos con coautoría y pares frecuentes en la TUI | distinto | Comparar contrato, nodos, enlaces, filtros y métricas contra la implementación Python |
+| Escritura desconectada | Bloqueada en `ServicioAplicacion` | TUI bloquea CRUD sin catálogo remoto; servicios permiten `persistir=false` para demo/pruebas y rechazan persistencia sin cliente | equivalente en la superficie interactiva | Mantener explícita la separación de datos demo y remotos y probar errores de persistencia |
 | Revisión remota periódica | Verificación de aplicación Python | Solo consulta manual / antes de mutaciones en C++ | distinto | Añadir verificación periódica y acción de recarga |
 
 ## Brechas confirmadas y evidencia
 
 - La edición de producto añadida en esta iteración cubre metadatos y undo local; aún no permite cambiar su grupo, y no se ha probado contra un repositorio remoto.
-- La TUI es parcial y principalmente de lectura. Las secciones de redes e importación son informativas; no se presentan como flujos completos.
-- La autoprueba ejecutada renderizó 32 combinaciones y guardó capturas con cero hallazgos de ancho, reemplazo, salida vacía o escritura. No compara snapshots ni detecta todo truncamiento.
+- La TUI mantiene brechas de paridad: el CRUD básico, fichas y el análisis textual de coautoría ya existen, pero importación interactiva y filtros/gráficos estadísticos no están completados.
+- La autoprueba ejecutada renderiza 32 combinaciones de pantalla/tamaño, comprueba búsqueda en los tres directorios, los quince formularios de gestión y una red con coautoría; las capturas no equivalen a snapshots aprobados ni detectan todo truncamiento.
+- La exportación C++ serializa los mismos encabezados que Python, usa UTF-8, CRLF y escape de comas, comillas y saltos de línea; hay pruebas aisladas en ambos lenguajes, pero aún no un comparador diferencial que ejecute ambos programas sobre el mismo fixture.
 - No se ejecutó verificación cruzada CLI contra Python ni conexión autenticada a `pea-prod`; sus conteos reales no se declaran coincidentes.
 - Los estados `igual` describen equivalencia de operación visible en los servicios, no una prueba diferencial exhaustiva. Las tareas de validación de cada fila permanecen pendientes mientras no exista esa prueba.
 - Toda discrepancia de comportamiento entre las implementaciones debe resolverse contra Python o registrarse explícitamente antes de cambiar la semántica.

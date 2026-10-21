@@ -6,19 +6,46 @@
 #include "pea/ingesta/extractor_url.hpp"
 #include "pea/version.hpp"
 #include "pea/datos/configuracion_conexion.hpp"
+#include "pea/datos/serializador_csv.hpp"
 
 #include <iostream>
 #include <memory>
 #include <exception>
+#include <array>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSaveFile>
 #include <QProcessEnvironment>
 #include <QTextStream>
+#include <QStringList>
 
 namespace pea::cli {
 
 namespace {
+
+void agregarFilaCsv(QString& contenido, const QStringList& valores) {
+    contenido += datos::serializar_fila_csv(valores);
+}
+
+bool guardarCsvAtomico(const QString& ruta, const QString& contenido, QString& error) {
+    QSaveFile archivo(ruta);
+    if (!archivo.open(QIODevice::WriteOnly)) {
+        error = archivo.errorString();
+        return false;
+    }
+    const QByteArray bytes = contenido.toUtf8();
+    if (archivo.write(bytes) != bytes.size()) {
+        error = archivo.errorString();
+        archivo.cancelWriting();
+        return false;
+    }
+    if (!archivo.commit()) {
+        error = archivo.errorString();
+        return false;
+    }
+    return true;
+}
 
 std::unique_ptr<ClienteHTTPSupabase> obtenerClienteDesdeEntorno() {
     return datos::crear_cliente_configurado();
@@ -170,10 +197,6 @@ int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
 
 int comandoExportarCsv(const QString& dirDestino) {
     QDir dir(dirDestino);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
     auto cliente = obtenerClienteDesdeEntorno();
     if (!cliente) {
         std::cerr << "Error: conectar con Supabase antes de exportar el catálogo.\n";
@@ -187,47 +210,56 @@ int comandoExportarCsv(const QString& dirDestino) {
                   << err.what() << ").\n";
         return 1;
     }
-
-    // 1. Exportar Grupos
-    QFile fGrupos(dir.filePath("grupos.csv"));
-    if (fGrupos.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&fGrupos);
-        out << "codigo_gruplac,nombre,categoria,lider,institucion_principal,activo\n";
-        for (const auto& g : catalogo.grupos) {
-            if (!g) continue;
-            out << g->codigo_gruplac << "," << g->nombre << "," << g->categoria << ","
-                << g->lider << "," << g->institucion_principal << ","
-                << (g->activo ? "True" : "False") << "\n";
-        }
+    if (!dir.exists() && !QDir().mkpath(dirDestino)) {
+        std::cerr << "Error: no se pudo crear el directorio de exportación.\n";
+        return 1;
     }
 
-    // 2. Exportar Investigadores
-    QFile fInvs(dir.filePath("investigadores.csv"));
-    if (fInvs.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&fInvs);
-        out << "codigo_rh,nombre_completo,categoria,formacion_academica,nacionalidad,activo\n";
-        for (const auto& inv : catalogo.investigadores) {
-            if (!inv) continue;
-            out << inv->codigo_rh << "," << inv->nombre_completo << "," << inv->categoria << ","
-                << inv->formacion_academica << "," << inv->nacionalidad << ","
-                << (inv->activo ? "True" : "False") << "\n";
-        }
+    QString grupos;
+    agregarFilaCsv(grupos, {"codigo_gruplac", "nombre", "categoria", "lider",
+                            "institucion_principal", "activo"});
+    for (const auto& grupo : catalogo.grupos) {
+        if (!grupo) continue;
+        agregarFilaCsv(grupos, {grupo->codigo_gruplac, grupo->nombre, grupo->categoria,
+                                grupo->lider, grupo->institucion_principal,
+                                grupo->activo ? "True" : "False"});
     }
 
-    // 3. Exportar Productos
-    QFile fProds(dir.filePath("productos.csv"));
-    if (fProds.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&fProds);
-        out << "codigo_identificador,titulo,tipo_mayor,subtipo,ano,estado_validacion,activo\n";
-        auto* actual = catalogo.multilista_productos.cabeza();
-        while (actual) {
-            if (actual->producto) {
-                out << actual->producto->codigo_identificador << "," << actual->producto->titulo << ","
-                    << actual->producto->tipo_mayor << "," << actual->producto->subtipo << ","
-                    << actual->producto->ano << "," << actual->producto->estado_validacion << ","
-                    << (actual->producto->activo ? "True" : "False") << "\n";
-            }
-            actual = actual->siguiente_global;
+    QString investigadores;
+    agregarFilaCsv(investigadores, {"codigo_rh", "nombre_completo", "categoria",
+                                    "formacion_academica", "nacionalidad", "activo"});
+    for (const auto& investigador : catalogo.investigadores) {
+        if (!investigador) continue;
+        agregarFilaCsv(investigadores, {investigador->codigo_rh, investigador->nombre_completo,
+                                        investigador->categoria, investigador->formacion_academica,
+                                        investigador->nacionalidad,
+                                        investigador->activo ? "True" : "False"});
+    }
+
+    QString productos;
+    agregarFilaCsv(productos, {"codigo_identificador", "titulo", "tipo_mayor",
+                               "subtipo", "ano", "estado_validacion", "activo"});
+    for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
+         nodo = nodo->siguiente_global) {
+        if (!nodo->producto) continue;
+        const auto& producto = *nodo->producto;
+        agregarFilaCsv(productos, {producto.codigo_identificador, producto.titulo,
+                                   producto.tipo_mayor, producto.subtipo,
+                                   QString::number(producto.ano), producto.estado_validacion,
+                                   producto.activo ? "True" : "False"});
+    }
+
+    const std::array<std::pair<QString, QString>, 3> archivos{{
+        {dir.filePath("grupos.csv"), grupos},
+        {dir.filePath("investigadores.csv"), investigadores},
+        {dir.filePath("productos.csv"), productos},
+    }};
+    for (const auto& [ruta, contenido] : archivos) {
+        QString error;
+        if (!guardarCsvAtomico(ruta, contenido, error)) {
+            std::cerr << "Error: no se pudo guardar " << ruta.toStdString()
+                      << " (" << error.toStdString() << ").\n";
+            return 1;
         }
     }
 

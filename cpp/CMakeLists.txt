@@ -52,6 +52,7 @@ add_library(pea_core STATIC
     include/pea/datos/configuracion_conexion.hpp
     include/pea/datos/revision.hpp
     include/pea/datos/repositorios.hpp
+    include/pea/datos/serializador_csv.hpp
     include/pea/servicios/catalogo_investigacion.hpp
     include/pea/servicios/filtro_anios.hpp
     include/pea/servicios/servicio_estadisticas.hpp
@@ -107,6 +108,7 @@ add_executable(pruebas_cpp
     tests/test_ingesta.cpp
     tests/test_hipercubo.cpp
     tests/test_filtro_estadisticas.cpp
+    tests/test_serializador_csv.cpp
 )
 
 target_link_libraries(pruebas_cpp PRIVATE

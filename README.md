@@ -89,10 +89,11 @@ python -m pea.cli importar-url --archivo-grupos datos/fuentes/grupos_upc.txt --p
 Para la importación por lote, crea localmente `datos/fuentes/grupos_upc.txt` con un código GrupLAC autorizado por línea. Se omiten líneas vacías y comentarios que comiencen con `#`; los códigos repetidos se procesan una sola vez. No se incluyen códigos de grupos en el repositorio. `--privado` guarda las transcripciones completas en la carpeta privada de salida; si se van a compartir archivos, añade `--anonimizar`. La opción `--privado` no anonimiza por sí sola.
 
 ### PEA-i C++
-- **Terminal interactiva**: `.\cpp\build\pea-cpp.exe` (opcional `--demo`, `--ascii`, `--sin-color`). En los directorios, pulse `/` para buscar, Enter para conservar el filtro y Escape para borrarlo.
+- **Terminal interactiva**: `.\cpp\build\pea-cpp.exe` (opcional `--demo`, `--ascii`, `--sin-color`). En los directorios: `/` busca, `n` crea, `e` edita, `t` activa/desactiva, `x` elimina con confirmación, `v` muestra la ficha, `u` deshace y `r` recarga el catálogo conectado. Use Tab para cambiar de campo, Enter para guardar y Escape para cancelar o volver.
 - **CLI no interactiva**: `.\cpp\build\pea-cpp.exe --version` o `.\cpp\build\pea-cpp.exe --help`.
 - **Autoprueba de pantallas**: `.\cpp\build\pea-cpp.exe --autoprueba` (escribe capturas en `datos/capturas/terminal/`).
-- La TUI actual incluye navegación, resumen y directorios; algunas vistas y acciones de gestión aún no están implementadas. Consulte la matriz de paridad antes de considerar C++ equivalente a Python.
+- `--demo` permite probar la gestión sin persistir cambios. Las escrituras fuera de demo necesitan conexión autenticada; la eliminación física requiere escribir `ELIMINAR`.
+- La TUI incluye búsqueda y gestión básica en los tres directorios, fichas, análisis anual/coautoría y deshacer. La importación interactiva, los filtros estadísticos avanzados y la revisión remota periódica siguen pendientes. Consulte [Paridad Python ↔ C++](brain/60-Pruebas/Paridad-Python-Cpp.md); no se declara paridad completa mientras existan brechas.
 
 ---
 

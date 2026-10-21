@@ -31,6 +31,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QAction,
+    QCloseEvent,
     QColor,
     QFont,
     QFontMetrics,
@@ -430,6 +431,7 @@ class VentanaPrincipal(QMainWindow):
 
         self._servicio = servicio or ServicioAplicacion()
         self._ejecutor = EjecutorHilos.instancia()
+        self._cerrando = False
         self._filtro_global = FiltroAnios(modo=ModoFiltroAnios.MODELO_2024)
 
         self._gestor_toasts = GestorAvisos(self)
@@ -1036,6 +1038,11 @@ class VentanaPrincipal(QMainWindow):
         self._timer_revision.timeout.connect(self._verificar_revision_en_segundo_plano)
         self._timer_revision.start()
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._cerrando = True
+        self._timer_revision.stop()
+        super().closeEvent(event)
+
     def _al_cambiar_filtro_global(self, filtro: FiltroAnios) -> None:
         """Propaga el filtro temporal a todas las pantallas apiladas."""
         self._filtro_global = filtro
@@ -1176,6 +1183,8 @@ class VentanaPrincipal(QMainWindow):
             return self._servicio.recargar()
 
         def exito(_: Any) -> None:
+            if self._cerrando:
+                return
             self._banner_revision.setVisible(False)
             self.actualizar_estado_global()
             pantalla_actual = self._apilador.currentWidget()
@@ -1186,6 +1195,8 @@ class VentanaPrincipal(QMainWindow):
             )
 
         def fallo(err: Exception, _: str) -> None:
+            if self._cerrando:
+                return
             self._gestor_toasts.mostrar_error(f"No fue posible recargar: {err}", titulo="Error de recarga")
 
         self._ejecutor.ejecutar(tarea, al_terminar=exito, al_fallar=fallo)
@@ -1199,6 +1210,8 @@ class VentanaPrincipal(QMainWindow):
             return self._servicio.verificar_cambios_remotos()
 
         def exito(est_nuevo: Any) -> None:
+            if self._cerrando:
+                return
             self._banner_revision.setVisible(getattr(est_nuevo, "cambio_remoto", False))
 
         self._ejecutor.ejecutar(tarea, al_terminar=exito)

@@ -386,16 +386,24 @@ def comando_importar_csv(archivo_str: str, tipo: str | None = None, persistir: b
 
 
 def comando_exportar_csv(directorio_str: str) -> int:
+    cliente = _obtener_cliente_desde_entorno()
+    if cliente is None:
+        print(
+            "Error: exportación cancelada; no hay conexión a Supabase y no se "
+            "deben presentar datos locales como si fueran actuales.",
+            file=sys.stderr,
+        )
+        return 1
+
+    catalogo = CatalogoInvestigacion(cliente=cliente)
+    try:
+        catalogo.recargar_todo()
+    except ErrorPEA as err:
+        print(f"Error: exportación cancelada; no se pudo recargar Supabase: {err}", file=sys.stderr)
+        return 1
+
     directorio = Path(directorio_str)
     directorio.mkdir(parents=True, exist_ok=True)
-
-    cliente = _obtener_cliente_desde_entorno()
-    catalogo = CatalogoInvestigacion(cliente=cliente)
-    if cliente is not None:
-        try:
-            catalogo.recargar_todo()
-        except Exception as err:
-            print(f"Aviso al recargar datos remotos: {err}")
 
     # 1. Exportar Grupos
     ruta_grupos = directorio / "grupos.csv"
