@@ -32,17 +32,17 @@ Integrar en la rama de entrega la corrección publicada y validada de la TUI C++
 - Git: sin cambios locales previos; sin divergencia ni conflictos entre la base
   remota y la rama de corrección.
 - CI Windows del commit de corrección: aprobado; ZIP de CI extraído y probado.
-- Revisión e integración final: pendiente de aprobación de las comprobaciones de
-  la PR #2.
+- PR #2: checks de push y pull request aprobados; merge commit
+  `ad161a2b1102fa508689d50b481e7c1bd5725589`.
+- Las ramas local y remota `master` y `feat/python-cierre-francisco` quedaron
+  adelantadas al mismo commit.
 
 ## Decisiones
 
-- Se integrará la rama de corrección en `master` mediante la PR #2.
+- Se integró la rama de corrección en `master` mediante la PR #2.
 - Las otras ramas de trabajo no se mezclaron: no forman parte de esta corrección.
-- Después de integrar se actualizará la rama local `master` desde `origin/master`.
+- Se conservó la rama de trabajo después de sincronizarla con el merge commit.
 
 ## Pendientes y siguiente paso
 
-- Esperar las comprobaciones de la PR #2 y completar la integración si GitHub la
-  permite.
-- Confirmar que el remoto y la rama local `master` queden sincronizados.
+- No quedan pendientes de sincronización para estas dos ramas.
