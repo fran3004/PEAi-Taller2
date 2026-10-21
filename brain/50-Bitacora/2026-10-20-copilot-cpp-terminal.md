@@ -43,6 +43,12 @@ estado verificado en vez de asumir paridad.
   de ocho pantallas y cuatro tamaños. La verificación exige pestañas, título
   de vista y etiquetas KPI de Inicio visibles; Inicio usa dos filas compactas
   en anchos menores a 100 columnas y prioriza los KPI en 80×24.
+- Se agregó búsqueda textual insensible a mayúsculas en los directorios de
+  investigadores, grupos y productos; la autoprueba valida coincidencias de
+  los tres con prefijos sintéticos `PRUEBA-`.
+- La vista estadística C++ de investigador ahora incluye
+  `histograma_productos_por_anio`, con prueba sobre hipercubo que confirma la
+  rebanada de investigador.
 - Se actualizaron README, SPEC, arquitectura, índices, matriz de paridad y
   cumplimiento; se añadieron el diseño TUI, el fuente C++ de entrega y la
   sección C++ del DOCX.
@@ -69,6 +75,8 @@ estado verificado en vez de asumir paridad.
   errores y autoprueba TUI con 32/32 pantallas sin hallazgos. Persiste una
   advertencia preexistente por una referencia a ADR-0016 no resuelta en una
   nota de Antigravity.
+- `cpp\build\pea-cpp.exe --autoprueba`: además de las 32 combinaciones, pasó
+  las búsquedas de investigadores, grupos y productos con código cero.
 
 ## Decisiones
 
@@ -81,7 +89,7 @@ estado verificado en vez de asumir paridad.
 
 ## Pendientes y siguiente paso
 
-- Completar formularios CRUD y fichas; búsqueda, orden, filtros y gráficos;
+- Completar formularios CRUD y fichas; orden y filtros por campos; gráficos y
   análisis de coautoría; estados, modales y revisión remota periódica.
 - Implementar exportación CSV/Markdown/JSON con contrato idéntico al de Python,
   y demostrar igualdad byte a byte de CLI/resumen.

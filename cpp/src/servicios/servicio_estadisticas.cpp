@@ -416,6 +416,12 @@ QJsonObject ServicioEstadisticas::obtenerVistaInvestigador(const QString& idInve
         aniosObj[QString::number(it.key())] = it.value();
     }
     obj["productos_por_anio"] = aniosObj;
+    QJsonObject histogramaAnual;
+    const auto distribucionAnual = distribucionProductosPorAnio(&cInv);
+    for (auto it = distribucionAnual.constBegin(); it != distribucionAnual.constEnd(); ++it) {
+        histogramaAnual[it.key()] = it.value();
+    }
+    obj["histograma_productos_por_anio"] = histogramaAnual;
 
     QJsonObject catObj;
     QMap<QString, int> cats = productosPorCategoria(&cInv);

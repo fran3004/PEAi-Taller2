@@ -36,6 +36,9 @@ Análisis de redes, Importar, Configuración y Acerca de. Las teclas `1`–`8`,
 flechas, `q` y Escape cambian de sección o terminan la aplicación. Los
 directorios muestran hasta doce filas del catálogo en memoria. `--demo` carga
 entidades sintéticas prefijadas `PRUEBA-`, exclusivamente en memoria.
+En Investigadores, Grupos y Productos, `/` activa una búsqueda textual sin
+distinguir mayúsculas; Enter la conserva, Escape borra el filtro y retroceso
+edita la consulta.
 
 La autoprueba crea pantallas de 80×24, 100×28, 120×35 y 160×50, revisa ancho de
 celdas Unicode, caracteres de reemplazo, pestañas y título visible de cada
@@ -50,6 +53,7 @@ secundario.
 |---|---|
 | Barra de pestañas y navegación por teclas | Implementada |
 | Resumen institucional y directorios de lectura | Implementados |
+| Búsqueda textual en investigadores, grupos y productos | Implementada; búsqueda sobre campos visibles |
 | Insignia de demo/Supabase/sin datos y mensaje de conexión | Implementada |
 | Carga remota al inicio con configuración disponible | Implementada; requiere pruebas de red autenticadas |
 | Capturas de autoprueba | 32 archivos generados por `--autoprueba` |
@@ -68,7 +72,8 @@ secundario.
 - La autoprueba termina con código cero solo cuando las 32 pantallas se
   renderizan, se guardan, muestran las ocho pestañas y el título de la vista,
   y no exceden el ancho de su `Screen`; en Inicio a 80×24 también deben verse
-  las cuatro etiquetas KPI.
+  las cuatro etiquetas KPI. Se comprueba además una búsqueda sensible a
+  mayúsculas en los tres directorios con entidades de demostración.
 - Las vistas y las operaciones pendientes deben marcarse como tales; un
   marcador de posición no cuenta como funcionalidad.
 
@@ -86,3 +91,5 @@ secundario.
   caracteres `+`, `-` y `|`.
 - La prueba de tamaño no sustituye snapshots revisados ni comprueba todos los
   casos de truncamiento.
+- El filtro es temporal y solo busca en el texto mostrado; no reemplaza filtros
+  por campos ni una búsqueda remota paginada.

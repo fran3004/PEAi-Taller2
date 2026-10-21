@@ -58,6 +58,11 @@ TEST_CASE("Estadísticas construyen la serie anual por categoría y los histogra
     CHECK(por_anio.value("2022") == 2);
     CHECK(por_anio.value("2023") == 2);
 
+    const auto vista_investigador = estadisticas.obtenerVistaInvestigador("I1");
+    CHECK(vista_investigador["total_productos"].toInt() == 2);
+    CHECK(vista_investigador["histograma_productos_por_anio"].toObject()["2022"].toInt() == 2);
+    CHECK(vista_investigador["histograma_productos_por_anio"].toObject().size() == 1);
+
     QSet<QString> investigadores{"I0", "I1", "I2", "I3"};
     const auto histograma = estadisticas.distribucionProductosPorInvestigador(investigadores);
     CHECK(histograma.value("0") == 2);

@@ -133,6 +133,8 @@ Element panel_contenido(
     bool datos_demostracion,
     bool conectado,
     const std::string& mensaje_conexion,
+    const QString& filtro,
+    bool filtro_activo,
     bool color_activo,
     bool ascii,
     int ancho) {
@@ -140,6 +142,16 @@ Element panel_contenido(
                                    ? "Datos de demostración (solo memoria)"
                                    : (conectado ? "Datos de Supabase" : "Sin datos");
     const auto estadisticas = catalogo.estadisticas.obtenerVistaInstitucional();
+    const auto coincide = [&filtro](const QString& texto) {
+        return filtro.isEmpty() || texto.contains(filtro, Qt::CaseInsensitive);
+    };
+    const QString texto_filtro = filtro_activo
+                                     ? QString("Filtro: %1  (Enter: aplicar · Esc: limpiar)")
+                                           .arg(filtro)
+                                     : (filtro.isEmpty()
+                                            ? QString("Presione / para buscar")
+                                            : QString("Filtro: %1  (/ para editar · Esc para limpiar)")
+                                                  .arg(filtro));
 
     switch (indice) {
         case 0: {
@@ -198,51 +210,64 @@ Element panel_contenido(
         case 1: {
             Elements filas{color_si(text("Directorio de investigadores") | bold, Color::Cyan, color_activo),
                            text("Código · nombre · categoría · estado"),
+                           text(texto_filtro.toStdString()),
                            separator()};
             int mostrados = 0;
             for (const auto& investigador : catalogo.investigadores) {
                 if (!investigador) {
                     continue;
                 }
-                if (mostrados++ == 12) {
-                    filas.push_back(text("… y más investigadores"));
-                    break;
-                }
                 const QString linea = investigador->codigo_rh + " · " +
                                       investigador->nombre_completo.left(38) + " · " +
                                       investigador->categoria + (investigador->activo ? "" : " · Inactivo");
+                if (!coincide(linea)) {
+                    continue;
+                }
+                if (mostrados == 12) {
+                    filas.push_back(text("… y más investigadores"));
+                    break;
+                }
+                ++mostrados;
                 filas.push_back(text(linea.toStdString()));
             }
             if (mostrados == 0) {
-                filas.push_back(text("No hay investigadores cargados."));
+                filas.push_back(text(filtro.isEmpty() ? "No hay investigadores cargados."
+                                                      : "No hay coincidencias para el filtro."));
             }
             return vbox(std::move(filas)) | flex;
         }
         case 2: {
             Elements filas{color_si(text("Directorio de grupos") | bold, Color::Cyan, color_activo),
                            text("Código GrupLAC · nombre · categoría · estado"),
+                           text(texto_filtro.toStdString()),
                            separator()};
             int mostrados = 0;
             for (const auto& grupo : catalogo.grupos) {
                 if (!grupo) {
                     continue;
                 }
-                if (mostrados++ == 12) {
+                const QString linea = grupo->codigo_gruplac + " · " + grupo->nombre.left(42) +
+                                      " · " + grupo->categoria + (grupo->activo ? "" : " · Inactivo");
+                if (!coincide(linea)) {
+                    continue;
+                }
+                if (mostrados == 12) {
                     filas.push_back(text("… y más grupos"));
                     break;
                 }
-                const QString linea = grupo->codigo_gruplac + " · " + grupo->nombre.left(42) +
-                                      " · " + grupo->categoria + (grupo->activo ? "" : " · Inactivo");
+                ++mostrados;
                 filas.push_back(text(linea.toStdString()));
             }
             if (mostrados == 0) {
-                filas.push_back(text("No hay grupos cargados."));
+                filas.push_back(text(filtro.isEmpty() ? "No hay grupos cargados."
+                                                      : "No hay coincidencias para el filtro."));
             }
             return vbox(std::move(filas)) | flex;
         }
         case 3: {
             Elements filas{color_si(text("Catálogo de productos") | bold, Color::Cyan, color_activo),
                            text("Código · año · tipología · título · validación"),
+                           text(texto_filtro.toStdString()),
                            separator()};
             int mostrados = 0;
             for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
@@ -260,10 +285,19 @@ Element panel_contenido(
                                       " · " + producto.titulo.left(34) + " · " +
                                       producto.estado_validacion +
                                       (producto.activo ? "" : " · Inactivo");
+                if (!coincide(linea)) {
+                    continue;
+                }
+                if (mostrados == 12) {
+                    filas.push_back(text("… y más productos"));
+                    break;
+                }
+                ++mostrados;
                 filas.push_back(text(linea.toStdString()));
             }
             if (mostrados == 0) {
-                filas.push_back(text("No hay productos cargados."));
+                filas.push_back(text(filtro.isEmpty() ? "No hay productos cargados."
+                                                      : "No hay coincidencias para el filtro."));
             }
             return vbox(std::move(filas)) | flex;
         }
@@ -317,6 +351,8 @@ Element renderizar_pantalla(
     bool datos_demostracion,
     bool conectado,
     const std::string& mensaje_conexion,
+    const QString& filtro,
+    bool filtro_activo,
     const std::vector<Component>& botones,
     bool color_activo,
     bool ascii,
@@ -366,7 +402,8 @@ Element renderizar_pantalla(
                    hbox(std::move(fila_inferior)),
                }),
                marco(panel_contenido(indice, resumen, catalogo, datos_demostracion, conectado,
-                                     mensaje_conexion, color_activo, ascii, ancho) | flex,
+                                     mensaje_conexion, filtro, filtro_activo,
+                                     color_activo, ascii, ancho) | flex,
                      ascii),
                hbox({
                    pie,
@@ -411,7 +448,7 @@ int autoprueba() {
             Screen screen = Screen::Create(Dimension::Fixed(ancho), Dimension::Fixed(alto));
             Render(screen, renderizar_pantalla(
                                static_cast<int>(indice), resumen, catalogo, true, false, {},
-                               botones, false, true, ancho));
+                               {}, false, botones, false, true, ancho));
             const std::string salida = quitar_secuencias_ansi(screen.ToString());
             bool reemplazo = false;
             bool excede_ancho = false;
@@ -459,6 +496,25 @@ int autoprueba() {
                       << "\n";
         }
     }
+    const std::array<std::pair<int, std::string>, 3> casos_filtro{{
+        {1, "prueba-rh-001"},
+        {2, "prueba-grupo-001"},
+        {3, "prueba-prod-001"},
+    }};
+    for (const auto& [indice, consulta] : casos_filtro) {
+        Screen screen = Screen::Create(Dimension::Fixed(80), Dimension::Fixed(24));
+        Render(screen, renderizar_pantalla(
+                           indice, resumen, catalogo, true, false, {},
+                           QString::fromStdString(consulta), false, botones, false, true, 80));
+        const std::string salida = quitar_secuencias_ansi(screen.ToString());
+        const QString codigo_esperado = indice == 1
+                                            ? "PRUEBA-RH-001"
+                                            : (indice == 2 ? "PRUEBA-GRUPO-001" : "PRUEBA-PROD-001");
+        const bool hallazgo = salida.find(codigo_esperado.toStdString()) == std::string::npos;
+        hallazgos += hallazgo ? 1 : 0;
+        std::cout << "Filtro " << PESTANAS[static_cast<std::size_t>(indice)] << "  "
+                  << (hallazgo ? "1" : "0") << "\n";
+    }
     return hallazgos == 0 ? 0 : 1;
 }
 
@@ -502,6 +558,8 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
 
     std::vector<Component> botones;
     int seleccion = 0;
+    QString filtro;
+    bool filtro_activo = false;
     for (std::size_t i = 0; i < PESTANAS.size(); ++i) {
         botones.push_back(Button(
             std::to_string(i + 1) + " " + PESTANAS[i],
@@ -513,11 +571,44 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         const auto dimensiones = Terminal::Size();
         return renderizar_pantalla(
             seleccion, catalogo.resumen_dict(), catalogo, datos_demostracion, conectado,
-            mensaje_conexion, botones, color_activo, ascii, dimensiones.dimx);
+            mensaje_conexion, filtro, filtro_activo, botones, color_activo, ascii,
+            dimensiones.dimx);
     });
     auto pantalla = ScreenInteractive::Fullscreen();
     auto salir = pantalla.ExitLoopClosure();
-    auto aplicacion = CatchEvent(contenido, [&seleccion, salir](const Event& evento) {
+    auto aplicacion = CatchEvent(contenido, [&seleccion, &filtro, &filtro_activo, salir](const Event& evento) {
+        if (filtro_activo) {
+            if (evento == Event::Return) {
+                filtro_activo = false;
+                return true;
+            }
+            if (evento == Event::Escape) {
+                filtro.clear();
+                filtro_activo = false;
+                return true;
+            }
+            if (evento == Event::Backspace) {
+                if (!filtro.isEmpty()) {
+                    filtro.chop(1);
+                }
+                return true;
+            }
+            if (evento.is_character()) {
+                const auto caracter = evento.character();
+                filtro += QString::fromUtf8(caracter.c_str());
+                return true;
+            }
+            return true;
+        }
+        if (evento == Event::Character("/") &&
+            (seleccion == 1 || seleccion == 2 || seleccion == 3)) {
+            filtro_activo = true;
+            return true;
+        }
+        if (evento == Event::Escape && !filtro.isEmpty()) {
+            filtro.clear();
+            return true;
+        }
         if (evento == Event::Character("q") || evento == Event::Escape) {
             salir();
             return true;
