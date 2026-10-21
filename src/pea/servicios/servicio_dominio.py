@@ -20,7 +20,7 @@ from pea.datos.sesion import Sesion
 from pea.dominio.grupo import Grupo
 from pea.dominio.integrante import IntegranteGrupo
 from pea.dominio.investigador import Investigador
-from pea.dominio.producto import Producto
+from pea.dominio.producto import Producto, validar_ano_producto
 from pea.dominio.proyecto import Proyecto
 from pea.estructuras.cola import Cola, TareaIngesta
 from pea.estructuras.hipercubo import Hipercubo5D
@@ -513,6 +513,7 @@ class CatalogoInvestigacion:
     ) -> Producto:
         """Crea un producto garantizando instancia única en memoria y enlace en Multilista."""
         self._verificar_autenticacion_si_aplica()
+        validar_ano_producto(producto.ano)
 
         existente = self.multilista_productos.buscar_producto(producto.codigo_identificador)
         if existente is not None:
@@ -574,6 +575,9 @@ class CatalogoInvestigacion:
             raise RecursoNoEncontrado(f"Producto {codigo_identificador} no encontrado")
 
         prod = nodo.producto
+        if "ano" in datos:
+            validar_ano_producto(datos["ano"])
+
         valores_anteriores: dict[str, Any] = {}
         cambio_grupo = False
         nuevo_grupo = None
@@ -959,4 +963,3 @@ class CatalogoInvestigacion:
         """Genera el JSON compacto canónico byte-a-byte interoperable con C++."""
         import json
         return json.dumps(self.resumen_dict(), sort_keys=True, separators=(",", ":"))
-

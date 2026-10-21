@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include <QDate>
 #include "pea/excepciones.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
 
@@ -94,6 +95,52 @@ TEST_CASE("Deshacer - Reversión de edición de producto y sincronización del h
     CHECK(prod->ano == 2024);
     CHECK_FALSE(prod->mes.has_value());
     CHECK(catalogo.estadisticas.productosPorAnio().value(2024) == 1);
+}
+
+TEST_CASE("Catálogo valida el año de producto al crear y editar") {
+    CatalogoInvestigacion catalogo;
+    const int anio_actual = QDate::currentDate().year();
+
+    auto anio_bajo = std::make_shared<Producto>(
+        "PRUEBA-PROD-ANIO-BAJO", "Producto inválido", "GNC", "Artículo", 1969);
+    CHECK_THROWS_AS(catalogo.crear_producto(anio_bajo, {}, {}, false), pea::ErrorValidacion);
+    const bool producto_bajo_ausente =
+        catalogo.buscar_producto(anio_bajo->codigo_identificador) == nullptr;
+    CHECK(producto_bajo_ausente);
+
+    auto futuro = std::make_shared<Producto>(
+        "PRUEBA-PROD-ANIO-FUTURO", "Producto inválido", "GNC", "Artículo", anio_actual + 1);
+    CHECK_THROWS_AS(catalogo.crear_producto(futuro, {}, {}, false), pea::ErrorValidacion);
+    const bool producto_futuro_ausente =
+        catalogo.buscar_producto(futuro->codigo_identificador) == nullptr;
+    CHECK(producto_futuro_ausente);
+
+    auto valido = std::make_shared<Producto>(
+        "PRUEBA-PROD-ANIO-VALIDO", "Producto válido", "GNC", "Artículo", 1970);
+    catalogo.crear_producto(valido, {}, {}, false);
+    CHECK(valido->ano == 1970);
+
+    QJsonObject cambios;
+    cambios["ano"] = anio_actual + 1;
+    cambios["titulo"] = "Título no aplicado";
+    CHECK_THROWS_AS(
+        catalogo.actualizar_producto(valido->codigo_identificador, cambios, false),
+        pea::ErrorValidacion);
+    CHECK(valido->ano == 1970);
+    CHECK(valido->titulo == "Producto válido");
+
+    cambios["ano"] = 2024.5;
+    CHECK_THROWS_AS(
+        catalogo.actualizar_producto(valido->codigo_identificador, cambios, false),
+        pea::ErrorValidacion);
+    CHECK(valido->ano == 1970);
+    CHECK(valido->titulo == "Producto válido");
+
+    cambios["ano"] = anio_actual;
+    cambios.remove("titulo");
+    CHECK_NOTHROW(
+        catalogo.actualizar_producto(valido->codigo_identificador, cambios, false));
+    CHECK(valido->ano == anio_actual);
 }
 
 TEST_CASE("Actualizar producto cambia o quita grupo y deshacer restaura la relación") {

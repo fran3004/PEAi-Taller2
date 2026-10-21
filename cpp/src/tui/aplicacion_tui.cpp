@@ -69,14 +69,16 @@ std::vector<std::string> campos_formulario(int entidad, int accion) {
         if (entidad == 1) return {"Código RH", "Nombre completo", "Categoría", "Formación académica"};
         if (entidad == 2) return {"Código GrupLAC", "Nombre", "Categoría", "Líder"};
         return {"Código", "Título", "Tipo mayor (GNC/DTI/ASC/FRH)", "Subtipo",
-                "Año", "Validación", "Código GrupLAC (opcional)",
+                "Año (1970-" + std::to_string(QDate::currentDate().year()) + ")",
+                "Validación", "Código GrupLAC (opcional)",
                 "Códigos RH autores separados por ; (opcional)"};
     }
     if (accion == 2) {
         if (entidad == 1) return {"Código RH", "Nombre completo nuevo", "Categoría nueva", "Formación nueva"};
         if (entidad == 2) return {"Código GrupLAC", "Nombre nuevo", "Categoría nueva", "Líder nuevo"};
         return {"Código", "Título nuevo", "Tipo mayor nuevo", "Subtipo nuevo",
-                "Año nuevo", "Validación nueva", "Código GrupLAC nuevo (opcional)",
+                "Año nuevo (1970-" + std::to_string(QDate::currentDate().year()) + ")",
+                "Validación nueva", "Código GrupLAC nuevo (opcional)",
                 "Quitar grupo actual (sí/no)"};
     }
     if (accion == 3) return {entidad == 1 ? "Código RH" : entidad == 2 ? "Código GrupLAC" : "Código producto"};

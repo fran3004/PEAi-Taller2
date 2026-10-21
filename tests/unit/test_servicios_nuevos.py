@@ -10,6 +10,8 @@ Cubre:
    coautores del investigador y aporte institucional del grupo.
 """
 
+import datetime
+
 import pytest
 import responses
 
@@ -277,13 +279,84 @@ def test_actualizar_producto_validaciones() -> None:
     with pytest.raises(ErrorValidacion):
         app.actualizar_producto("PRUEBA-PROD-001", {"estado_validacion": "Rechazado"})
 
-    # Año fuera de rango
-    with pytest.raises(ErrorValidacion):
-        app.actualizar_producto("PRUEBA-PROD-001", {"ano": 1850})
+    for anio in (1969, datetime.date.today().year + 1):
+        with pytest.raises(ErrorValidacion):
+            app.actualizar_producto("PRUEBA-PROD-001", {"ano": anio})
 
     # Grupo inexistente
     with pytest.raises(RecursoNoEncontrado):
         app.actualizar_producto("PRUEBA-PROD-001", {"codigo_grupo": "GRP-INVENTADO"})
+
+
+def test_crear_producto_valida_limites_de_ano() -> None:
+    app = ServicioAplicacion()
+    app.cargar_demostracion()
+    anio_actual = datetime.date.today().year
+
+    for codigo, anio in (
+        ("PRUEBA-PROD-ANIO-MIN", 1970),
+        ("PRUEBA-PROD-ANIO-ACTUAL", anio_actual),
+    ):
+        app.crear_producto(
+            {
+                "codigo_identificador": codigo,
+                "titulo": "Producto de prueba de año",
+                "tipo_mayor": "GNC",
+                "subtipo": "Artículo",
+                "estado_validacion": "No avalado",
+                "ano": anio,
+            }
+        )
+        assert app.detalle_producto(codigo)["ano"] == anio
+
+    for codigo, anio in (
+        ("PRUEBA-PROD-ANIO-BAJO", 1969),
+        ("PRUEBA-PROD-ANIO-FUTURO", anio_actual + 1),
+        ("PRUEBA-PROD-ANIO-FRACCION", 2024.5),
+    ):
+        with pytest.raises(ErrorValidacion):
+            app.crear_producto(
+                {
+                    "codigo_identificador": codigo,
+                    "titulo": "Producto inválido",
+                    "tipo_mayor": "GNC",
+                    "estado_validacion": "No avalado",
+                    "ano": anio,
+                }
+            )
+
+
+def test_catalogo_rechaza_ano_invalido_sin_aplicar_cambios_parciales() -> None:
+    catalogo = CatalogoInvestigacion()
+    producto_invalido = Producto(
+        codigo_identificador="PRUEBA-PROD-ANIO-CREAR-INVALIDO",
+        titulo="Producto inválido",
+        tipo_mayor="GNC",
+        ano=2024,
+    )
+    producto_invalido.ano = 1969
+
+    with pytest.raises(ValueError):
+        catalogo.crear_producto(producto_invalido, persistir=False)
+    assert catalogo.buscar_producto(producto_invalido.codigo_identificador) is None
+
+    producto = Producto(
+        codigo_identificador="PRUEBA-PROD-ANIO-CATALOGO",
+        titulo="Título original",
+        tipo_mayor="GNC",
+        ano=2024,
+    )
+    catalogo.crear_producto(producto, persistir=False)
+
+    with pytest.raises(ValueError):
+        catalogo.actualizar_producto(
+            producto.codigo_identificador,
+            {"titulo": "Título no aplicado", "ano": 1969},
+            persistir=False,
+        )
+
+    assert producto.titulo == "Título original"
+    assert producto.ano == 2024
 
 
 @responses.activate

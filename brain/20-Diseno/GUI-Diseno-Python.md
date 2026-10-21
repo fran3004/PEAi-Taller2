@@ -269,8 +269,9 @@ Sin boceto propio: usa el patrón de Investigadores con la tarjeta de grupo de I
 
 - **Cabecera**: título «Catálogo de productos», búsqueda («Buscar por título, código o autor…»), combo **Tipología** (GNC · DTI · ASC · FRH, con su nombre completo en la lista), combo **Validación**, combo **Estado**, botón primario **«+ Nuevo producto»**.
 - **Tabla**: `Código` · `Título` (máximo 2 líneas, elipsis) · `Tipología` (píldora con color de dato) · `Subtipo` · `Año` · `Validación` (píldora) · `Grupo` · `Autores` (primer autor + «+2»).
+- **Año de publicación**: los formularios de alta y edición muestran y restringen el rango inclusivo 1970–año actual; los servicios vuelven a validar el límite antes de mutar el catálogo. Si un registro antiguo tiene un año inválido, la edición lo advierte y exige corregirlo explícitamente.
 - **Ficha lateral** (360 px): título, código, píldoras de tipología y validación, año, grupo, lista de coautores (avatar + nombre; clic abre su ficha en Investigadores) y la insignia **«✔ Dentro de la ventana del Modelo 2024» / «✖ Fuera de la ventana…»** con explicación en el *tooltip* (5 años para artículos, software, ASC y FRH; 10 para libros y patentes). Botones: **Editar** · **Activar/Desactivar** · **Eliminar**.
-- **Servicios**: `tabla_productos`, `detalle_producto`, `crear_producto`, `cambiar_estado`, `eliminar`, y **`actualizar_producto` (nuevo, hoy no existe)** para el botón Editar.
+- **Servicios**: `tabla_productos`, `detalle_producto`, `crear_producto`, `actualizar_producto`, `cambiar_estado` y `eliminar`.
 
 **Regla responsive común de las fichas laterales de Investigadores, Grupos y Productos:** el cuerpo tiene una sola zona vertical de desplazamiento; la cuadrícula KPI pasa a una columna cuando no dispone de 368 px y conserva dos columnas con espacio suficiente. Las acciones aplicables quedan fuera del desplazamiento, fijas al pie, y sus botones principales cambian de una a dos columnas según el ancho medido de sus rótulos. La vista tabular alternativa del gráfico de Grupos se ajusta a todas sus filas y no añade barras de desplazamiento internas.
 

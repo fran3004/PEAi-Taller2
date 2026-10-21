@@ -28,7 +28,7 @@ from pea.cliente_http import ClienteHTTPSupabase
 from pea.datos.sesion import Sesion
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
-from pea.dominio.producto import Producto
+from pea.dominio.producto import Producto, validar_ano_producto
 from pea.estructuras.cola import EstadoTarea, TareaIngesta
 from pea.estructuras.hipercubo import Hipercubo5D
 from pea.estructuras.lista_doble import ListaDoble
@@ -468,6 +468,21 @@ class ServicioAplicacion:
         return self._escribir(accion)
 
     # ------------------------------------------------------------------ productos
+    def _normalizar_ano_producto(self, valor: object) -> int:
+        if isinstance(valor, bool) or (
+            isinstance(valor, float) and not valor.is_integer()
+        ):
+            raise ErrorValidacion("El año debe ser un número entero.")
+        try:
+            anio = int(valor)
+        except (TypeError, ValueError) as err:
+            raise ErrorValidacion("El año debe ser un número entero.") from err
+        try:
+            validar_ano_producto(anio, self._anio_actual())
+        except ValueError as err:
+            raise ErrorValidacion(str(err)) from err
+        return anio
+
     def crear_producto(
         self,
         datos: dict[str, Any],
@@ -479,13 +494,7 @@ class ServicioAplicacion:
             raise ErrorValidacion("La tipología debe ser GNC, DTI, ASC o FRH.")
         if valores.get("estado_validacion") not in VALIDACIONES:
             raise ErrorValidacion("La validación debe ser Avalado, Con soporte o No avalado.")
-        try:
-            anio = int(valores.get("ano") or 0)
-        except (TypeError, ValueError) as err:
-            raise ErrorValidacion("El año debe ser un número entero.") from err
-        if not 1900 <= anio <= self._anio_actual() + 1:
-            raise ErrorValidacion(f"El año debe estar entre 1900 y {self._anio_actual() + 1}.")
-        valores["ano"] = anio
+        valores["ano"] = self._normalizar_ano_producto(valores.get("ano"))
 
         def accion(persistir: bool) -> str:
             prod = Producto.model_validate({k: v for k, v in valores.items() if v is not None})
@@ -520,13 +529,7 @@ class ServicioAplicacion:
         if "estado_validacion" in valores and valores["estado_validacion"] not in VALIDACIONES:
             raise ErrorValidacion("La validación debe ser Avalado, Con soporte o No avalado.")
         if "ano" in valores:
-            try:
-                anio = int(valores["ano"] or 0)
-            except (TypeError, ValueError) as err:
-                raise ErrorValidacion("El año debe ser un número entero.") from err
-            if not 1900 <= anio <= self._anio_actual() + 1:
-                raise ErrorValidacion(f"El año debe estar entre 1900 y {self._anio_actual() + 1}.")
-            valores["ano"] = anio
+            valores["ano"] = self._normalizar_ano_producto(valores["ano"])
         if "codigo_grupo" in valores and valores["codigo_grupo"]:
             grp = self._catalogo.buscar_grupo(str(valores["codigo_grupo"]))
             if grp is None:

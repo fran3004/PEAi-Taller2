@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from PySide6.QtCore import QEvent, QPoint, Qt
+from PySide6.QtCore import QDate, QEvent, QPoint, Qt
 from PySide6.QtGui import QFont, QFontMetrics, QHelpEvent, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QLabel, QScrollArea
 
@@ -310,6 +310,8 @@ def test_dialogos_validacion_y_datos(qapp: QApplication, qtbot: Any) -> None:
     dlg_prod = DialogoProducto(grupos=[("COL01", "Grupo Uno")])
     qtbot.addWidget(dlg_prod)
     dlg_prod.show()
+    assert dlg_prod.spin_ano.minimum() == 1970
+    assert dlg_prod.spin_ano.maximum() == QDate.currentDate().year()
     assert not dlg_prod.validar()
     assert not dlg_prod._err_codigo.isHidden()
 
@@ -336,6 +338,8 @@ def test_dialogos_validacion_y_datos(qapp: QApplication, qtbot: Any) -> None:
     dlg_edit = DialogoEditarProducto(datos_previos=datos_prev, grupos=[("COL01", "Grupo Uno")])
     qtbot.addWidget(dlg_edit)
     dlg_edit.show()
+    assert dlg_edit.spin_ano.minimum() == 1970
+    assert dlg_edit.spin_ano.maximum() == QDate.currentDate().year()
     assert not dlg_edit.txt_codigo.isEnabled()
     assert dlg_edit.txt_titulo.text() == "Título Original"
     assert dlg_edit.combo_tipo.currentText() == "DTI"
@@ -350,6 +354,17 @@ def test_dialogos_validacion_y_datos(qapp: QApplication, qtbot: Any) -> None:
     assert datos_upd["titulo"] == "Título Actualizado"
     assert datos_upd["tipo_mayor"] == "GNC"
     assert datos_upd["ano"] == 2024
+
+    dlg_ano_antiguo = DialogoEditarProducto(
+        datos_previos={"codigo": "PRUEBA-PROD-ANTIGUO", "titulo": "Producto antiguo", "ano": 1969}
+    )
+    qtbot.addWidget(dlg_ano_antiguo)
+    assert dlg_ano_antiguo.spin_ano.value() == 1970
+    assert not dlg_ano_antiguo.validar()
+    assert not dlg_ano_antiguo._err_ano.isHidden()
+    dlg_ano_antiguo.spin_ano.setValue(1971)
+    assert dlg_ano_antiguo.validar()
+    assert dlg_ano_antiguo._err_ano.isHidden()
 
 
 def test_popover_historial(qapp: QApplication, qtbot: Any) -> None:

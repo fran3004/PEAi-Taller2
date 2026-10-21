@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -357,9 +357,10 @@ class DialogoProducto(DialogoBase):
         self._agregar_campo("Subtipo de producto:", self.txt_subtipo)
 
         self.spin_ano = QSpinBox(self)
-        self.spin_ano.setRange(1950, 2030)
-        self.spin_ano.setValue(2024)
-        self._agregar_campo("Año de publicación *:", self.spin_ano)
+        anio_actual = QDate.currentDate().year()
+        self.spin_ano.setRange(1970, anio_actual)
+        self.spin_ano.setValue(min(2024, anio_actual))
+        self._agregar_campo(f"Año de publicación (1970–{anio_actual}) *:", self.spin_ano)
 
         self.combo_val = QComboBox(self)
         self.combo_val.addItems(["Avalado", "Con soporte", "No avalado"])
@@ -442,9 +443,19 @@ class DialogoEditarProducto(DialogoBase):
         self._agregar_campo("Subtipo de producto:", self.txt_subtipo)
 
         self.spin_ano = QSpinBox(self)
-        self.spin_ano.setRange(1950, 2030)
-        self.spin_ano.setValue(int(datos_previos.get("ano", datos_previos.get("anio", 2024))))
-        self._agregar_campo("Año de publicación *:", self.spin_ano)
+        anio_actual = QDate.currentDate().year()
+        self.spin_ano.setRange(1970, anio_actual)
+        anio_previo = int(datos_previos.get("ano", datos_previos.get("anio", 2024)))
+        self.spin_ano.setValue(anio_previo)
+        self._ano_original_invalido = not 1970 <= anio_previo <= anio_actual
+        self._ano_modificado = not self._ano_original_invalido
+        self._err_ano = self._agregar_campo(
+            f"Año de publicación (1970–{anio_actual}) *:",
+            self.spin_ano,
+            "El año guardado está fuera del rango permitido; seleccione uno entre 1970 y el año actual.",
+        )
+        self._err_ano.setVisible(self._ano_original_invalido)
+        self.spin_ano.valueChanged.connect(self._al_cambiar_ano)
 
         self.combo_val = QComboBox(self)
         self.combo_val.addItems(["Avalado", "Con soporte", "No avalado"])
@@ -463,11 +474,23 @@ class DialogoEditarProducto(DialogoBase):
         self._agregar_campo("Grupo de investigación asociado:", self.combo_grupo)
 
     def validar(self) -> bool:
+        valido = True
         if not self.txt_titulo.text().strip():
             self._err_titulo.setVisible(True)
-            return False
-        self._err_titulo.setVisible(False)
-        return True
+            valido = False
+        else:
+            self._err_titulo.setVisible(False)
+
+        if self._ano_original_invalido and not self._ano_modificado:
+            self._err_ano.setVisible(True)
+            valido = False
+        else:
+            self._err_ano.setVisible(False)
+        return valido
+
+    def _al_cambiar_ano(self, _: int) -> None:
+        self._ano_modificado = True
+        self._err_ano.setVisible(False)
 
     def obtener_datos(self) -> tuple[str, dict[str, Any]]:
         """Devuelve el código identificador y el diccionario de campos para actualizar_producto."""

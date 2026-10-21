@@ -1,8 +1,10 @@
 #include "pea/servicios/catalogo_investigacion.hpp"
 #include "pea/cliente_http.hpp"
 #include "pea/excepciones.hpp"
+#include <QDate>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <cmath>
 #include <unordered_map>
 
 namespace pea::servicios {
@@ -11,6 +13,17 @@ namespace {
 void exigir_id_remoto(bool persistir, const std::optional<qint64>& id, const char* entidad) {
     if (persistir && !id.has_value()) {
         throw ErrorPEA(std::string(entidad) + " no tiene identificador remoto; se bloqueó la escritura.");
+    }
+}
+
+void validar_ano_producto(double ano) {
+    if (!std::isfinite(ano) || std::floor(ano) != ano) {
+        throw ErrorValidacion("El año debe ser un número entero.");
+    }
+    const int limite_superior = QDate::currentDate().year();
+    if (ano < 1970 || ano > limite_superior) {
+        throw ErrorValidacion(
+            "El año debe estar entre 1970 y " + std::to_string(limite_superior) + ".");
     }
 }
 
@@ -584,6 +597,7 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
     bool persistir) {
     if (!producto) return nullptr;
     verificar_autenticacion_si_aplica(persistir);
+    validar_ano_producto(producto->ano);
 
     auto existente = multilista_productos.buscar_producto(producto->codigo_identificador);
     if (existente) {
@@ -683,6 +697,7 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::actualizar_producto(
             if (!valor.isDouble()) {
                 throw ErrorValidacion("El campo ano debe ser numérico.");
             }
+            validar_ano_producto(valor.toDouble());
         } else if (campo == "mes") {
             if (!valor.isNull() && !valor.isDouble()) {
                 throw ErrorValidacion("El campo mes debe ser numérico o nulo.");

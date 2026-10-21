@@ -1,8 +1,20 @@
 """Entidad de dominio Producto de Investigación."""
 
+import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+def validar_ano_producto(ano: int, anio_actual: int | None = None) -> int:
+    """Valida el año de producción conforme al requisito RF-04."""
+    if type(ano) is not int:
+        raise ValueError("El año debe ser un número entero.")
+
+    limite_superior = datetime.date.today().year if anio_actual is None else anio_actual
+    if not 1970 <= ano <= limite_superior:
+        raise ValueError(f"El año debe estar entre 1970 y {limite_superior}.")
+    return ano
 
 
 class Producto(BaseModel):
