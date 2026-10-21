@@ -2,8 +2,37 @@
 #include <algorithm>
 #include <QFile>
 #include <QFileInfo>
+#include <optional>
 
 namespace pea::ingesta {
+namespace {
+
+bool leer_booleano_csv(const QString& valor, bool predeterminado = true) {
+    const QString normalizado = valor.trimmed().toLower();
+    if (normalizado.isEmpty()) return predeterminado;
+    if (normalizado == "true" || normalizado == "1" || normalizado == "yes" ||
+        normalizado == "y" || normalizado == "on" || normalizado == "si" ||
+        normalizado == "sí") {
+        return true;
+    }
+    if (normalizado == "false" || normalizado == "0" || normalizado == "no" ||
+        normalizado == "n" || normalizado == "off") {
+        return false;
+    }
+    throw std::invalid_argument("Valor booleano inválido: " + valor.toStdString());
+}
+
+std::optional<QString> valor_columna(const QStringList& fila,
+                                     const QMap<QString, int>& columnas,
+                                     const QString& nombre) {
+    const int indice = columnas.value(nombre, -1);
+    if (indice < 0 || indice >= fila.size() || fila[indice].trimmed().isEmpty()) {
+        return std::nullopt;
+    }
+    return fila[indice].trimmed();
+}
+
+} // namespace
 
 QChar LectorCSV::detectar_delimitador(const QString& contenido) {
     int idx_nl = contenido.indexOf(QLatin1Char('\n'));
@@ -183,13 +212,23 @@ std::pair<estructuras::ListaDoble<dominio::Grupo>, QList<QString>> LectorCSV::le
                 errores.append(QStringLiteral("Fila %1: Código de grupo ausente o inválido").arg(num + 1));
                 continue;
             }
+            if (idx_nom == -1 || idx_nom >= f.size() || f[idx_nom].trimmed().isEmpty()) {
+                errores.append(QStringLiteral("Fila %1: Nombre de grupo ausente o inválido").arg(num + 1));
+                continue;
+            }
 
             dominio::Grupo g;
             g.codigo_gruplac = f[idx_cod].trimmed();
-            g.nombre = (idx_nom != -1 && idx_nom < f.size()) ? f[idx_nom].trimmed() : QStringLiteral("Grupo %1").arg(g.codigo_gruplac);
-            g.categoria = (idx_cat != -1 && idx_cat < f.size()) ? f[idx_cat].trimmed() : QStringLiteral("Reconocido");
+            g.nombre = f[idx_nom].trimmed();
+            if (idx_cat != -1 && idx_cat < f.size()) g.categoria = f[idx_cat].trimmed();
             g.institucion_principal = (idx_inst != -1 && idx_inst < f.size()) ? f[idx_inst].trimmed() : QStringLiteral("Universidad Popular del Cesar");
             if (idx_lid != -1 && idx_lid < f.size()) g.lider = f[idx_lid].trimmed();
+            g.pais = valor_columna(f, mapa_col, QStringLiteral("pais")).value_or(QStringLiteral("Colombia"));
+            g.departamento_ciudad = valor_columna(f, mapa_col, QStringLiteral("departamento_ciudad")).value_or(QString());
+            g.gran_area_ocde = valor_columna(f, mapa_col, QStringLiteral("gran_area_ocde")).value_or(QString());
+            g.area_ocde = valor_columna(f, mapa_col, QStringLiteral("area_ocde")).value_or(QString());
+            g.activo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("activo")).value_or(QString()));
+            g.es_ejemplo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("es_ejemplo")).value_or(QString()), false);
 
             grupos.insertar_final(g);
         } catch (const std::exception& e) {
@@ -231,13 +270,24 @@ std::pair<estructuras::ListaDoble<dominio::Investigador>, QList<QString>> Lector
                 errores.append(QStringLiteral("Fila %1: Código CvLAC de investigador ausente o inválido").arg(num + 1));
                 continue;
             }
+            if (idx_nom == -1 || idx_nom >= f.size() || f[idx_nom].trimmed().isEmpty()) {
+                errores.append(QStringLiteral("Fila %1: Nombre de investigador ausente o inválido").arg(num + 1));
+                continue;
+            }
 
             dominio::Investigador inv;
             inv.codigo_rh = f[idx_rh].trimmed();
-            inv.nombre_completo = (idx_nom != -1 && idx_nom < f.size()) ? f[idx_nom].trimmed() : QStringLiteral("Investigador %1").arg(inv.codigo_rh);
-            inv.categoria = (idx_cat != -1 && idx_cat < f.size()) ? f[idx_cat].trimmed() : QStringLiteral("Investigador");
-            inv.nacionalidad = (idx_nac != -1 && idx_nac < f.size()) ? f[idx_nac].trimmed() : QStringLiteral("Colombiana");
+            inv.nombre_completo = f[idx_nom].trimmed();
+            if (idx_cat != -1 && idx_cat < f.size()) inv.categoria = f[idx_cat].trimmed();
+            inv.nacionalidad = (idx_nac != -1 && idx_nac < f.size() && !f[idx_nac].trimmed().isEmpty())
+                                   ? f[idx_nac].trimmed()
+                                   : QStringLiteral("Colombiana");
             if (idx_form != -1 && idx_form < f.size()) inv.formacion_academica = f[idx_form].trimmed();
+            inv.nombre_en_citas = valor_columna(f, mapa_col, QStringLiteral("nombre_en_citas")).value_or(QString());
+            inv.documento_identidad = valor_columna(f, mapa_col, QStringLiteral("documento_identidad")).value_or(QString());
+            inv.sexo = valor_columna(f, mapa_col, QStringLiteral("sexo")).value_or(QString());
+            inv.activo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("activo")).value_or(QString()));
+            inv.es_ejemplo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("es_ejemplo")).value_or(QString()), false);
 
             invs.insertar_final(inv);
         } catch (const std::exception& e) {
@@ -279,20 +329,48 @@ std::pair<QList<std::pair<dominio::Producto, QString>>, QList<QString>> LectorCS
                 errores.append(QStringLiteral("Fila %1: Código identificador de producto ausente").arg(num + 1));
                 continue;
             }
+            if (idx_tit == -1 || idx_tit >= f.size() || f[idx_tit].trimmed().isEmpty()) {
+                errores.append(QStringLiteral("Fila %1: Título del producto ausente o inválido").arg(num + 1));
+                continue;
+            }
 
             bool ok_ano = false;
-            int ano_val = (idx_ano != -1 && idx_ano < f.size()) ? f[idx_ano].trimmed().toInt(&ok_ano) : 2024;
-            if (idx_ano != -1 && !ok_ano) {
-                errores.append(QStringLiteral("Fila %1: Año no numérico o inválido: '%2'").arg(num + 1).arg(f[idx_ano]));
+            const int ano_val = (idx_ano != -1 && idx_ano < f.size())
+                                    ? f[idx_ano].trimmed().toInt(&ok_ano)
+                                    : 0;
+            if (!ok_ano) {
+                errores.append(QStringLiteral("Fila %1: Año no numérico o ausente").arg(num + 1));
                 continue;
             }
 
             dominio::Producto p;
             p.codigo_identificador = f[idx_cod].trimmed();
-            p.titulo = (idx_tit != -1 && idx_tit < f.size()) ? f[idx_tit].trimmed() : QStringLiteral("Producto %1").arg(p.codigo_identificador);
-            p.tipo_mayor = (idx_tipo != -1 && idx_tipo < f.size()) ? f[idx_tipo].trimmed() : QStringLiteral("GNC");
+            p.titulo = f[idx_tit].trimmed();
+            p.tipo_mayor = (idx_tipo != -1 && idx_tipo < f.size() && !f[idx_tipo].trimmed().isEmpty())
+                               ? f[idx_tipo].trimmed()
+                               : QStringLiteral("GNC");
             p.ano = ano_val;
-            p.estado_validacion = QStringLiteral("Aprobado");
+            p.subtipo = valor_columna(f, mapa_col, QStringLiteral("subtipo")).value_or(QString());
+            const auto mes = valor_columna(f, mapa_col, QStringLiteral("mes"));
+            if (mes) {
+                bool valido = false;
+                const int valor_mes = mes->toInt(&valido);
+                if (!valido) throw std::invalid_argument("El mes no es numérico.");
+                p.mes = valor_mes;
+            }
+            p.pais = valor_columna(f, mapa_col, QStringLiteral("pais")).value_or(QString());
+            p.estado_validacion = valor_columna(f, mapa_col, QStringLiteral("estado_validacion"))
+                                      .value_or(QStringLiteral("No avalado"));
+            const auto detalles = valor_columna(f, mapa_col, QStringLiteral("detalles"));
+            if (detalles) {
+                const QJsonDocument documento = QJsonDocument::fromJson(detalles->toUtf8());
+                if (!documento.isObject()) {
+                    throw std::invalid_argument("El campo detalles debe contener un objeto JSON.");
+                }
+                p.detalles = documento.object();
+            }
+            p.activo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("activo")).value_or(QString()));
+            p.es_ejemplo = leer_booleano_csv(valor_columna(f, mapa_col, QStringLiteral("es_ejemplo")).value_or(QString()), false);
 
             QString grp_cod = (idx_grp != -1 && idx_grp < f.size()) ? f[idx_grp].trimmed() : QString();
             prods.append({p, grp_cod});

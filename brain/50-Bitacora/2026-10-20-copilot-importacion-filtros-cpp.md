@@ -46,6 +46,12 @@ temporales ya disponibles en el servicio estadístico C++.
   entrecomillados y se agregó un fixture de importación de grupos compartido
   con Python para verificar valores UTF-8, delimitador, comillas y salto
   interno.
+- Se completaron fixtures de importación CSV compartidos para investigadores,
+  productos y autores. Se ampliaron los campos C++ importados y se alinearon
+  requisitos de nombre, año, estado de validación y valores booleanos con los
+  modelos Pydantic.
+- Se agregó también un fixture con una fila inválida intercalada. Python y C++
+  conservan los mismos dos productos válidos y apuntan el error a la fila 3.
 - Se amplió la búsqueda de los directorios para cubrir todos los atributos
   cargados y admitir filtros canónicos `campo:valor`; la autoprueba comprueba
   búsquedas sobre campos no visibles en las filas.
@@ -67,14 +73,14 @@ temporales ya disponibles en el servicio estadístico C++.
   lint de los archivos Python tocados en la tarea anterior había pasado.
 - `git diff --check`: correcto salvo aviso de normalización de CRLF de Git en
   el fuente TUI.
-- Continuación posterior: compilación Release y 39 casos/375 aserciones C++
-  aprobados, incluida una prueba HTTP local de RPC/meta con fallo explícito y
-  fixtures CSV compartidos; `--autoprueba` cubrió 32 pantallas y seis consultas
-  de búsqueda/filtro de atributos sin hallazgos.
-- `scripts\verificar.ps1`: 290 pruebas Python aprobaron y 3 pruebas de red
-  quedaron omitidas; compilación C++ con `-Werror`, CTest, autoprueba TUI y
-  bóveda finalizaron correctamente. La bóveda conserva una advertencia ajena
-  por el enlace `ADR-0016` en otra bitácora.
+- Suite C++: 40 casos/432 aserciones aprobados, incluyendo fixtures compartidos
+  de importación de las cuatro entidades y omisión de filas inválidas.
+- Pruebas de paridad Python CSV: 3 aprobadas; Ruff pasó para el archivo nuevo.
+- `scripts\verificar.ps1`: 291 pruebas Python aprobadas y 3 pruebas de red
+  omitidas; compilación C++ con `-Werror`, CTest, autoprueba TUI y bóveda
+  correctos. La bóveda conserva una advertencia previa por el enlace
+  `ADR-0016` de otra bitácora.
+- `git diff --check`: correcto.
 - `git diff --check`: correcto. `ruff check` global mantiene el fallo I001
   preexistente de `entrega/Taller2_FF_SM.py`, no modificado aquí.
 
@@ -97,4 +103,4 @@ temporales ya disponibles en el servicio estadístico C++.
 - Añadir pruebas de interacción de teclado y expiración de sesión del trabajador
   periódico.
 - Añadir comparación de exportadores completos y ampliar la prueba diferencial
-  de importación a los demás tipos e informes de errores.
+  de textos de informes y alias adicionales de importación.

@@ -435,4 +435,91 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
     CHECK(grupo.categoria == esperado.value("categoria").toString());
     CHECK(grupo.institucion_principal == esperado.value("institucion_principal").toString());
     CHECK(grupo.lider == esperado.value("lider").toString());
+    CHECK(grupo.activo == esperado.value("activo").toBool());
+    CHECK(grupo.es_ejemplo == esperado.value("es_ejemplo").toBool());
+
+    const QJsonObject esperado_investigador = datos.value("investigadores").toObject();
+    const QString ruta_investigadores = temporal.filePath(QStringLiteral("investigadores.csv"));
+    QFile archivo_investigadores(ruta_investigadores);
+    REQUIRE(archivo_investigadores.open(QIODevice::WriteOnly));
+    const QByteArray bytes_investigadores =
+        esperado_investigador.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_investigadores.write(bytes_investigadores) == bytes_investigadores.size());
+    archivo_investigadores.close();
+    const auto [investigadores, errores_investigadores] =
+        LectorCSV::leer_investigadores(ruta_investigadores);
+    const QJsonObject valores_investigador = esperado_investigador.value("esperado").toObject();
+    CHECK(errores_investigadores.isEmpty());
+    REQUIRE(investigadores.tamano() == 1);
+    const auto& investigador = investigadores.cabeza()->dato;
+    CHECK(investigador.codigo_rh == valores_investigador.value("codigo_rh").toString());
+    CHECK(investigador.nombre_completo == valores_investigador.value("nombre_completo").toString());
+    CHECK(investigador.categoria == valores_investigador.value("categoria").toString());
+    CHECK(investigador.formacion_academica == valores_investigador.value("formacion_academica").toString());
+    CHECK(investigador.nacionalidad == valores_investigador.value("nacionalidad").toString());
+    CHECK(investigador.nombre_en_citas == valores_investigador.value("nombre_en_citas").toString());
+    CHECK(investigador.documento_identidad == valores_investigador.value("documento_identidad").toString());
+    CHECK(investigador.sexo == valores_investigador.value("sexo").toString());
+    CHECK(investigador.activo == valores_investigador.value("activo").toBool());
+    CHECK(investigador.es_ejemplo == valores_investigador.value("es_ejemplo").toBool());
+
+    const QJsonObject esperado_producto = datos.value("productos").toObject();
+    const QString ruta_productos = temporal.filePath(QStringLiteral("productos.csv"));
+    QFile archivo_productos(ruta_productos);
+    REQUIRE(archivo_productos.open(QIODevice::WriteOnly));
+    const QByteArray bytes_productos = esperado_producto.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_productos.write(bytes_productos) == bytes_productos.size());
+    archivo_productos.close();
+    const auto [productos, errores_productos] = LectorCSV::leer_productos(ruta_productos);
+    const QJsonObject valores_producto = esperado_producto.value("esperado").toObject();
+    CHECK(errores_productos.isEmpty());
+    REQUIRE(productos.size() == 1);
+    const auto& producto = productos[0].first;
+    CHECK(productos[0].second == valores_producto.value("grupo_codigo").toString());
+    CHECK(producto.codigo_identificador == valores_producto.value("codigo_identificador").toString());
+    CHECK(producto.titulo == valores_producto.value("titulo").toString());
+    CHECK(producto.tipo_mayor == valores_producto.value("tipo_mayor").toString());
+    CHECK(producto.subtipo == valores_producto.value("subtipo").toString());
+    CHECK(producto.ano == valores_producto.value("ano").toInt());
+    CHECK(producto.mes == valores_producto.value("mes").toInt());
+    CHECK(producto.pais == valores_producto.value("pais").toString());
+    CHECK(producto.estado_validacion == valores_producto.value("estado_validacion").toString());
+    CHECK(producto.activo == valores_producto.value("activo").toBool());
+    CHECK(producto.es_ejemplo == valores_producto.value("es_ejemplo").toBool());
+
+    const QJsonObject esperado_autor = datos.value("autores").toObject();
+    const QString ruta_autores = temporal.filePath(QStringLiteral("autores.csv"));
+    QFile archivo_autores(ruta_autores);
+    REQUIRE(archivo_autores.open(QIODevice::WriteOnly));
+    const QByteArray bytes_autores = esperado_autor.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_autores.write(bytes_autores) == bytes_autores.size());
+    archivo_autores.close();
+    const auto [autores, errores_autores] = LectorCSV::leer_autores(ruta_autores);
+    const QJsonObject valores_autor = esperado_autor.value("esperado").toObject();
+    CHECK(errores_autores.isEmpty());
+    REQUIRE(autores.size() == 1);
+    CHECK(autores[0].producto_codigo == valores_autor.value("producto_codigo").toString());
+    CHECK(autores[0].investigador_codigo == valores_autor.value("investigador_codigo").toString());
+    CHECK(autores[0].orden_autoria == valores_autor.value("orden_autoria").toInt());
+
+    const QJsonObject filas_invalidas = datos.value("filas_invalidas").toObject();
+    const QString ruta_filas_invalidas = temporal.filePath(QStringLiteral("productos_con_errores.csv"));
+    QFile archivo_filas_invalidas(ruta_filas_invalidas);
+    REQUIRE(archivo_filas_invalidas.open(QIODevice::WriteOnly));
+    const QByteArray bytes_filas_invalidas =
+        filas_invalidas.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_filas_invalidas.write(bytes_filas_invalidas) == bytes_filas_invalidas.size());
+    archivo_filas_invalidas.close();
+    const auto [productos_validos, errores_filas] =
+        LectorCSV::leer_productos(ruta_filas_invalidas);
+    const QJsonArray codigos_validos = filas_invalidas.value("codigos_validos").toArray();
+    const QJsonArray numeros_error = filas_invalidas.value("filas_error").toArray();
+    CHECK(errores_filas.size() == numeros_error.size());
+    REQUIRE(productos_validos.size() == codigos_validos.size());
+    for (qsizetype indice = 0; indice < codigos_validos.size(); ++indice) {
+        CHECK(productos_validos[indice].first.codigo_identificador ==
+              codigos_validos[indice].toString());
+    }
+    REQUIRE(errores_filas.size() == 1);
+    CHECK(errores_filas.front().contains(QString::number(numeros_error.at(0).toInt())));
 }
