@@ -2,6 +2,8 @@
 
 import csv
 import io
+import json
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -274,6 +276,63 @@ class TestLectorCSV:
 
 class TestServicioIngestaYCola:
     """Verifica la Cola FIFO de tareas, transiciones de estado, desduplicación y Catálogo."""
+
+    def test_informe_csv_completo_y_error_de_lectura_comparten_contrato(
+        self, tmp_path: Path
+    ) -> None:
+        fixture_path = (
+            Path(__file__).parents[2] / "cpp" / "tests" / "fixtures" / "csv_importacion.json"
+        )
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        datos_invalidos = fixture["filas_invalidas"]
+        ruta = tmp_path / "productos.csv"
+        contenido = datos_invalidos["contenido"].replace("ANIO_ACTUAL", str(date.today().year))
+        ruta.write_text(contenido, encoding="utf-8")
+
+        catalogo = CatalogoInvestigacion()
+        servicio = ServicioIngesta(catalogo)
+        tarea = servicio.encolar_csv(ruta, tipo_entidad="productos")
+        informe = servicio.procesar_siguiente()
+
+        assert informe is not None
+        assert tarea.tipo_fuente == "csv_productos"
+        assert informe.origen == str(ruta.resolve())
+        assert informe.tipo_fuente == "csv_productos"
+        assert datetime.fromisoformat(informe.fecha).tzinfo is not None
+        assert informe.exito is True
+        assert informe.mensaje == "Importación de CSV tipo 'productos' procesada"
+        assert informe.grupos_procesados == 0
+        assert informe.investigadores_procesados == 0
+        assert informe.productos_procesados == 3
+        assert informe.autores_procesados == 0
+        assert informe.advertencias == []
+        assert informe.archivos_generados == {}
+        assert [
+            {"fila": error["fila"], "mensaje": error["error"]}
+            for error in informe.filas_erroneas
+        ] == datos_invalidos["errores"]
+        assert [
+            error["datos"]["codigo_identificador"] for error in informe.filas_erroneas
+        ] == [
+            "PRUEBA-PROD-ERR-01",
+            "PRUEBA-PROD-ERR-02",
+            "PRUEBA-PROD-ERR-03",
+            "PRUEBA-PROD-ERR-04",
+        ]
+
+        ruta_inexistente = tmp_path / "inexistente.csv"
+        servicio.encolar_csv(ruta_inexistente, tipo_entidad="productos")
+        informe_error = servicio.procesar_siguiente()
+
+        assert informe_error is not None
+        error_lectura = f"El archivo CSV no existe en la ruta: {ruta_inexistente.resolve()}"
+        assert informe_error.origen == str(ruta_inexistente.resolve())
+        assert informe_error.tipo_fuente == "csv_productos"
+        assert datetime.fromisoformat(informe_error.fecha).tzinfo is not None
+        assert informe_error.exito is False
+        assert informe_error.mensaje == f"Error durante la ingesta: {error_lectura}"
+        assert informe_error.advertencias == [error_lectura]
+        assert informe_error.filas_erroneas == []
 
     def test_ciclo_estados_cola_propia(self, tmp_path: Path):
         catalogo = CatalogoInvestigacion()

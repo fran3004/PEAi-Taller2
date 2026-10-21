@@ -1,4 +1,5 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
+#include <QDateTime>
 #include <stdexcept>
 #include <QUuid>
 #include "pea/ingesta/lector_csv.hpp"
@@ -95,6 +96,7 @@ std::optional<InformeIngesta> ServicioIngesta::procesar_siguiente() {
         InformeIngesta err_inf;
         err_inf.origen = tarea.origen;
         err_inf.tipo_fuente = tarea.tipo_fuente;
+        err_inf.fecha = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
         err_inf.exito = false;
         err_inf.mensaje = QStringLiteral("Error durante la ingesta: %1").arg(QString::fromStdString(e.what()));
         err_inf.advertencias.append(QString::fromStdString(e.what()));
@@ -206,8 +208,9 @@ InformeIngesta ServicioIngesta::procesar_tarea_csv(estructuras::TareaIngesta& ta
     InformeIngesta informe;
     informe.origen = tarea.origen;
     informe.tipo_fuente = QStringLiteral("csv_%1").arg(tipo);
+    informe.fecha = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     informe.exito = true;
-    informe.mensaje = QStringLiteral("Importación CSV (%1) procesada").arg(tipo);
+    informe.mensaje = QStringLiteral("Importación de CSV tipo '%1' procesada").arg(tipo);
 
     if (tipo == QStringLiteral("grupos")) {
         auto [grupos, errs] = LectorCSV::leer_grupos(tarea.origen);

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -98,9 +99,32 @@ def test_importacion_de_los_tipos_restantes_comparte_campos_python_cpp(
         assert getattr(autores[0], campo) == valor
 
     ruta_con_errores = tmp_path / "productos_con_errores.csv"
-    ruta_con_errores.write_bytes(fixture["filas_invalidas"]["contenido"].encode("utf-8"))
+    contenido_con_ano_actual = fixture["filas_invalidas"]["contenido"].replace(
+        "ANIO_ACTUAL", str(date.today().year)
+    )
+    ruta_con_errores.write_bytes(contenido_con_ano_actual.encode("utf-8"))
     productos_validos, errores = LectorCSV.leer_productos(ruta_con_errores)
     assert [error["fila"] for error in errores] == fixture["filas_invalidas"]["filas_error"]
+    assert [
+        {"fila": error["fila"], "mensaje": error["error"]} for error in errores
+    ] == fixture["filas_invalidas"]["errores"]
     assert [producto.codigo_identificador for producto, _ in productos_validos] == fixture[
         "filas_invalidas"
     ]["codigos_validos"]
+
+    sin_columna_ano = fixture["filas_invalidas"]["sin_columna_ano"]
+    ruta_sin_ano = tmp_path / "productos_sin_ano.csv"
+    ruta_sin_ano.write_text(sin_columna_ano["contenido"], encoding="utf-8")
+    productos_sin_ano, errores_sin_ano = LectorCSV.leer_productos(ruta_sin_ano)
+    assert productos_sin_ano == []
+    assert errores_sin_ano == [
+        {
+            "fila": sin_columna_ano["fila_error"],
+            "datos": {
+                "codigo_identificador": "PRUEBA-PROD-ERR-05",
+                "titulo": "Producto sin año",
+                "tipo_mayor": "GNC",
+            },
+            "error": sin_columna_ano["mensaje"],
+        }
+    ]

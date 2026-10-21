@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import io
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -225,13 +226,24 @@ class LectorCSV:
                     k_limpio = k.strip()
                     val = v.strip() if isinstance(v, str) else v
                     if k_limpio in ("anio", "ano"):
-                        datos_fila["ano"] = int(val) if val else 2024
+                        if not val:
+                            raise ValueError("Año no numérico o ausente")
+                        try:
+                            ano = int(val)
+                        except ValueError as err:
+                            raise ValueError("Año no numérico o ausente") from err
+                        if ano < 1970 or ano > date.today().year:
+                            raise ValueError("Año fuera del rango permitido")
+                        datos_fila["ano"] = ano
                     elif k_limpio in ("tipo_categoria", "tipo_mayor"):
                         datos_fila["tipo_mayor"] = val
                     elif k_limpio in ("grupo_codigo", "codigo_gruplac"):
                         datos_fila["grupo_codigo"] = val
                     else:
                         datos_fila[k_limpio] = val
+
+                if "ano" not in datos_fila:
+                    raise ValueError("Año no numérico o ausente")
 
                 fila_validada = FilaProductoCSV.model_validate(datos_fila)
                 prod = Producto(

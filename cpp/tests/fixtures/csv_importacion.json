@@ -49,8 +49,19 @@
     }
   },
   "filas_invalidas": {
-    "contenido": "codigo_identificador,titulo,tipo_mayor,ano\r\nPRUEBA-PROD-OK-01,Producto válido,GNC,2022\r\nPRUEBA-PROD-ERR-01,Producto año inválido,GNC,NO-ES-AÑO\r\nPRUEBA-PROD-OK-02,Producto válido dos,DTI,2024\r\n",
-    "filas_error": [3],
-    "codigos_validos": ["PRUEBA-PROD-OK-01", "PRUEBA-PROD-OK-02"]
+    "contenido": "codigo_identificador,titulo,tipo_mayor,ano\r\nPRUEBA-PROD-OK-01,Producto válido,GNC,2022\r\nPRUEBA-PROD-ERR-01,Producto año inválido,GNC,NO-ES-AÑO\r\nPRUEBA-PROD-OK-02,Producto año mínimo,GNC,1970\r\nPRUEBA-PROD-ERR-02,Producto año vacío,GNC,\r\nPRUEBA-PROD-ERR-03,Producto año anterior al límite,GNC,1969\r\nPRUEBA-PROD-ERR-04,Producto año futuro,GNC,9999\r\nPRUEBA-PROD-OK-03,Producto año actual,DTI,ANIO_ACTUAL\r\n",
+    "filas_error": [3, 5, 6, 7],
+    "errores": [
+      {"fila": 3, "mensaje": "Año no numérico o ausente"},
+      {"fila": 5, "mensaje": "Año no numérico o ausente"},
+      {"fila": 6, "mensaje": "Año fuera del rango permitido"},
+      {"fila": 7, "mensaje": "Año fuera del rango permitido"}
+    ],
+    "codigos_validos": ["PRUEBA-PROD-OK-01", "PRUEBA-PROD-OK-02", "PRUEBA-PROD-OK-03"],
+    "sin_columna_ano": {
+      "contenido": "codigo_identificador,titulo,tipo_mayor\r\nPRUEBA-PROD-ERR-05,Producto sin año,GNC\r\n",
+      "fila_error": 2,
+      "mensaje": "Año no numérico o ausente"
+    }
   }
 }

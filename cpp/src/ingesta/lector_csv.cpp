@@ -1,5 +1,6 @@
 #include "pea/ingesta/lector_csv.hpp"
 #include <algorithm>
+#include <QDate>
 #include <QFile>
 #include <QFileInfo>
 #include <optional>
@@ -59,7 +60,10 @@ QChar LectorCSV::detectar_delimitador(const QString& contenido) {
 QString LectorCSV::leer_texto_archivo(const QString& ruta, QString* encoding_detectada) {
     QFile file(ruta);
     if (!file.open(QIODevice::ReadOnly)) {
-        throw std::runtime_error("No se pudo abrir el archivo CSV: " + ruta.toStdString());
+        const QString mensaje = QFileInfo::exists(ruta)
+                                    ? QStringLiteral("No se pudo abrir el archivo CSV: ")
+                                    : QStringLiteral("El archivo CSV no existe en la ruta: ");
+        throw std::runtime_error((mensaje + ruta).toStdString());
     }
 
     QByteArray bytes = file.readAll();
@@ -340,6 +344,10 @@ std::pair<QList<std::pair<dominio::Producto, QString>>, QList<QString>> LectorCS
                                     : 0;
             if (!ok_ano) {
                 errores.append(QStringLiteral("Fila %1: Año no numérico o ausente").arg(num + 1));
+                continue;
+            }
+            if (ano_val < 1970 || ano_val > QDate::currentDate().year()) {
+                errores.append(QStringLiteral("Fila %1: Año fuera del rango permitido").arg(num + 1));
                 continue;
             }
 

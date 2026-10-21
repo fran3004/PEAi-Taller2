@@ -7,6 +7,8 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
 
+#include <QDate>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -503,8 +505,10 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
     const QString ruta_filas_invalidas = temporal.filePath(QStringLiteral("productos_con_errores.csv"));
     QFile archivo_filas_invalidas(ruta_filas_invalidas);
     REQUIRE(archivo_filas_invalidas.open(QIODevice::WriteOnly));
-    const QByteArray bytes_filas_invalidas =
-        filas_invalidas.value("contenido").toString().toUtf8();
+    const QString contenido_con_ano_actual =
+        filas_invalidas.value("contenido").toString().replace(
+            QStringLiteral("ANIO_ACTUAL"), QString::number(QDate::currentDate().year()));
+    const QByteArray bytes_filas_invalidas = contenido_con_ano_actual.toUtf8();
     REQUIRE(archivo_filas_invalidas.write(bytes_filas_invalidas) == bytes_filas_invalidas.size());
     archivo_filas_invalidas.close();
     const auto [productos_validos, errores_filas] =
@@ -517,6 +521,93 @@ TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea
         CHECK(productos_validos[indice].first.codigo_identificador ==
               codigos_validos[indice].toString());
     }
-    REQUIRE(errores_filas.size() == 1);
-    CHECK(errores_filas.front().contains(QString::number(numeros_error.at(0).toInt())));
+    const QJsonArray mensajes_esperados = filas_invalidas.value("errores").toArray();
+    REQUIRE(errores_filas.size() == mensajes_esperados.size());
+    for (qsizetype indice = 0; indice < mensajes_esperados.size(); ++indice) {
+        const QJsonObject error_esperado = mensajes_esperados.at(indice).toObject();
+        CHECK(errores_filas.at(indice) ==
+              QStringLiteral("Fila %1: %2")
+                  .arg(error_esperado.value("fila").toInt())
+                  .arg(error_esperado.value("mensaje").toString()));
+        CHECK(error_esperado.value("fila").toInt() == numeros_error.at(indice).toInt());
+    }
+
+    const QJsonObject sin_columna_ano = filas_invalidas.value("sin_columna_ano").toObject();
+    const QString ruta_sin_ano = temporal.filePath(QStringLiteral("productos_sin_ano.csv"));
+    QFile archivo_sin_ano(ruta_sin_ano);
+    REQUIRE(archivo_sin_ano.open(QIODevice::WriteOnly));
+    const QByteArray bytes_sin_ano = sin_columna_ano.value("contenido").toString().toUtf8();
+    REQUIRE(archivo_sin_ano.write(bytes_sin_ano) == bytes_sin_ano.size());
+    archivo_sin_ano.close();
+    const auto [productos_sin_ano, errores_sin_ano] = LectorCSV::leer_productos(ruta_sin_ano);
+    CHECK(productos_sin_ano.isEmpty());
+    REQUIRE(errores_sin_ano.size() == 1);
+    CHECK(errores_sin_ano.front() ==
+          QStringLiteral("Fila %1: %2")
+              .arg(sin_columna_ano.value("fila_error").toInt())
+              .arg(sin_columna_ano.value("mensaje").toString()));
+}
+
+TEST_CASE("Informe CSV completo conserva paridad entre Python y C++") {
+    QFile fixture(QStringLiteral(PEA_TEST_FIXTURES_DIR) + "/csv_importacion.json");
+    REQUIRE(fixture.open(QIODevice::ReadOnly));
+    const QJsonObject datos = QJsonDocument::fromJson(fixture.readAll()).object();
+    const QJsonObject filas_invalidas = datos.value("filas_invalidas").toObject();
+
+    QTemporaryDir temporal;
+    REQUIRE(temporal.isValid());
+    const QString ruta = temporal.filePath(QStringLiteral("productos.csv"));
+    QFile archivo(ruta);
+    REQUIRE(archivo.open(QIODevice::WriteOnly));
+    const QString contenido_csv =
+        filas_invalidas.value("contenido").toString().replace(
+            QStringLiteral("ANIO_ACTUAL"), QString::number(QDate::currentDate().year()));
+    const QByteArray contenido = contenido_csv.toUtf8();
+    REQUIRE(archivo.write(contenido) == contenido.size());
+    archivo.close();
+
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>();
+    ServicioIngesta servicio(catalogo);
+    const auto tarea = servicio.encolar_csv(ruta, QStringLiteral("productos"), false);
+    const auto resultado = servicio.procesar_siguiente();
+    REQUIRE(resultado.has_value());
+    const auto& informe = *resultado;
+    CHECK(tarea.tipo_fuente == QStringLiteral("csv_productos"));
+    CHECK(informe.origen == ruta);
+    CHECK(informe.tipo_fuente == QStringLiteral("csv_productos"));
+    CHECK(QDateTime::fromString(informe.fecha, Qt::ISODate).isValid());
+    CHECK(informe.exito);
+    CHECK(informe.mensaje == QStringLiteral("Importación de CSV tipo 'productos' procesada"));
+    CHECK(informe.grupos_procesados == 0);
+    CHECK(informe.investigadores_procesados == 0);
+    CHECK(informe.productos_procesados == 3);
+    CHECK(informe.autores_procesados == 0);
+    CHECK(informe.advertencias.isEmpty());
+    CHECK(informe.archivos_generados.isEmpty());
+    const QJsonArray errores_esperados = filas_invalidas.value("errores").toArray();
+    REQUIRE(informe.filas_erroneas.size() == errores_esperados.size());
+    for (qsizetype indice = 0; indice < errores_esperados.size(); ++indice) {
+        const QJsonObject error = errores_esperados.at(indice).toObject();
+        CHECK(informe.filas_erroneas.at(indice) ==
+              QStringLiteral("Fila %1: %2")
+                  .arg(error.value("fila").toInt())
+                  .arg(error.value("mensaje").toString()));
+    }
+
+    const QString ruta_inexistente = temporal.filePath(QStringLiteral("inexistente.csv"));
+    servicio.encolar_csv(ruta_inexistente, QStringLiteral("productos"), false);
+    const auto resultado_error = servicio.procesar_siguiente();
+    REQUIRE(resultado_error.has_value());
+    const auto& informe_error = *resultado_error;
+    const QString error_lectura =
+        QStringLiteral("El archivo CSV no existe en la ruta: %1").arg(ruta_inexistente);
+    CHECK(informe_error.origen == ruta_inexistente);
+    CHECK(informe_error.tipo_fuente == QStringLiteral("csv_productos"));
+    CHECK(QDateTime::fromString(informe_error.fecha, Qt::ISODate).isValid());
+    CHECK_FALSE(informe_error.exito);
+    CHECK(informe_error.mensaje ==
+          QStringLiteral("Error durante la ingesta: %1").arg(error_lectura));
+    REQUIRE(informe_error.advertencias.size() == 1);
+    CHECK(informe_error.advertencias.front() == error_lectura);
+    CHECK(informe_error.filas_erroneas.isEmpty());
 }
