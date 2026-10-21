@@ -1,4 +1,5 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
+#include <stdexcept>
 #include <QUuid>
 #include "pea/ingesta/lector_csv.hpp"
 #include "pea/ingesta/parser_html.hpp"
@@ -42,6 +43,13 @@ estructuras::TareaIngesta ServicioIngesta::encolar_csv(
     bool persistir
 ) {
     QString tipo = !tipo_entidad.isEmpty() ? tipo_entidad : LectorCSV::detectar_tipo_archivo(ruta_csv);
+    if (tipo != QStringLiteral("grupos") &&
+        tipo != QStringLiteral("investigadores") &&
+        tipo != QStringLiteral("productos") &&
+        tipo != QStringLiteral("autores")) {
+        throw std::invalid_argument(
+            "Tipo de CSV no reconocido; use grupos, investigadores, productos o autores.");
+    }
     QString id_tarea = QStringLiteral("CSV-%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces).left(8));
 
     estructuras::TareaIngesta tarea;

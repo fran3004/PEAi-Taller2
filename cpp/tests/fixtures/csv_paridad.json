@@ -1,0 +1,19 @@
+{
+  "casos": [
+    {
+      "nombre": "cabecera-simple",
+      "entrada": ["codigo", "nombre", "activo"],
+      "salida": "codigo,nombre,activo\r\n"
+    },
+    {
+      "nombre": "utf8-comas-comillas-y-saltos",
+      "entrada": [
+        "PRUEBA-01",
+        "Grupo, \"Investigación\"",
+        "Dijo \"sí\"\ny continúa",
+        "línea\r\nmixta"
+      ],
+      "salida": "PRUEBA-01,\"Grupo, \"\"Investigación\"\"\",\"Dijo \"\"sí\"\"\ny continúa\",\"línea\r\nmixta\"\r\n"
+    }
+  ]
+}

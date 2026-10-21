@@ -14,9 +14,20 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 #include <iostream>
+#include <stdexcept>
 
 using namespace pea;
 using namespace pea::ingesta;
+
+TEST_CASE("Ingesta CSV rechaza tipos de entidad desconocidos") {
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>();
+    ServicioIngesta servicio(catalogo);
+    CHECK_THROWS_AS(
+        servicio.encolar_csv(QStringLiteral("no-se-lee.csv"),
+                             QStringLiteral("desconocido"), false),
+        std::invalid_argument);
+    CHECK(catalogo->cola_importacion.esta_vacia());
+}
 
 TEST_CASE("Ingesta C++ - Extracción y Parsing HTML contra Oráculo") {
     // Buscar la ruta de fixtures (puede correr desde cpp/build o desde la raíz del repo)

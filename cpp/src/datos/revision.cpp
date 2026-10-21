@@ -5,44 +5,56 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QVariant>
+#include <string>
 
 namespace pea::datos {
 
 qint64 ControladorRevision::consultar_remota(ClienteHTTPSupabase& cliente) {
+    std::string error_rpc = "La RPC no devolvió una revisión válida.";
     try {
-        // 1. Intentar RPC rápida
-        QJsonDocument docRpc = cliente.rpc("obtener_revision_actual");
-        if (docRpc.isObject()) {
-            QJsonObject obj = docRpc.object();
+        const QJsonDocument doc_rpc = cliente.rpc("obtener_revision_actual");
+        if (doc_rpc.isObject()) {
+            const QJsonObject obj = doc_rpc.object();
             if (obj.contains("revision")) {
-                return obj["revision"].toVariant().toLongLong();
+                bool valido = false;
+                const qint64 revision = obj["revision"].toVariant().toLongLong(&valido);
+                if (valido && revision > 0) return revision;
             }
-        } else if (!docRpc.isNull() && !docRpc.isEmpty()) {
-            // Podría ser un entero escalar directamente
-            bool ok = false;
-            qint64 rev = docRpc.toJson(QJsonDocument::Compact).trimmed().toLongLong(&ok);
-            if (ok) return rev;
+        } else if (!doc_rpc.isNull() && !doc_rpc.isEmpty()) {
+            bool valido = false;
+            const qint64 revision =
+                doc_rpc.toJson(QJsonDocument::Compact).trimmed().toLongLong(&valido);
+            if (valido && revision > 0) return revision;
         }
+    } catch (const std::exception& error) {
+        error_rpc = error.what();
     } catch (...) {
-        // Respaldo por consulta a tabla meta
+        error_rpc = "Error desconocido al consultar la RPC.";
     }
 
+    std::string error_meta = "La tabla meta no devolvió una revisión válida.";
     try {
-        QJsonDocument docMeta = cliente.get("meta", "select=revision&id=eq.1");
-        if (docMeta.isArray()) {
-            QJsonArray arr = docMeta.array();
-            if (!arr.isEmpty() && arr[0].isObject()) {
-                QJsonObject f = arr[0].toObject();
-                if (f.contains("revision")) {
-                    return f["revision"].toVariant().toLongLong();
+        const QJsonDocument doc_meta = cliente.get("meta", "select=revision&id=eq.1");
+        if (doc_meta.isArray()) {
+            const QJsonArray filas = doc_meta.array();
+            if (!filas.isEmpty() && filas[0].isObject()) {
+                const QJsonObject fila = filas[0].toObject();
+                if (fila.contains("revision")) {
+                    bool valido = false;
+                    const qint64 revision = fila["revision"].toVariant().toLongLong(&valido);
+                    if (valido && revision > 0) return revision;
                 }
             }
         }
+    } catch (const std::exception& error) {
+        error_meta = error.what();
     } catch (...) {
-        // En caso de fallo total, mantener local
+        error_meta = "Error desconocido al consultar la tabla meta.";
     }
 
-    return m_revision_local;
+    throw ErrorConexion(
+        "No fue posible verificar la revisión remota. RPC: " + error_rpc +
+        " Consulta meta: " + error_meta);
 }
 
 void ControladorRevision::verificar_consistencia(ClienteHTTPSupabase& cliente) {

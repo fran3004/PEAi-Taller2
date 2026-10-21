@@ -72,22 +72,22 @@ Esta matriz contrasta las operaciones públicas de Python con el código C++ ins
 | Filtro de años RANGO | `FiltroAnios.RANGO` | equivalente | igual | Ordenar desde/hasta y revertir si aplica |
 | Filtro de años MODELO_2024 | `FiltroAnios.MODELO_2024` | equivalente | igual | Validar ventanas según tipología |
 | Descripción textual del filtro | `descripcion()` | `FiltroAnios` / `ServicioEstadisticas` | igual | Mantener textos de pantalla |
-| Importación CSV | lector en Python | `ServicioIngesta` / `lector_csv` | igual | Probar filas omitidas y errores |
-| Importación URL | extractor URL / parseador | `ServicioIngesta` + `extractor_url` | igual | Validar política de scraping y límites |
-| Exportación CSV | `exportar_tabla_csv()` y CLI | `comandoExportarCsv()` | equivalente pendiente de comparación | Columnas, orden, UTF-8, CRLF y reglas de escape alineadas; verificar byte a byte con fixtures compartidos |
-| Exportación Markdown y JSON de vista | `ServicioAplicacion` | Sin salida equivalente comprobada | falta | Implementar los formatos exigidos |
+| Importación CSV | lector en Python | `ServicioIngesta` / `lector_csv` y formulario TUI | equivalente en núcleo; verificación diferencial pendiente | Tipos admitidos validados; rechaza explícitamente tipos desconocidos. Probar resultados e informes contra fixtures compartidos |
+| Importación URL | extractor URL / parseador | `ServicioIngesta` + `extractor_url` y formulario TUI | equivalente en núcleo; verificación diferencial pendiente | El formulario solicita anonimización; comparar contenido/informes y probar límites de red |
+| Exportación CSV | `exportar_tabla_csv()` y CLI | `comandoExportarCsv()` | serializador contrastado con fixtures compartidos; salida integral aún pendiente | Columnas y reglas de escape del serializador coinciden para UTF-8, CRLF, comas, comillas y saltos; comparar byte a byte los exportadores completos |
+| Exportación Markdown y JSON de vista | No especificada para vistas estadísticas | Sin exportador de vistas | No constituye requisito identificado | SPEC exige tablas CSV y gráficos PNG; mantener JSON/Markdown en los flujos de ingesta donde sí se usan, sin inventar una exportación de vistas |
 | Modo no interactivo / CLI | `pea.cli` | `pea-cpp` + `pea::cli::ejecutar` | distinto | Comparar salida, argumentos y códigos de salida |
-| Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | CRUD básico, fichas, búsqueda textual y análisis de coautoría ya están implementados; faltan filtros avanzados, experiencia con modales, vistas estadísticas y revisión visual completa |
+| Modo TUI interactivo | GUI Python | TUI FTXUI parcial | distinto | CRUD básico, fichas, búsqueda de texto y `campo:valor`, análisis de coautoría, filtros temporales (todos/últimos/rango/Modelo 2024) e importación CSV/URL ya están implementados; faltan experiencia con modales, vistas estadísticas y revisión visual completa |
 | Red de coautoría | `ServicioAplicacion.red_coautoria()` | Conteo de productos con coautoría y pares frecuentes en la TUI | distinto | Comparar contrato, nodos, enlaces, filtros y métricas contra la implementación Python |
 | Escritura desconectada | Bloqueada en `ServicioAplicacion` | TUI bloquea CRUD sin catálogo remoto; servicios permiten `persistir=false` para demo/pruebas y rechazan persistencia sin cliente | equivalente en la superficie interactiva | Mantener explícita la separación de datos demo y remotos y probar errores de persistencia |
-| Revisión remota periódica | Verificación de aplicación Python | Solo consulta manual / antes de mutaciones en C++ | distinto | Añadir verificación periódica y acción de recarga |
+| Revisión remota periódica | Verificación de aplicación Python | Hilo de consulta C++ cada 30 s, evento a TUI y acción manual `r` | equivalente de detección; aún sin prueba diferencial de eventos | Confirmar expiración/renovación de sesión y probar fallo de RPC y meta |
 
 ## Brechas confirmadas y evidencia
 
 - La edición de producto añadida en esta iteración cubre metadatos y undo local; aún no permite cambiar su grupo, y no se ha probado contra un repositorio remoto.
-- La TUI mantiene brechas de paridad: el CRUD básico, fichas y el análisis textual de coautoría ya existen, pero importación interactiva y filtros/gráficos estadísticos no están completados.
-- La autoprueba ejecutada renderiza 32 combinaciones de pantalla/tamaño, comprueba búsqueda en los tres directorios, los quince formularios de gestión y una red con coautoría; las capturas no equivalen a snapshots aprobados ni detectan todo truncamiento.
-- La exportación C++ serializa los mismos encabezados que Python, usa UTF-8, CRLF y escape de comas, comillas y saltos de línea; hay pruebas aisladas en ambos lenguajes, pero aún no un comparador diferencial que ejecute ambos programas sobre el mismo fixture.
+- La TUI mantiene brechas de paridad: CRUD básico, fichas, análisis de coautoría, filtros temporales e importación interactiva están implementados; filtros por campos, vistas/gráficos estadísticos avanzados y una experiencia modal completa no están terminados.
+- La autoprueba ejecutada renderiza 32 combinaciones de pantalla/tamaño, comprueba búsqueda en los tres directorios, los quince formularios de gestión, formularios CSV/URL y rango, el efecto del filtro Modelo 2024 y una red con coautoría; las capturas no equivalen a snapshots aprobados ni detectan todo truncamiento.
+- Un fixture JSON compartido prueba las mismas filas en el serializador C++ y el escritor CSV de Python, cubriendo UTF-8, comas, comillas, saltos de línea y CRLF. Aún falta comparar los exportadores completos, incluidos encabezados, orden y valores de entidades.
 - No se ejecutó verificación cruzada CLI contra Python ni conexión autenticada a `pea-prod`; sus conteos reales no se declaran coincidentes.
 - Los estados `igual` describen equivalencia de operación visible en los servicios, no una prueba diferencial exhaustiva. Las tareas de validación de cada fila permanecen pendientes mientras no exista esa prueba.
 - Toda discrepancia de comportamiento entre las implementaciones debe resolverse contra Python o registrarse explícitamente antes de cambiar la semántica.

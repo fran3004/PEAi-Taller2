@@ -2,11 +2,16 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #ifdef _WIN32
@@ -22,6 +27,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QDate>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QMap>
@@ -34,6 +40,7 @@
 #include "pea/dominio/investigador.hpp"
 #include "pea/dominio/producto.hpp"
 #include "pea/datos/configuracion_conexion.hpp"
+#include "pea/ingesta/servicio_ingesta.hpp"
 #include "pea/servicios/catalogo_investigacion.hpp"
 #include "pea/version.hpp"
 
@@ -50,11 +57,15 @@ constexpr std::array<const char*, 8> ARCHIVOS_PANTALLA{
     "inicio", "investigadores", "grupos", "productos",
     "analisis-redes", "importar", "configuracion", "acerca-de"
 };
-constexpr std::array<const char*, 6> ACCIONES_FORMULARIO{
-    "", "Crear", "Editar", "Activar / desactivar", "Eliminar", "Ver ficha"
+constexpr std::array<const char*, 9> ACCIONES_FORMULARIO{
+    "", "Crear", "Editar", "Activar / desactivar", "Eliminar", "Ver ficha",
+    "Importar CSV", "Importar URL SCIENTI", "Configurar rango anual"
 };
 
 std::vector<std::string> campos_formulario(int entidad, int accion) {
+    if (accion == 6) return {"Ruta al archivo CSV", "Tipo: auto/grupos/investigadores/productos/autores"};
+    if (accion == 7) return {"URL SCIENTI (HTTPS)", "Anonimizar datos personales (si/no)"};
+    if (accion == 8) return {"Año desde (opcional)", "Año hasta (opcional)"};
     if (accion == 1) {
         if (entidad == 1) return {"Código RH", "Nombre completo", "Categoría", "Formación académica"};
         if (entidad == 2) return {"Código GrupLAC", "Nombre", "Categoría", "Líder"};
@@ -87,6 +98,38 @@ QString etiqueta_entidad(int entidad) {
     if (entidad == 1) return "investigador";
     if (entidad == 2) return "grupo";
     return "producto";
+}
+
+QString texto_valor_json(const QJsonValue& valor) {
+    if (valor.isObject()) {
+        return QString::fromUtf8(QJsonDocument(valor.toObject()).toJson(QJsonDocument::Compact));
+    }
+    if (valor.isArray()) {
+        return QString::fromUtf8(QJsonDocument(valor.toArray()).toJson(QJsonDocument::Compact));
+    }
+    return valor.toVariant().toString();
+}
+
+bool coincide_campos(const QJsonObject& campos, const QString& filtro) {
+    if (filtro.isEmpty()) return true;
+
+    const qsizetype separador = filtro.indexOf(':');
+    if (separador > 0) {
+        const QString nombre_campo = filtro.left(separador).trimmed();
+        const QString valor_busqueda = filtro.mid(separador + 1).trimmed();
+        if (nombre_campo.isEmpty() || valor_busqueda.isEmpty()) return false;
+        for (auto campo = campos.constBegin(); campo != campos.constEnd(); ++campo) {
+            if (campo.key().compare(nombre_campo, Qt::CaseInsensitive) == 0) {
+                return texto_valor_json(campo.value()).contains(valor_busqueda, Qt::CaseInsensitive);
+            }
+        }
+        return false;
+    }
+
+    for (auto campo = campos.constBegin(); campo != campos.constEnd(); ++campo) {
+        if (texto_valor_json(campo.value()).contains(filtro, Qt::CaseInsensitive)) return true;
+    }
+    return false;
 }
 
 void borrar_ultimo_caracter_utf8(std::string& texto) {
@@ -209,20 +252,18 @@ Element panel_contenido(
     const std::string& ficha_detalle,
     bool color_activo,
     bool ascii,
-    int ancho) {
+    int ancho,
+    const servicios::FiltroAnios& filtro_anios) {
     const std::string origen = datos_demostracion
                                    ? "Datos de demostración (solo memoria)"
                                    : (conectado ? "Datos de Supabase" : "Sin datos");
     const auto estadisticas = catalogo.estadisticas.obtenerVistaInstitucional();
-    const auto coincide = [&filtro](const QString& texto) {
-        return filtro.isEmpty() || texto.contains(filtro, Qt::CaseInsensitive);
-    };
     const QString texto_filtro = filtro_activo
-                                     ? QString("Filtro: %1  (Enter: aplicar · Esc: limpiar)")
+                                     ? QString("Filtro: %1  (texto o campo:valor · Enter aplicar · Esc limpiar)")
                                            .arg(filtro)
                                      : (filtro.isEmpty()
-                                            ? QString("Presione / para buscar")
-                                            : QString("Filtro: %1  (/ para editar · Esc para limpiar)")
+                                            ? QString("Presione / para buscar por texto o campo:valor")
+                                            : QString("Filtro: %1  (/ editar · Esc limpiar)")
                                                   .arg(filtro));
     if (!ficha_detalle.empty() && indice >= 1 && indice <= 3) {
         return vbox({
@@ -236,9 +277,10 @@ Element panel_contenido(
     }
     if (accion_formulario > 0) {
         const auto campos = campos_formulario(indice, accion_formulario);
-        const std::string titulo_formulario =
-            std::string(ACCIONES_FORMULARIO[static_cast<std::size_t>(accion_formulario)]) +
-            " " + etiqueta_entidad(indice).toStdString();
+        const std::string titulo_formulario = accion_formulario >= 6
+                                                  ? ACCIONES_FORMULARIO[static_cast<std::size_t>(accion_formulario)]
+                                                  : std::string(ACCIONES_FORMULARIO[static_cast<std::size_t>(accion_formulario)]) +
+                                                        " " + etiqueta_entidad(indice).toStdString();
         Elements contenido{
             color_si(text(titulo_formulario) | bold, Color::Cyan, color_activo),
             text("Escriba en el campo activo · Tab: siguiente campo · Enter: guardar · Esc: cancelar"),
@@ -329,7 +371,7 @@ Element panel_contenido(
                 const QString linea = investigador->codigo_rh + " · " +
                                       investigador->nombre_completo.left(38) + " · " +
                                       investigador->categoria + (investigador->activo ? "" : " · Inactivo");
-                if (!coincide(linea)) {
+                if (!coincide_campos(investigador->aJson(), filtro)) {
                     continue;
                 }
                 if (mostrados == 12) {
@@ -358,7 +400,7 @@ Element panel_contenido(
                 }
                 const QString linea = grupo->codigo_gruplac + " · " + grupo->nombre.left(42) +
                                       " · " + grupo->categoria + (grupo->activo ? "" : " · Inactivo");
-                if (!coincide(linea)) {
+                if (!coincide_campos(grupo->aJson(), filtro)) {
                     continue;
                 }
                 if (mostrados == 12) {
@@ -386,17 +428,13 @@ Element panel_contenido(
                 if (!nodo->producto) {
                     continue;
                 }
-                if (mostrados++ == 12) {
-                    filas.push_back(text("… y más productos"));
-                    break;
-                }
                 const auto& producto = *nodo->producto;
                 const QString linea = producto.codigo_identificador + " · " +
                                       QString::number(producto.ano) + " · " + producto.tipo_mayor +
                                       " · " + producto.titulo.left(34) + " · " +
                                       producto.estado_validacion +
                                       (producto.activo ? "" : " · Inactivo");
-                if (!coincide(linea)) {
+                if (!coincide_campos(producto.aJson(), filtro)) {
                     continue;
                 }
                 if (mostrados == 12) {
@@ -417,9 +455,14 @@ Element panel_contenido(
                 color_si(text("Análisis institucional y red de coautoría") | bold,
                          Color::Cyan, color_activo),
                 text("Cálculos desde el hipercubo y las relaciones de la multilista."),
+                text(QString("Filtro temporal: %1  (f: cambiar · g: rango)")
+                         .arg(filtro_anios.descripcion(QDate::currentDate().year()))
+                         .toStdString()),
                 separador(ascii),
             };
-            const auto anios = catalogo.estadisticas.productosPorAnio();
+            const auto cubo_filtrado = catalogo.estadisticas.aplicarFiltro(
+                filtro_anios, QDate::currentDate().year());
+            const auto anios = catalogo.estadisticas.productosPorAnio(&cubo_filtrado);
             int maximo_anual = 0;
             for (auto it = anios.constBegin(); it != anios.constEnd(); ++it) {
                 maximo_anual = std::max(maximo_anual, it.value());
@@ -443,9 +486,22 @@ Element panel_contenido(
             QMap<QString, int> pares;
             QMap<QString, int> grados;
             int productos_con_coautoria = 0;
+            const auto rango = filtro_anios.resolver(QDate::currentDate().year());
             for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
                  nodo = nodo->siguiente_global) {
                 if (!nodo->producto || !nodo->producto->activo) continue;
+                const int anio_producto = nodo->producto->ano;
+                if (rango.modelo_2024) {
+                    if (anio_producto > 2023) continue;
+                    const bool ventana_ampliada =
+                        nodo->producto->subtipo.contains("LIB", Qt::CaseInsensitive) ||
+                        nodo->producto->subtipo.contains("PATENTE", Qt::CaseInsensitive) ||
+                        nodo->producto->subtipo.contains("VARIEDAD", Qt::CaseInsensitive);
+                    if (anio_producto < (ventana_ampliada ? 2014 : 2019)) continue;
+                } else if ((rango.inicio.has_value() && anio_producto < *rango.inicio) ||
+                           (rango.fin.has_value() && anio_producto > *rango.fin)) {
+                    continue;
+                }
                 QStringList autores;
                 for (const auto& autor : nodo->autores) {
                     if (autor && autor->activo && !autores.contains(autor->codigo_rh)) {
@@ -516,6 +572,9 @@ Element panel_contenido(
                        separador(ascii),
                        text("Formatos disponibles: CSV y URL SCIENTI."),
                        text("La importación desde PDF debe realizarse desde la versión Python."),
+                       text(conectado
+                                ? "Presione i para CSV o w para URL; solo se importa con conexión autenticada."
+                                : "La importación requiere sesión remota autenticada; demo y modo sin conexión están bloqueados."),
                        text("Tareas en cola: " + texto_cantidad(static_cast<int>(catalogo.cola_importacion.tamano()))),
                    }) |
                    flex;
@@ -529,7 +588,8 @@ Element panel_contenido(
                                              ? "Sin conexión a Supabase."
                                              : mensaje_conexion)),
                        text("Tema: oscuro"),
-                       text("Ventana de años: todos los años"),
+                       text("Ventana de años: " +
+                            filtro_anios.descripcion(QDate::currentDate().year()).toStdString()),
                    }) |
                    flex;
         default:
@@ -562,7 +622,8 @@ Element renderizar_pantalla(
     const std::vector<Component>& botones,
     bool color_activo,
     bool ascii,
-    int ancho) {
+    int ancho,
+    const servicios::FiltroAnios& filtro_anios = {}) {
     Elements pestanas;
     for (std::size_t i = 0; i < botones.size(); ++i) {
         auto render = ascii
@@ -595,13 +656,18 @@ Element renderizar_pantalla(
         estado = estado | color(datos_demostracion ? Color::Yellow
                                                    : (conectado ? Color::GreenLight : Color::GrayLight));
     }
-    const std::string texto_pie = accion_formulario > 0
-                                      ? "Tab: siguiente campo  Enter: guardar  Esc: cancelar"
-                                      : (!mensaje_estado.empty()
-                                             ? mensaje_estado
-                                             : (ancho < 100
-                                                    ? "1–8 pestañas · n/e/t/x gestión · v ficha · u deshacer · q salir"
-                                                    : "1–8: pestañas  n/e/t/x gestión  v ficha  u deshacer  q salir"));
+    const std::string texto_pie =
+        accion_formulario > 0
+            ? "Tab: siguiente campo  Enter: ejecutar  Esc: cancelar"
+            : (!mensaje_estado.empty()
+                   ? mensaje_estado
+                   : (indice == 4
+                          ? "f: cambiar filtro temporal  g: configurar rango  q: salir"
+                          : (indice == 5
+                                 ? "i: importar CSV  w: importar URL SCIENTI  q: salir"
+                                 : (ancho < 100
+                                        ? "1–8 pestañas · n/e/t/x gestión · v ficha · u deshacer · q salir"
+                                        : "1–8 pestañas  n/e/t/x gestión  v ficha  u deshacer  q salir"))));
     auto pie = text(texto_pie);
     if (color_activo) {
         pie = pie | color(Color::GrayLight);
@@ -626,7 +692,7 @@ Element renderizar_pantalla(
                marco(panel_contenido(indice, resumen, catalogo, datos_demostracion, conectado,
                                      mensaje_conexion, filtro, filtro_activo, accion_formulario,
                                      valores_formulario, campo_activo, mensaje_estado, ficha_detalle,
-                                     color_activo, ascii, ancho) | flex,
+                                     color_activo, ascii, ancho, filtro_anios) | flex,
                      ascii),
                pie_completo,
            });
@@ -721,24 +787,30 @@ int autoprueba() {
                       << "\n";
         }
     }
-    const std::array<std::pair<int, std::string>, 3> casos_filtro{{
-        {1, "prueba-rh-001"},
-        {2, "prueba-grupo-001"},
-        {3, "prueba-prod-001"},
+    struct CasoFiltro {
+        int pantalla;
+        const char* consulta;
+        const char* codigo_esperado;
+    };
+    const std::array<CasoFiltro, 6> casos_filtro{{
+        {1, "prueba-rh-001", "PRUEBA-RH-001"},
+        {2, "prueba-grupo-001", "PRUEBA-GRUPO-001"},
+        {3, "prueba-prod-001", "PRUEBA-PROD-001"},
+        {1, "formacion_academica:Maestría", "PRUEBA-RH-001"},
+        {2, "categoria:A1", "PRUEBA-GRUPO-001"},
+        {3, "estado_validacion:Avalado", "PRUEBA-PROD-001"},
     }};
-    for (const auto& [indice, consulta] : casos_filtro) {
+    for (const auto& caso : casos_filtro) {
         Screen screen = Screen::Create(Dimension::Fixed(80), Dimension::Fixed(24));
         Render(screen, renderizar_pantalla(
-                           indice, resumen, catalogo, true, false, {},
-                           QString::fromStdString(consulta), false, 0, {}, 0, {},
+                           caso.pantalla, resumen, catalogo, true, false, {},
+                           QString::fromUtf8(caso.consulta), false, 0, {}, 0, {},
                            {}, botones, false, true, 80));
         const std::string salida = quitar_secuencias_ansi(screen.ToString());
-        const QString codigo_esperado = indice == 1
-                                            ? "PRUEBA-RH-001"
-                                            : (indice == 2 ? "PRUEBA-GRUPO-001" : "PRUEBA-PROD-001");
-        const bool hallazgo = salida.find(codigo_esperado.toStdString()) == std::string::npos;
+        const bool hallazgo =
+            salida.find(caso.codigo_esperado) == std::string::npos;
         hallazgos += hallazgo ? 1 : 0;
-        std::cout << "Filtro " << PESTANAS[static_cast<std::size_t>(indice)] << "  "
+        std::cout << "Filtro " << PESTANAS[static_cast<std::size_t>(caso.pantalla)] << "  "
                   << (hallazgo ? "1" : "0") << "\n";
     }
     for (int entidad = 1; entidad <= 3; ++entidad) {
@@ -762,6 +834,37 @@ int autoprueba() {
                       << (hallazgo ? "1" : "0") << "\n";
         }
     }
+    for (int accion = 6; accion <= 8; ++accion) {
+        const int pantalla = accion == 8 ? 4 : 5;
+        Screen screen = Screen::Create(Dimension::Fixed(120), Dimension::Fixed(40));
+        Render(screen, renderizar_pantalla(
+                           pantalla, resumen, catalogo, false, true, {}, {}, false, accion,
+                           std::vector<std::string>(8), 0, {}, {}, botones, false,
+                           true, 120));
+        const std::string salida = quitar_secuencias_ansi(screen.ToString());
+        bool hallazgo = salida.find(ACCIONES_FORMULARIO[static_cast<std::size_t>(accion)]) ==
+                        std::string::npos;
+        for (const auto& campo : campos_formulario(pantalla, accion)) {
+            hallazgo = hallazgo || salida.find(campo + ":") == std::string::npos;
+        }
+        hallazgos += hallazgo ? 1 : 0;
+        std::cout << (accion == 8 ? "Formulario filtro " : "Formulario importación ")
+                  << ACCIONES_FORMULARIO[static_cast<std::size_t>(accion)] << "  "
+                  << (hallazgo ? "1" : "0") << "\n";
+    }
+    servicios::FiltroAnios filtro_modelo;
+    filtro_modelo.modo = servicios::ModoFiltroAnios::MODELO_2024;
+    Screen modelo = Screen::Create(Dimension::Fixed(160), Dimension::Fixed(50));
+    Render(modelo, renderizar_pantalla(
+                       4, resumen, catalogo, true, false, {}, {}, false, 0, {}, 0,
+                       {}, {}, botones, false, true, 160, filtro_modelo));
+    const std::string salida_modelo = quitar_secuencias_ansi(modelo.ToString());
+    const bool hallazgo_filtro_modelo =
+        salida_modelo.find("No hay productos activos con año registrado.") == std::string::npos ||
+        salida_modelo.find("Ventana del Modelo 2024") == std::string::npos;
+    hallazgos += hallazgo_filtro_modelo ? 1 : 0;
+    std::cout << "Filtro temporal Modelo 2024  "
+              << (hallazgo_filtro_modelo ? "1" : "0") << "\n";
     Screen red = Screen::Create(Dimension::Fixed(160), Dimension::Fixed(50));
     Render(red, renderizar_pantalla(
                     4, resumen, catalogo, true, false, {}, {}, false, 0, {}, 0, {}, {},
@@ -818,6 +921,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     int seleccion = 0;
     QString filtro;
     bool filtro_activo = false;
+    servicios::FiltroAnios filtro_anios;
     int accion_formulario = 0;
     std::vector<std::string> valores_formulario(8);
     std::size_t campo_activo = 0;
@@ -830,11 +934,25 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     }
 
     const auto abrir_formulario = [&](int accion) {
-        if (seleccion < 1 || seleccion > 3) {
+        if (accion == 6 || accion == 7) {
+            if (seleccion != 5) {
+                mensaje_estado = "Abra Importación para iniciar una tarea.";
+                return;
+            }
+            if (datos_demostracion || !conectado) {
+                mensaje_estado = "Importación bloqueada: requiere un catálogo remoto autenticado.";
+                return;
+            }
+        } else if (accion == 8) {
+            if (seleccion != 4) {
+                mensaje_estado = "Abra Análisis de redes para configurar el rango temporal.";
+                return;
+            }
+        } else if (seleccion < 1 || seleccion > 3) {
             mensaje_estado = "Abra un directorio para ejecutar esta acción.";
             return;
         }
-        if (!datos_demostracion && !conectado) {
+        if (accion <= 5 && !datos_demostracion && !conectado) {
             mensaje_estado = "Acción bloqueada: no hay catálogo remoto disponible.";
             return;
         }
@@ -846,6 +964,100 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         filtro_activo = false;
     };
     const auto guardar_formulario = [&] {
+        if (accion_formulario == 8) {
+            const auto parsear_anio = [&valores_formulario](std::size_t indice,
+                                                            const char* etiqueta)
+                -> std::optional<int> {
+                const QString valor = campo_qstring(valores_formulario, indice).trimmed();
+                if (valor.isEmpty()) return std::nullopt;
+                bool valido = false;
+                const int anio = valor.toInt(&valido);
+                if (!valido || anio < 1 || anio > 9999) {
+                    throw std::invalid_argument(std::string(etiqueta) +
+                                                " debe ser un año entre 1 y 9999.");
+                }
+                return anio;
+            };
+            try {
+                const auto desde = parsear_anio(0, "El año inicial");
+                const auto hasta = parsear_anio(1, "El año final");
+                if (!desde && !hasta) {
+                    throw std::invalid_argument("Indique al menos un límite del rango.");
+                }
+                filtro_anios.modo = servicios::ModoFiltroAnios::RANGO;
+                filtro_anios.desde = desde;
+                filtro_anios.hasta = hasta;
+                mensaje_estado =
+                    "Filtro aplicado: " +
+                    filtro_anios.descripcion(QDate::currentDate().year()).toStdString();
+                accion_formulario = 0;
+            } catch (const std::exception& error) {
+                mensaje_estado = std::string("No se aplicó el filtro: ") + error.what();
+            }
+            return;
+        }
+        if (accion_formulario == 6 || accion_formulario == 7) {
+            const auto valor_importacion = [&valores_formulario](std::size_t indice) {
+                return campo_qstring(valores_formulario, indice).trimmed();
+            };
+            try {
+                if (datos_demostracion || !conectado || !cliente) {
+                    throw std::runtime_error("La importación requiere sesión remota autenticada.");
+                }
+                auto catalogo_compartido = std::shared_ptr<servicios::CatalogoInvestigacion>(
+                    &catalogo, [](servicios::CatalogoInvestigacion*) {});
+                ingesta::ServicioIngesta servicio(catalogo_compartido);
+                std::optional<ingesta::InformeIngesta> informe;
+                if (accion_formulario == 6) {
+                    const QString ruta = valor_importacion(0);
+                    QString tipo = valor_importacion(1).toLower();
+                    if (ruta.isEmpty()) {
+                        throw std::invalid_argument("Indique la ruta del archivo CSV.");
+                    }
+                    if (tipo == "auto") tipo.clear();
+                    if (!tipo.isEmpty() && tipo != "grupos" && tipo != "investigadores" &&
+                        tipo != "productos" && tipo != "autores") {
+                        throw std::invalid_argument(
+                            "El tipo debe ser auto, grupos, investigadores, productos o autores.");
+                    }
+                    servicio.encolar_csv(ruta, tipo, true);
+                    informe = servicio.procesar_siguiente();
+                } else {
+                    const QString url = valor_importacion(0);
+                    const QString anonimizar_texto = valor_importacion(1).toLower();
+                    if (url.isEmpty()) {
+                        throw std::invalid_argument("Indique una URL SCIENTI.");
+                    }
+                    if (anonimizar_texto != "si" && anonimizar_texto != "sí" &&
+                        anonimizar_texto != "no") {
+                        throw std::invalid_argument("Indique si o no para anonimizar datos personales.");
+                    }
+                    servicio.encolar_url(url, true, anonimizar_texto != "no");
+                    informe = servicio.procesar_siguiente();
+                }
+                if (!informe || !informe->exito) {
+                    const QString detalle = informe ? informe->mensaje : "No se recibió un informe de ingesta.";
+                    throw std::runtime_error(detalle.toStdString());
+                }
+                const int procesados = informe->grupos_procesados +
+                                       informe->investigadores_procesados +
+                                       informe->productos_procesados +
+                                       informe->autores_procesados;
+                mensaje_estado = "Importación completada: " + std::to_string(procesados) +
+                                 " registro(s) procesado(s).";
+                if (!informe->filas_erroneas.isEmpty()) {
+                    mensaje_estado += " Filas con errores: " +
+                                      std::to_string(informe->filas_erroneas.size()) + ".";
+                }
+                if (!informe->advertencias.isEmpty()) {
+                    mensaje_estado += " Revise las advertencias del informe.";
+                }
+                accion_formulario = 0;
+            } catch (const std::exception& error) {
+                mensaje_estado = std::string("No se completó la importación: ") + error.what();
+            }
+            return;
+        }
         const int entidad = seleccion;
         const bool persistir = conectado;
         const bool es_ejemplo = datos_demostracion;
@@ -1020,16 +1232,84 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
             seleccion, catalogo.resumen_dict(), catalogo, datos_demostracion, conectado,
             mensaje_conexion, filtro, filtro_activo, accion_formulario, valores_formulario,
             campo_activo, mensaje_estado, ficha_detalle, botones, color_activo, ascii,
-            dimensiones.dimx);
+            dimensiones.dimx, filtro_anios);
     });
     auto pantalla = ScreenInteractive::Fullscreen();
     auto salir = pantalla.ExitLoopClosure();
+    std::mutex mutex_revision;
+    std::condition_variable condicion_revision;
+    bool detener_revision = false;
+    std::optional<qint64> revision_remota_recibida;
+    std::string error_revision;
+    std::thread trabajador_revision;
+    if (conectado && cliente) {
+        const QString url_supabase = cliente->baseUrl();
+        const QString clave_publicable = cliente->anonKey();
+        const QString token_acceso = cliente->tokenAcceso();
+        try {
+            trabajador_revision = std::thread(
+                [&, url_supabase, clave_publicable, token_acceso] {
+                    ClienteHTTPSupabase cliente_revision(url_supabase, clave_publicable);
+                    cliente_revision.establecerTokenAcceso(token_acceso);
+                    while (true) {
+                        try {
+                            datos::ControladorRevision lector_revision;
+                            const qint64 revision =
+                                lector_revision.consultar_remota(cliente_revision);
+                            std::lock_guard<std::mutex> bloqueo(mutex_revision);
+                            revision_remota_recibida = revision;
+                            error_revision.clear();
+                        } catch (const std::exception& error) {
+                            std::lock_guard<std::mutex> bloqueo(mutex_revision);
+                            revision_remota_recibida.reset();
+                            error_revision = error.what();
+                        } catch (...) {
+                            std::lock_guard<std::mutex> bloqueo(mutex_revision);
+                            revision_remota_recibida.reset();
+                            error_revision = "Error desconocido al consultar Supabase.";
+                        }
+                        pantalla.PostEvent(Event::Custom);
+                        std::unique_lock<std::mutex> bloqueo(mutex_revision);
+                        if (condicion_revision.wait_for(
+                                bloqueo, std::chrono::seconds(30),
+                                [&detener_revision] { return detener_revision; })) {
+                            break;
+                        }
+                    }
+                });
+        } catch (const std::exception& error) {
+            mensaje_estado = std::string("No se pudo iniciar la revisión periódica: ") +
+                             error.what();
+        }
+    }
     auto aplicacion = CatchEvent(contenido, [&seleccion, &filtro, &filtro_activo,
+                                             &filtro_anios,
                                              &accion_formulario, &valores_formulario,
                                              &campo_activo, &mensaje_estado, &abrir_formulario,
                                              &guardar_formulario, &catalogo, &conectado,
                                              &ficha_detalle,
+                                             &mutex_revision, &revision_remota_recibida,
+                                             &error_revision,
                                              salir](const Event& evento) {
+        if (evento == Event::Custom) {
+            std::optional<qint64> revision_remota;
+            std::string error;
+            {
+                std::lock_guard<std::mutex> bloqueo(mutex_revision);
+                revision_remota = revision_remota_recibida;
+                error = error_revision;
+            }
+            if (!error.empty()) {
+                mensaje_estado = "No se pudo verificar la revisión remota: " + error;
+            } else if (revision_remota &&
+                       *revision_remota != catalogo.controlador_revision.revision_local()) {
+                mensaje_estado = "La base de datos cambió; presione r para recargar antes de editar.";
+            } else if (mensaje_estado.rfind("La base de datos cambió", 0) == 0 ||
+                       mensaje_estado.rfind("No se pudo verificar la revisión remota:", 0) == 0) {
+                mensaje_estado = "Revisión remota verificada; no hay cambios pendientes de recarga.";
+            }
+            return true;
+        }
         if (accion_formulario > 0) {
             const auto campos = campos_formulario(seleccion, accion_formulario);
             if (evento == Event::Escape) {
@@ -1113,6 +1393,36 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
             abrir_formulario(5);
             return true;
         }
+        if (evento == Event::Character("i")) {
+            abrir_formulario(6);
+            return true;
+        }
+        if (evento == Event::Character("w")) {
+            abrir_formulario(7);
+            return true;
+        }
+        if (evento == Event::Character("f") && seleccion == 4) {
+            switch (filtro_anios.modo) {
+            case servicios::ModoFiltroAnios::TODOS:
+                filtro_anios.modo = servicios::ModoFiltroAnios::ULTIMOS;
+                filtro_anios.ultimos_n = 5;
+                break;
+            case servicios::ModoFiltroAnios::ULTIMOS:
+                filtro_anios.modo = servicios::ModoFiltroAnios::MODELO_2024;
+                break;
+            case servicios::ModoFiltroAnios::MODELO_2024:
+            case servicios::ModoFiltroAnios::RANGO:
+                filtro_anios = {};
+                break;
+            }
+            mensaje_estado =
+                "Filtro: " + filtro_anios.descripcion(QDate::currentDate().year()).toStdString();
+            return true;
+        }
+        if (evento == Event::Character("g") && seleccion == 4) {
+            abrir_formulario(8);
+            return true;
+        }
         if (evento == Event::Character("r")) {
             if (!conectado) {
                 mensaje_estado = "No se puede recargar: Supabase no está conectado.";
@@ -1160,6 +1470,14 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     });
 
     pantalla.Loop(aplicacion);
+    if (trabajador_revision.joinable()) {
+        {
+            std::lock_guard<std::mutex> bloqueo(mutex_revision);
+            detener_revision = true;
+        }
+        condicion_revision.notify_all();
+        trabajador_revision.join();
+    }
     return 0;
 }
 

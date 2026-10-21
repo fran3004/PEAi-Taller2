@@ -1,4 +1,9 @@
 #include <doctest/doctest.h>
+#include <QCoreApplication>
+#include <QHostAddress>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include "pea/cliente_http.hpp"
 #include "pea/datos/sesion.hpp"
 #include "pea/datos/revision.hpp"
 #include "pea/excepciones.hpp"
@@ -7,6 +12,62 @@
 using namespace pea::datos;
 using namespace pea::servicios;
 using namespace pea::dominio;
+
+TEST_CASE("La revisión remota usa meta como respaldo y falla explícitamente si ambos mecanismos fallan") {
+    int argc = 1;
+    char nombre_aplicacion[] = "pruebas_cpp";
+    char* argumentos[] = {nombre_aplicacion, nullptr};
+    QCoreApplication aplicacion(argc, argumentos);
+    QTcpServer servidor;
+    REQUIRE(servidor.listen(QHostAddress::LocalHost, 0));
+
+    bool meta_disponible = true;
+    QObject::connect(&servidor, &QTcpServer::newConnection, &servidor, [&] {
+        while (servidor.hasPendingConnections()) {
+            QTcpSocket* socket = servidor.nextPendingConnection();
+            auto* solicitud = new QByteArray;
+            QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket, solicitud, &meta_disponible] {
+                *solicitud += socket->readAll();
+                const qsizetype fin_cabeceras = solicitud->indexOf("\r\n\r\n");
+                if (fin_cabeceras < 0) return;
+
+                qsizetype longitud_cuerpo = 0;
+                const auto lineas = solicitud->left(fin_cabeceras).split('\n');
+                for (const QByteArray& linea : lineas) {
+                    if (linea.toLower().startsWith("content-length:")) {
+                        longitud_cuerpo = linea.mid(linea.indexOf(':') + 1).trimmed().toLongLong();
+                    }
+                }
+                if (solicitud->size() < fin_cabeceras + 4 + longitud_cuerpo) return;
+
+                const bool es_meta = solicitud->startsWith("GET /rest/v1/meta?");
+                const bool exito = es_meta && meta_disponible;
+                const QByteArray cuerpo = exito ? "[{\"revision\":7}]" : "{\"mensaje\":\"fallo de prueba\"}";
+                const QByteArray estado = exito ? "200 OK" : "500 Error de prueba";
+                const QByteArray respuesta =
+                    "HTTP/1.1 " + estado + "\r\nContent-Type: application/json\r\nContent-Length: " +
+                    QByteArray::number(cuerpo.size()) + "\r\nConnection: close\r\n\r\n" + cuerpo;
+                socket->write(respuesta);
+                socket->disconnectFromHost();
+            });
+            QObject::connect(socket, &QTcpSocket::disconnected, socket, [socket, solicitud] {
+                delete solicitud;
+                socket->deleteLater();
+            });
+        }
+    });
+
+    const QString url = QString("http://127.0.0.1:%1").arg(servidor.serverPort());
+    pea::ClienteHTTPSupabase cliente(url, "clave-publicable-de-prueba", 2000);
+    ControladorRevision controlador(3);
+
+    CHECK(controlador.consultar_remota(cliente) == 7);
+    CHECK(controlador.revision_local() == 3);
+
+    meta_disponible = false;
+    CHECK_THROWS_AS((void)controlador.consultar_remota(cliente), pea::ErrorConexion);
+    CHECK(controlador.revision_local() == 3);
+}
 
 TEST_CASE("Las escrituras persistentes sin cliente Supabase se bloquean antes de mutar") {
     CatalogoInvestigacion catalogo;

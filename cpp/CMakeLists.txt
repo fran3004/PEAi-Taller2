@@ -115,5 +115,8 @@ target_link_libraries(pruebas_cpp PRIVATE
     pea_core
     doctest::doctest
 )
+target_compile_definitions(pruebas_cpp PRIVATE
+    PEA_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+)
 
 add_test(NAME pruebas_cpp COMMAND pruebas_cpp)
