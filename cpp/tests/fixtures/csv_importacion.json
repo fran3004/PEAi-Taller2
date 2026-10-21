@@ -1,0 +1,10 @@
+{
+  "contenido": "codigo_gruplac;nombre;categoria;institucion_principal;lider\r\nPRUEBA-CSV-01;\"Grupo, \"\"Investigación\"\"\ny extensión\";A1;Universidad Popular del Cesar;PRUEBA-LIDER\r\n",
+  "esperado": {
+    "codigo_gruplac": "PRUEBA-CSV-01",
+    "nombre": "Grupo, \"Investigación\"\ny extensión",
+    "categoria": "A1",
+    "institucion_principal": "Universidad Popular del Cesar",
+    "lider": "PRUEBA-LIDER"
+  }
+}

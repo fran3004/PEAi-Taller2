@@ -42,6 +42,10 @@ temporales ya disponibles en el servicio estadístico C++.
 - Se creó un fixture JSON común para contrastar el escape de filas entre C++ y
   Python, incluyendo UTF-8, comas, comillas, CR/LF y CRLF; las pruebas cubren el
   serializador/escritor, no todavía los exportadores completos.
+- Se corrigió el lector CSV C++ para conservar saltos de línea dentro de campos
+  entrecomillados y se agregó un fixture de importación de grupos compartido
+  con Python para verificar valores UTF-8, delimitador, comillas y salto
+  interno.
 - Se amplió la búsqueda de los directorios para cubrir todos los atributos
   cargados y admitir filtros canónicos `campo:valor`; la autoprueba comprueba
   búsquedas sobre campos no visibles en las filas.
@@ -67,10 +71,10 @@ temporales ya disponibles en el servicio estadístico C++.
   aprobados, incluida una prueba HTTP local de RPC/meta con fallo explícito y
   fixtures CSV compartidos; `--autoprueba` cubrió 32 pantallas y seis consultas
   de búsqueda/filtro de atributos sin hallazgos.
-- `scripts\verificar.ps1`: 289 pruebas Python aprobaron y 3 pruebas de red
-  quedaron omitidas; compilación, CTest, autoprueba TUI y bóveda finalizaron
-  correctamente. Permanece una advertencia previa por una referencia
-  `ADR-0016` en otra bitácora.
+- `scripts\verificar.ps1`: 290 pruebas Python aprobaron y 3 pruebas de red
+  quedaron omitidas; compilación C++ con `-Werror`, CTest, autoprueba TUI y
+  bóveda finalizaron correctamente. La bóveda conserva una advertencia ajena
+  por el enlace `ADR-0016` en otra bitácora.
 - `git diff --check`: correcto. `ruff check` global mantiene el fallo I001
   preexistente de `entrega/Taller2_FF_SM.py`, no modificado aquí.
 
@@ -92,5 +96,5 @@ temporales ya disponibles en el servicio estadístico C++.
 
 - Añadir pruebas de interacción de teclado y expiración de sesión del trabajador
   periódico.
-- Añadir comparación de exportadores completos y completar filtros/vistas
-  estadísticas que estén respaldados por los requisitos.
+- Añadir comparación de exportadores completos y ampliar la prueba diferencial
+  de importación a los demás tipos e informes de errores.

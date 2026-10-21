@@ -1,7 +1,7 @@
 #include "pea/ingesta/lector_csv.hpp"
+#include <algorithm>
 #include <QFile>
 #include <QFileInfo>
-#include <QRegularExpression>
 
 namespace pea::ingesta {
 
@@ -81,11 +81,45 @@ QStringList LectorCSV::parsear_linea(const QString& linea, QChar delimitador) {
 
 static QList<QStringList> parsear_csv_completo(const QString& texto, QChar delimitador) {
     QList<QStringList> filas;
-    QStringList lineas = texto.split(QRegularExpression(QStringLiteral("[\r\n]+")), Qt::SkipEmptyParts);
+    QStringList campos;
+    QString campo_actual;
+    bool en_comillas = false;
 
-    for (const auto& l : lineas) {
-        if (l.trimmed().isEmpty()) continue;
-        filas.append(LectorCSV::parsear_linea(l, delimitador));
+    for (qsizetype indice = 0; indice < texto.size(); ++indice) {
+        const QChar caracter = texto[indice];
+        if (caracter == QLatin1Char('"')) {
+            if (en_comillas && indice + 1 < texto.size() &&
+                texto[indice + 1] == QLatin1Char('"')) {
+                campo_actual += QLatin1Char('"');
+                ++indice;
+            } else {
+                en_comillas = !en_comillas;
+            }
+        } else if (!en_comillas && caracter == delimitador) {
+            campos.append(campo_actual.trimmed());
+            campo_actual.clear();
+        } else if (!en_comillas &&
+                   (caracter == QLatin1Char('\r') || caracter == QLatin1Char('\n'))) {
+            campos.append(campo_actual.trimmed());
+            campo_actual.clear();
+            if (std::any_of(campos.cbegin(), campos.cend(),
+                            [](const QString& campo) { return !campo.isEmpty(); })) {
+                filas.append(campos);
+            }
+            campos.clear();
+            if (caracter == QLatin1Char('\r') && indice + 1 < texto.size() &&
+                texto[indice + 1] == QLatin1Char('\n')) {
+                ++indice;
+            }
+        } else {
+            campo_actual += caracter;
+        }
+    }
+
+    campos.append(campo_actual.trimmed());
+    if (std::any_of(campos.cbegin(), campos.cend(),
+                    [](const QString& campo) { return !campo.isEmpty(); })) {
+        filas.append(campos);
     }
     return filas;
 }

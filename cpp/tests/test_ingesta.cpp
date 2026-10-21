@@ -409,3 +409,30 @@ TEST_CASE("Ingesta C++ - ServicioIngesta y Cola de Tareas") {
         CHECK(nodo_p->autores.cabeza()->dato->codigo_rh == QStringLiteral("INV-01"));
     }
 }
+
+TEST_CASE("Importación CSV comparte resultado Python/C++ con campos multilínea UTF-8") {
+    QFile fixture(QStringLiteral(PEA_TEST_FIXTURES_DIR) + "/csv_importacion.json");
+    REQUIRE(fixture.open(QIODevice::ReadOnly));
+    const QJsonObject datos = QJsonDocument::fromJson(fixture.readAll()).object();
+    const QString contenido = datos.value("contenido").toString();
+    const QJsonObject esperado = datos.value("esperado").toObject();
+
+    QTemporaryDir temporal;
+    REQUIRE(temporal.isValid());
+    const QString ruta = temporal.filePath(QStringLiteral("grupos.csv"));
+    QFile archivo(ruta);
+    REQUIRE(archivo.open(QIODevice::WriteOnly));
+    const QByteArray bytes = contenido.toUtf8();
+    REQUIRE(archivo.write(bytes) == bytes.size());
+    archivo.close();
+
+    const auto [grupos, errores] = LectorCSV::leer_grupos(ruta);
+    CHECK(errores.isEmpty());
+    REQUIRE(grupos.tamano() == 1);
+    const auto& grupo = grupos.cabeza()->dato;
+    CHECK(grupo.codigo_gruplac == esperado.value("codigo_gruplac").toString());
+    CHECK(grupo.nombre == esperado.value("nombre").toString());
+    CHECK(grupo.categoria == esperado.value("categoria").toString());
+    CHECK(grupo.institucion_principal == esperado.value("institucion_principal").toString());
+    CHECK(grupo.lider == esperado.value("lider").toString());
+}
