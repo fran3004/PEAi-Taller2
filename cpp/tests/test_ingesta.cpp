@@ -30,11 +30,8 @@ TEST_CASE("Ingesta CSV rechaza tipos de entidad desconocidos") {
 }
 
 TEST_CASE("Ingesta C++ - Extracción y Parsing HTML contra Oráculo") {
-    // Buscar la ruta de fixtures (puede correr desde cpp/build o desde la raíz del repo)
-    QString ruta_fixtures = QStringLiteral("tests/fixtures/scienti");
-    if (!QDir(ruta_fixtures).exists()) {
-        ruta_fixtures = QStringLiteral("../../tests/fixtures/scienti");
-    }
+    const QString ruta_fixtures =
+        QStringLiteral(PEA_TEST_SCIENTI_FIXTURES_DIR);
     REQUIRE(QDir(ruta_fixtures).exists());
 
     SUBCASE("Oráculo GrupLAC vacío (gruplac_0000000002099)") {

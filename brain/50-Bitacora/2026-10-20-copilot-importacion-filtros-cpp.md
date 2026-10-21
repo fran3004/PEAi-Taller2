@@ -58,6 +58,10 @@ temporales ya disponibles en el servicio estadístico C++.
 - La revisión normativa confirmó que las tablas se exportan a CSV y los
   gráficos a PNG; no se encontró requisito de exportación Markdown/JSON de
   vistas estadísticas, así que no se añadió esa función.
+- Se extrajo el serializador del catálogo C++ para que lo use el CLI y se
+  añadieron fixtures compartidos de exportación completa para grupos,
+  investigadores y productos. Python ejecuta el comando real de exportación;
+  C++ compara los bytes producidos por el serializador común.
 
 ## Comandos y resultados
 
@@ -76,6 +80,12 @@ temporales ya disponibles en el servicio estadístico C++.
 - Suite C++: 40 casos/432 aserciones aprobados, incluyendo fixtures compartidos
   de importación de las cuatro entidades y omisión de filas inválidas.
 - Pruebas de paridad Python CSV: 3 aprobadas; Ruff pasó para el archivo nuevo.
+- Pruebas Python de exportación: 4 aprobadas; Ruff pasó para el test actualizado.
+- Pruebas C++: 41 casos/439 aserciones aprobados, incluidos los tres CSV
+  completos y sus encabezados/filas/escapes.
+- El build integral de `pea-cpp.exe` no pudo relinkearse porque un proceso
+  previo de ese ejecutable (PID 12324) mantiene el archivo bloqueado; no se
+  terminó ese proceso. `pea_core` y `pruebas_cpp.exe` compilaron correctamente.
 - `scripts\verificar.ps1`: 291 pruebas Python aprobadas y 3 pruebas de red
   omitidas; compilación C++ con `-Werror`, CTest, autoprueba TUI y bóveda
   correctos. La bóveda conserva una advertencia previa por el enlace
@@ -83,6 +93,18 @@ temporales ya disponibles en el servicio estadístico C++.
 - `git diff --check`: correcto.
 - `git diff --check`: correcto. `ruff check` global mantiene el fallo I001
   preexistente de `entrega/Taller2_FF_SM.py`, no modificado aquí.
+- Build independiente en `%TEMP%\pea-taller2-export-qa`: compilación de
+  `pea-cpp.exe` y `pruebas_cpp.exe` aprobada; CTest aprobó 1/1 suite y doctest
+  reportó 41 casos/439 aserciones aprobados. La ruta fija de los fixtures
+  SCIENTI evita depender del directorio de trabajo.
+- `pea-cpp.exe --autoprueba` desde el build independiente: 32 combinaciones de
+  pantalla/tamaño y formularios sin hallazgos.
+- `.venv\Scripts\python.exe -m pytest tests\unit\test_cli_exportacion.py -q`:
+  4 pruebas aprobadas; `.venv\Scripts\python.exe -m ruff check
+  tests\unit\test_cli_exportacion.py`: correcto. El Python global no tiene
+  pytest instalado; se usó el entorno virtual del proyecto.
+- `python tools\brain\verificar_brain.py`: 158 notas, 0 errores y 1 aviso
+  preexistente por `ADR-0016` en otra bitácora.
 
 ## Decisiones
 
@@ -102,5 +124,6 @@ temporales ya disponibles en el servicio estadístico C++.
 
 - Añadir pruebas de interacción de teclado y expiración de sesión del trabajador
   periódico.
-- Añadir comparación de exportadores completos y ampliar la prueba diferencial
-  de textos de informes y alias adicionales de importación.
+- Probar invocación de extremo a extremo del exportador C++ y fallos de
+  escritura atómica cuando la compilación pueda relinkear el ejecutable.
+- Ampliar la paridad de los textos de informes y alias de importación CSV.

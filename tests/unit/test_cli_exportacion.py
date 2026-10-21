@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -75,3 +76,33 @@ def test_exportar_csv_conserva_esquema_y_escapa_campos(
     assert (destino / "productos.csv").read_bytes().startswith(
         b"codigo_identificador,titulo,tipo_mayor"
     )
+
+
+def test_exportadores_completos_python_cpp_coinciden_con_fixture_compartido(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fixture_path = (
+        Path(__file__).parents[2] / "cpp" / "tests" / "fixtures" / "exportacion_csv.json"
+    )
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
+    class Catalogo:
+        def __init__(self, cliente) -> None:
+            self.grupos = [SimpleNamespace(**grupo) for grupo in fixture["grupos"]]
+            self.investigadores = [
+                SimpleNamespace(**investigador) for investigador in fixture["investigadores"]
+            ]
+            self.multilista_productos = [
+                SimpleNamespace(**producto) for producto in fixture["productos"]
+            ]
+
+        def recargar_todo(self) -> None:
+            return None
+
+    monkeypatch.setattr(cli, "_obtener_cliente_desde_entorno", lambda: object())
+    monkeypatch.setattr(cli, "CatalogoInvestigacion", Catalogo)
+    destino = tmp_path / "exportacion"
+
+    assert cli.comando_exportar_csv(str(destino)) == 0
+    for nombre, esperado in fixture["esperado"].items():
+        assert (destino / nombre).read_bytes() == esperado.encode("utf-8"), nombre

@@ -6,7 +6,7 @@
 #include "pea/ingesta/extractor_url.hpp"
 #include "pea/version.hpp"
 #include "pea/datos/configuracion_conexion.hpp"
-#include "pea/datos/serializador_csv.hpp"
+#include "pea/datos/exportador_csv.hpp"
 
 #include <iostream>
 #include <memory>
@@ -23,10 +23,6 @@
 namespace pea::cli {
 
 namespace {
-
-void agregarFilaCsv(QString& contenido, const QStringList& valores) {
-    contenido += datos::serializar_fila_csv(valores);
-}
 
 bool guardarCsvAtomico(const QString& ruta, const QString& contenido, QString& error) {
     QSaveFile archivo(ruta);
@@ -215,48 +211,13 @@ int comandoExportarCsv(const QString& dirDestino) {
         return 1;
     }
 
-    QString grupos;
-    agregarFilaCsv(grupos, {"codigo_gruplac", "nombre", "categoria", "lider",
-                            "institucion_principal", "activo"});
-    for (const auto& grupo : catalogo.grupos) {
-        if (!grupo) continue;
-        agregarFilaCsv(grupos, {grupo->codigo_gruplac, grupo->nombre, grupo->categoria,
-                                grupo->lider, grupo->institucion_principal,
-                                grupo->activo ? "True" : "False"});
-    }
-
-    QString investigadores;
-    agregarFilaCsv(investigadores, {"codigo_rh", "nombre_completo", "categoria",
-                                    "formacion_academica", "nacionalidad", "activo"});
-    for (const auto& investigador : catalogo.investigadores) {
-        if (!investigador) continue;
-        agregarFilaCsv(investigadores, {investigador->codigo_rh, investigador->nombre_completo,
-                                        investigador->categoria, investigador->formacion_academica,
-                                        investigador->nacionalidad,
-                                        investigador->activo ? "True" : "False"});
-    }
-
-    QString productos;
-    agregarFilaCsv(productos, {"codigo_identificador", "titulo", "tipo_mayor",
-                               "subtipo", "ano", "estado_validacion", "activo"});
-    for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
-         nodo = nodo->siguiente_global) {
-        if (!nodo->producto) continue;
-        const auto& producto = *nodo->producto;
-        agregarFilaCsv(productos, {producto.codigo_identificador, producto.titulo,
-                                   producto.tipo_mayor, producto.subtipo,
-                                   QString::number(producto.ano), producto.estado_validacion,
-                                   producto.activo ? "True" : "False"});
-    }
-
-    const std::array<std::pair<QString, QString>, 3> archivos{{
-        {dir.filePath("grupos.csv"), grupos},
-        {dir.filePath("investigadores.csv"), investigadores},
-        {dir.filePath("productos.csv"), productos},
-    }};
-    for (const auto& [ruta, contenido] : archivos) {
+    const auto contenidos = datos::serializar_catalogo_csv(catalogo);
+    const std::array<QString, 3> nombres{
+        "grupos.csv", "investigadores.csv", "productos.csv"};
+    for (std::size_t indice = 0; indice < nombres.size(); ++indice) {
+        const QString ruta = dir.filePath(nombres[indice]);
         QString error;
-        if (!guardarCsvAtomico(ruta, contenido, error)) {
+        if (!guardarCsvAtomico(ruta, contenidos[indice], error)) {
             std::cerr << "Error: no se pudo guardar " << ruta.toStdString()
                       << " (" << error.toStdString() << ").\n";
             return 1;

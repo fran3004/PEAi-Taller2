@@ -66,6 +66,7 @@ add_library(pea_core STATIC
     src/cliente_http.cpp
     src/datos/sesion.cpp
     src/datos/configuracion_conexion.cpp
+    src/datos/exportador_csv.cpp
     src/datos/revision.cpp
     src/datos/repositorios.cpp
     src/servicios/catalogo_investigacion.cpp
@@ -117,6 +118,7 @@ target_link_libraries(pruebas_cpp PRIVATE
 )
 target_compile_definitions(pruebas_cpp PRIVATE
     PEA_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+    PEA_TEST_SCIENTI_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../tests/fixtures/scienti"
 )
 
 add_test(NAME pruebas_cpp COMMAND pruebas_cpp)

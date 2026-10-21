@@ -1,0 +1,63 @@
+{
+  "grupos": [
+    {
+      "codigo_gruplac": "PRUEBA-GRP-01",
+      "nombre": "Grupo, \"Ciencia\"",
+      "categoria": "A1",
+      "lider": "Líder de Prueba",
+      "institucion_principal": "Universidad Popular del Cesar",
+      "activo": true
+    },
+    {
+      "codigo_gruplac": "PRUEBA-GRP-02",
+      "nombre": "Grupo secundario",
+      "categoria": "B",
+      "lider": "",
+      "institucion_principal": "UPC",
+      "activo": false
+    }
+  ],
+  "investigadores": [
+    {
+      "codigo_rh": "PRUEBA-RH-01",
+      "nombre_completo": "Investigadora, \"Principal\"",
+      "categoria": "Junior",
+      "formacion_academica": "Maestría",
+      "nacionalidad": "Colombiana",
+      "activo": false
+    },
+    {
+      "codigo_rh": "PRUEBA-RH-02",
+      "nombre_completo": "Investigador secundario",
+      "categoria": "",
+      "formacion_academica": "",
+      "nacionalidad": "",
+      "activo": true
+    }
+  ],
+  "productos": [
+    {
+      "codigo_identificador": "PRUEBA-PROD-01",
+      "titulo": "Producto con salto\nde línea",
+      "tipo_mayor": "GNC",
+      "subtipo": "Artículo",
+      "ano": 2024,
+      "estado_validacion": "Con soporte",
+      "activo": true
+    },
+    {
+      "codigo_identificador": "PRUEBA-PROD-02",
+      "titulo": "Producto sin subtipo",
+      "tipo_mayor": "DTI",
+      "subtipo": "",
+      "ano": 2022,
+      "estado_validacion": "Avalado",
+      "activo": false
+    }
+  ],
+  "esperado": {
+    "grupos.csv": "codigo_gruplac,nombre,categoria,lider,institucion_principal,activo\r\nPRUEBA-GRP-01,\"Grupo, \"\"Ciencia\"\"\",A1,Líder de Prueba,Universidad Popular del Cesar,True\r\nPRUEBA-GRP-02,Grupo secundario,B,,UPC,False\r\n",
+    "investigadores.csv": "codigo_rh,nombre_completo,categoria,formacion_academica,nacionalidad,activo\r\nPRUEBA-RH-01,\"Investigadora, \"\"Principal\"\"\",Junior,Maestría,Colombiana,False\r\nPRUEBA-RH-02,Investigador secundario,,,,True\r\n",
+    "productos.csv": "codigo_identificador,titulo,tipo_mayor,subtipo,ano,estado_validacion,activo\r\nPRUEBA-PROD-01,\"Producto con salto\nde línea\",GNC,Artículo,2024,Con soporte,True\r\nPRUEBA-PROD-02,Producto sin subtipo,DTI,,2022,Avalado,False\r\n"
+  }
+}
