@@ -2,7 +2,7 @@
 tipo: nota-de-diseno
 estado: revisado
 creado: 2026-10-03
-actualizado: 2026-10-20
+actualizado: 2026-10-21
 relacionado:
   - "[[_Indice]]"
   - "[[Arquitectura]]"
@@ -79,6 +79,24 @@ del primer número de cuatro cifras (que puede ser parte de un ISSN o DOI). Si
 la fuente no ofrece un año dentro del rango permitido, el producto no se
 agrega al catálogo, se informa como advertencia y la exportación deja el año
 vacío; nunca se sustituye por un año predeterminado.
+
+La importación GrupLAC conserva en `grupos.detalles` las secciones completas
+extraídas (instituciones, líneas, integrantes y productos), además de crear
+productos e integrantes relacionados cuando la fuente publica un código CvLAC
+numérico verificable. Cada perfil enlazado se agrega a la cola como una tarea
+CvLAC independiente; así puede procesarse en orden y conserva la pausa mínima
+entre peticiones. También se admite pegar directamente una URL CvLAC. Los
+perfiles y sus secciones de formación y productos se conservan en
+`investigadores.detalles`, y los productos con año válido se registran en sus
+tablas de dominio. Para los grupos nuevos, `fecha_creacion` se deriva del
+año y mes de formación; si la fuente no lo informa, se usa la fecha de ingesta
+para cumplir el esquema obligatorio. Los listados Supabase se solicitan por
+rangos paginados; las tablas Python muestran 50 filas por página y la TUI C++
+presenta 12 registros por página, navegables con `[` y `]`. La importación
+directa por URL de ambas CLI procesa la cola de perfiles CvLAC asociada antes
+de finalizar; en la interfaz Python la acción **Procesar todas** realiza ese
+procesamiento secuencial respetando la pausa entre solicitudes. Las consultas
+de C++ mantienen los filtros al solicitar cada rango.
 
 ## 3. Vía B: Importación por Archivos Tabulares (CSV)
 

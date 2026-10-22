@@ -22,6 +22,8 @@ from pea.ingesta.lector_csv import LectorCSV
 from pea.ingesta.modelos import (
     GrupoIngesta,
     InformeIngesta,
+    IntegranteIngesta,
+    InvestigadorIngesta,
     MetadatosOrigen,
     ProductoIngesta,
 )
@@ -56,6 +58,45 @@ class TestExtractorURL:
 
         tipo_c, _ = extractor.validar_url("https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917")
         assert tipo_c == "cvlac"
+        for codigo_cvlac in ("0000406449", "0000494917"):
+            tipo_cvlac, _ = extractor.validar_url(
+                "https://scienti.minciencias.gov.co/cvlac/visualizador/"
+                f"generarCurriculoCv.do?cod_rh={codigo_cvlac}"
+            )
+            assert tipo_cvlac == "cvlac"
+
+    def test_gruplac_extrae_fecha_nombre_y_codigo_cvlac(self, tmp_path: Path) -> None:
+        extractor = ExtractorURL(cache_dir=tmp_path)
+        url = (
+            "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/"
+            "visualizagr.jsp?nro=00000000017353"
+        )
+        html = """
+        <span class="celdaEncabezado">GICAV - Grupo Instrumento</span>
+        <table><tr><td class="celdaEncabezado">Datos básicos</td></tr>
+        <tr><td>Año y mes de formación</td><td>2015 - 5</td></tr>
+        <tr><td>Departamento - Ciudad</td><td>BOGOTÁ - BOGOTÁ</td></tr></table>
+        <table><tr><td class="celdaEncabezado">Integrantes del grupo</td></tr>
+        <tr><td>Nombre</td><td>Vinculación</td><td>Horas</td><td>Período</td></tr>
+        <tr><td><a href="/cvlac/visualizador/cv.do?cod_rh=000123">Ana Prueba</a></td>
+        <td>Investigador</td><td>10</td><td>2018 - Actual</td></tr></table>
+        """
+
+        grupo, _, _ = extractor.parsear_gruplac(html, {"url": url, "sha256": "fixture"})
+
+        assert grupo.nombre_grupo == "Grupo Instrumento"
+        assert grupo.fecha_creacion == "2015-05-01"
+        assert grupo.integrantes == [
+            IntegranteIngesta(
+                nombre="Ana Prueba",
+                vinculacion="Investigador",
+                codigo_rh="000123",
+                url_cvlac="https://scienti.minciencias.gov.co/cvlac/visualizador/cv.do?cod_rh=000123",
+                horas_dedicacion="10",
+                inicio_vinculacion="2018",
+                fin_vinculacion="Actual",
+            )
+        ]
 
     def test_normalizacion_texto_y_anonimizacion(self):
         texto_sucio = "  Texto   con   espacios  \n\r  múltiples  y   tildes: programación  "
@@ -89,6 +130,7 @@ class TestExtractorURL:
         assert grupo.codigo_gruplac == "00000000002099"
         assert len(grupo.instituciones) >= 1
         assert len(grupo.integrantes) >= 1
+        assert all(integrante.codigo_rh and integrante.url_cvlac for integrante in grupo.integrantes)
         assert len(grupo.articulos) >= 1
         assert grupo.articulos[0].ano == 2026
         assert all(
@@ -306,6 +348,145 @@ class TestLectorCSV:
 
 class TestServicioIngestaYCola:
     """Verifica la Cola FIFO de tareas, transiciones de estado, desduplicación y Catálogo."""
+
+    def test_url_cvlac_guarda_ficha_completa_y_productos(self, tmp_path: Path) -> None:
+        ruta_fixture = Path("tests/fixtures/scienti/cvlac_0000494917.html")
+        html = ruta_fixture.read_bytes()
+        url = (
+            "https://scienti.minciencias.gov.co/cvlac/visualizador/"
+            "generarCurriculoCv.do?cod_rh=0000494917"
+        )
+        extractor_real = ExtractorURL(cache_dir=tmp_path)
+        investigador_esperado, _, _ = extractor_real.parsear_cvlac(
+            html.decode("iso-8859-1"),
+            {"url": url, "sha256": "fixture"},
+        )
+        informe_extraccion = InformeIngesta(
+            origen=url,
+            tipo_fuente="url_cvlac",
+            exito=True,
+        )
+
+        class ExtractorCvLac:
+            def validar_url(self, origen: str) -> tuple[str, str]:
+                return "cvlac", ""
+
+            def procesar_url(self, url: str, **_kwargs: object) -> InformeIngesta:
+                return informe_extraccion
+
+            def descargar_o_cargar_cache(
+                self,
+                url: str,
+                alias: str | None = None,
+            ) -> tuple[bytes, dict[str, str]]:
+                return html, {
+                    "url": url,
+                    "sha256": "fixture",
+                    "encoding_utilizada": "iso-8859-1",
+                }
+
+            def parsear_cvlac(
+                self,
+                html_text: str,
+                meta: dict[str, str],
+            ) -> tuple[InvestigadorIngesta, str, dict[str, int]]:
+                return extractor_real.parsear_cvlac(html_text, meta)
+
+        catalogo = CatalogoInvestigacion()
+        servicio = ServicioIngesta(catalogo, extractor_url=ExtractorCvLac())
+        servicio.encolar_url(url, persistir=False, salida_dir=tmp_path)
+        informe = servicio.procesar_siguiente()
+
+        assert informe is not None and informe.exito
+        investigador = catalogo.buscar_investigador("0000494917")
+        assert investigador is not None
+        assert investigador.nombre_completo == investigador_esperado.nombre_completo
+        assert investigador.detalles["formacion"]
+        assert isinstance(investigador.par_evaluador, bool)
+        assert len(investigador.detalles["articulos"]) >= 10
+        assert any(
+            producto.codigo_identificador.startswith("PROD-CVLAC-0000494917-")
+            for producto in catalogo.multilista_productos
+        )
+
+    def test_url_gruplac_persiste_campos_obligatorios_integrantes_y_todas_las_secciones(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        url = (
+            "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/"
+            "visualizagr.jsp?nro=00000000017353"
+        )
+        grupo = GrupoIngesta(
+            codigo_gruplac="PRUEBA-URL-COMPLETA",
+            nombre_grupo="Grupo completo",
+            ano_mes_formacion="2015 - 5",
+            fecha_creacion="2015-05-01",
+            clasificacion="Categoría C",
+            integrantes=[
+                IntegranteIngesta(
+                    nombre="Ana Prueba",
+                    vinculacion="Investigador",
+                    codigo_rh="000123",
+                    inicio_vinculacion="2018-01-01",
+                    horas_dedicacion="10 horas",
+                )
+            ],
+            trabajos_dirigidos=[
+                ProductoIngesta(tipo="TrabajoDirigido", titulo="Trabajo", ano=2023)
+            ],
+            proyectos=[ProductoIngesta(tipo="Proyecto", titulo="Proyecto", ano=2022)],
+            origen=MetadatosOrigen(url=url, sha256="fixture"),
+        )
+        informe_extraccion = InformeIngesta(
+            origen=url,
+            tipo_fuente="url_gruplac",
+            exito=True,
+        )
+
+        class ExtractorGrupoCompleto:
+            def validar_url(self, origen: str) -> tuple[str, str]:
+                return "gruplac", ""
+
+            def procesar_url(self, url: str, **_kwargs: object) -> InformeIngesta:
+                return informe_extraccion
+
+            def descargar_o_cargar_cache(
+                self,
+                origen: str,
+                alias: str | None = None,
+            ) -> tuple[bytes, dict[str, str]]:
+                return b"", {"encoding_utilizada": "utf-8"}
+
+            def parsear_gruplac(
+                self,
+                html_text: str,
+                meta: dict[str, str],
+            ) -> tuple[GrupoIngesta, str, dict[str, int]]:
+                return grupo, "", {}
+
+        catalogo = CatalogoInvestigacion()
+        servicio = ServicioIngesta(catalogo, extractor_url=ExtractorGrupoCompleto())
+        servicio.encolar_url(url, salida_dir=tmp_path)
+        informe = servicio.procesar_siguiente()
+
+        assert informe is not None and informe.exito
+        assert "1 perfiles CvLAC enlazados" in informe.mensaje
+        assert catalogo.cola_importacion.esta_vacia() is False
+        grupo_guardado = catalogo.buscar_grupo("PRUEBA-URL-COMPLETA")
+        assert grupo_guardado is not None
+        assert grupo_guardado.fecha_creacion == "2015-05-01"
+        assert grupo_guardado.categoria == "C"
+        assert grupo_guardado.detalles["integrantes"][0]["codigo_rh"] == "000123"
+        assert catalogo.buscar_investigador("000123") is not None
+        assert any(
+            integrante.codigo_gruplac == "PRUEBA-URL-COMPLETA"
+            and integrante.codigo_rh == "000123"
+            and integrante.fecha_inicio == "2018-01-01"
+            for integrante in catalogo.integrantes
+        )
+        assert catalogo.buscar_producto("PROD-PRUEBA-URL-COMPLETA-0001") is not None
+        assert catalogo.buscar_producto("PROD-PRUEBA-URL-COMPLETA-0002") is not None
 
     def test_url_omite_productos_sin_ano_y_no_inventa_2024(
         self,

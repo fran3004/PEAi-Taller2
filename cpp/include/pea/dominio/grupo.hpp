@@ -19,6 +19,7 @@ public:
     QString gran_area_ocde;
     QString area_ocde;
     QString categoria;
+    QJsonObject detalles;
     bool activo{true};
     bool es_ejemplo{false};
 
@@ -49,6 +50,7 @@ public:
         if (!gran_area_ocde.isEmpty()) json["gran_area_ocde"] = gran_area_ocde;
         if (!area_ocde.isEmpty()) json["area_ocde"] = area_ocde;
         if (!categoria.isEmpty()) json["categoria"] = categoria;
+        json["detalles"] = detalles;
         json["activo"] = activo;
         json["es_ejemplo"] = es_ejemplo;
         return json;
@@ -73,6 +75,9 @@ public:
         g.gran_area_ocde = json["gran_area_ocde"].toString();
         g.area_ocde = json["area_ocde"].toString();
         g.categoria = json["categoria"].toString();
+        if (json.contains("detalles") && json["detalles"].isObject()) {
+            g.detalles = json["detalles"].toObject();
+        }
         if (json.contains("activo")) {
             g.activo = json["activo"].toBool(true);
         }

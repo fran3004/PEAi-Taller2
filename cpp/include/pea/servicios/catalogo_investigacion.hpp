@@ -82,7 +82,12 @@ public:
         const QString& codigo_gruplac,
         const QString& codigo_rh,
         const QString& rol = "Investigador",
-        bool persistir = true);
+        bool persistir = true,
+        const QString& fecha_inicio = QString(),
+        const QString& fecha_fin = QString(),
+        const QString& vinculacion = QString(),
+        int horas_dedicacion = 0,
+        const QJsonObject& detalles = QJsonObject());
     void desvincular_integrante(const QString& codigo_gruplac, const QString& codigo_rh, bool persistir = true);
 
     // Gestión de Productos y Multilista

@@ -60,6 +60,7 @@ constexpr std::array<const char*, 9> ACCIONES_FORMULARIO{
     "", "Crear", "Editar", "Activar / desactivar", "Eliminar", "Ver ficha",
     "Importar CSV", "Importar URL SCIENTI", "Configurar rango anual"
 };
+constexpr int FILAS_POR_PAGINA = 12;
 
 std::vector<std::string> campos_formulario(int entidad, int accion) {
     if (accion == 6) return {"Ruta al archivo CSV", "Tipo: auto/grupos/investigadores/productos/autores"};
@@ -132,6 +133,44 @@ bool coincide_campos(const QJsonObject& campos, const QString& filtro) {
         if (texto_valor_json(campo.value()).contains(filtro, Qt::CaseInsensitive)) return true;
     }
     return false;
+}
+
+void agregar_pagina(Elements& filas, const std::vector<std::string>& resultados, int pagina) {
+    const int paginas = std::max(
+        1, static_cast<int>((resultados.size() + FILAS_POR_PAGINA - 1) / FILAS_POR_PAGINA));
+    const int pagina_visible = std::clamp(pagina, 0, paginas - 1);
+    const auto inicio = static_cast<std::size_t>(pagina_visible * FILAS_POR_PAGINA);
+    const auto fin = std::min(inicio + FILAS_POR_PAGINA, resultados.size());
+    for (auto indice = inicio; indice < fin; ++indice) {
+        filas.push_back(text(resultados[indice]));
+    }
+    filas.push_back(text(
+        "Página " + std::to_string(pagina_visible + 1) + " de " + std::to_string(paginas) +
+        " · " + std::to_string(resultados.size()) +
+        " registros  [: anterior · ]: siguiente"));
+}
+
+int ultima_pagina(int indice, const servicios::CatalogoInvestigacion& catalogo,
+                  const QString& filtro) {
+    std::size_t coincidencias = 0;
+    if (indice == 1) {
+        for (const auto& investigador : catalogo.investigadores) {
+            if (investigador && coincide_campos(investigador->aJson(), filtro)) ++coincidencias;
+        }
+    } else if (indice == 2) {
+        for (const auto& grupo : catalogo.grupos) {
+            if (grupo && coincide_campos(grupo->aJson(), filtro)) ++coincidencias;
+        }
+    } else if (indice == 3) {
+        for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
+             nodo = nodo->siguiente_global) {
+            if (nodo->producto && coincide_campos(nodo->producto->aJson(), filtro)) {
+                ++coincidencias;
+            }
+        }
+    }
+    if (coincidencias == 0) return 0;
+    return static_cast<int>((coincidencias - 1) / FILAS_POR_PAGINA);
 }
 
 void borrar_ultimo_caracter_utf8(std::string& texto) {
@@ -255,7 +294,8 @@ Element panel_contenido(
     bool color_activo,
     bool ascii,
     int ancho,
-    const servicios::FiltroAnios& filtro_anios) {
+    const servicios::FiltroAnios& filtro_anios,
+    int pagina_actual) {
     const std::string origen = datos_demostracion
                                    ? "Datos de demostración (solo memoria)"
                                    : (conectado ? "Datos de Supabase" : "Sin datos");
@@ -362,10 +402,10 @@ Element panel_contenido(
         case 1: {
             Elements filas{color_si(text("Directorio de investigadores") | bold, Color::Cyan, color_activo),
                            text("Código · nombre · categoría · estado"),
-                           text("n: crear · e: editar · t: activar/desactivar · x: eliminar"),
+                           text("n/e/t/x: gestionar · v: ficha · /: buscar · [: anterior · ]: siguiente"),
                            text(texto_filtro.toStdString()),
                            separador(ascii)};
-            int mostrados = 0;
+            std::vector<std::string> resultados;
             for (const auto& investigador : catalogo.investigadores) {
                 if (!investigador) {
                     continue;
@@ -376,26 +416,23 @@ Element panel_contenido(
                 if (!coincide_campos(investigador->aJson(), filtro)) {
                     continue;
                 }
-                if (mostrados == 12) {
-                    filas.push_back(text("… y más investigadores"));
-                    break;
-                }
-                ++mostrados;
-                filas.push_back(text(linea.toStdString()));
+                resultados.push_back(linea.toStdString());
             }
-            if (mostrados == 0) {
+            if (resultados.empty()) {
                 filas.push_back(text(filtro.isEmpty() ? "No hay investigadores cargados."
                                                       : "No hay coincidencias para el filtro."));
+            } else {
+                agregar_pagina(filas, resultados, pagina_actual);
             }
             return vbox(std::move(filas)) | flex;
         }
         case 2: {
             Elements filas{color_si(text("Directorio de grupos") | bold, Color::Cyan, color_activo),
                            text("Código GrupLAC · nombre · categoría · estado"),
-                           text("n: crear · e: editar · t: activar/desactivar · x: eliminar"),
+                           text("n/e/t/x: gestionar · v: ficha · /: buscar · [: anterior · ]: siguiente"),
                            text(texto_filtro.toStdString()),
                            separador(ascii)};
-            int mostrados = 0;
+            std::vector<std::string> resultados;
             for (const auto& grupo : catalogo.grupos) {
                 if (!grupo) {
                     continue;
@@ -405,26 +442,23 @@ Element panel_contenido(
                 if (!coincide_campos(grupo->aJson(), filtro)) {
                     continue;
                 }
-                if (mostrados == 12) {
-                    filas.push_back(text("… y más grupos"));
-                    break;
-                }
-                ++mostrados;
-                filas.push_back(text(linea.toStdString()));
+                resultados.push_back(linea.toStdString());
             }
-            if (mostrados == 0) {
+            if (resultados.empty()) {
                 filas.push_back(text(filtro.isEmpty() ? "No hay grupos cargados."
                                                       : "No hay coincidencias para el filtro."));
+            } else {
+                agregar_pagina(filas, resultados, pagina_actual);
             }
             return vbox(std::move(filas)) | flex;
         }
         case 3: {
             Elements filas{color_si(text("Catálogo de productos") | bold, Color::Cyan, color_activo),
                            text("Código · año · tipología · título · validación"),
-                           text("n: crear · e: editar · t: activar/desactivar · x: eliminar"),
+                           text("n/e/t/x: gestionar · v: ficha · /: buscar · [: anterior · ]: siguiente"),
                            text(texto_filtro.toStdString()),
                            separador(ascii)};
-            int mostrados = 0;
+            std::vector<std::string> resultados;
             for (auto* nodo = catalogo.multilista_productos.cabeza(); nodo != nullptr;
                  nodo = nodo->siguiente_global) {
                 if (!nodo->producto) {
@@ -439,16 +473,13 @@ Element panel_contenido(
                 if (!coincide_campos(producto.aJson(), filtro)) {
                     continue;
                 }
-                if (mostrados == 12) {
-                    filas.push_back(text("… y más productos"));
-                    break;
-                }
-                ++mostrados;
-                filas.push_back(text(linea.toStdString()));
+                resultados.push_back(linea.toStdString());
             }
-            if (mostrados == 0) {
+            if (resultados.empty()) {
                 filas.push_back(text(filtro.isEmpty() ? "No hay productos cargados."
                                                       : "No hay coincidencias para el filtro."));
+            } else {
+                agregar_pagina(filas, resultados, pagina_actual);
             }
             return vbox(std::move(filas)) | flex;
         }
@@ -625,7 +656,8 @@ Element renderizar_pantalla(
     bool color_activo,
     bool ascii,
     int ancho,
-    const servicios::FiltroAnios& filtro_anios = {}) {
+    const servicios::FiltroAnios& filtro_anios = {},
+    int pagina_actual = 0) {
     Elements pestanas;
     for (std::size_t i = 0; i < botones.size(); ++i) {
         auto render = ascii
@@ -694,7 +726,8 @@ Element renderizar_pantalla(
                marco(panel_contenido(indice, resumen, catalogo, datos_demostracion, conectado,
                                      mensaje_conexion, filtro, filtro_activo, accion_formulario,
                                      valores_formulario, campo_activo, mensaje_estado, ficha_detalle,
-                                     color_activo, ascii, ancho, filtro_anios) | flex,
+                                     color_activo, ascii, ancho, filtro_anios,
+                                     pagina_actual) | flex,
                      ascii),
                pie_completo,
            });
@@ -815,6 +848,28 @@ int autoprueba() {
         std::cout << "Filtro " << PESTANAS[static_cast<std::size_t>(caso.pantalla)] << "  "
                   << (hallazgo ? "1" : "0") << "\n";
     }
+    servicios::CatalogoInvestigacion catalogo_paginado;
+    for (int indice = 1; indice <= FILAS_POR_PAGINA + 1; ++indice) {
+        auto grupo = std::make_shared<dominio::Grupo>();
+        grupo->codigo_gruplac = QString("PAGINA-GRP-%1").arg(indice, 2, 10, QChar('0'));
+        grupo->nombre = QString("Grupo de página %1").arg(indice);
+        grupo->categoria = "A";
+        catalogo_paginado.crear_grupo(grupo, false);
+    }
+    Screen pagina_grupos = Screen::Create(Dimension::Fixed(80), Dimension::Fixed(24));
+    Render(pagina_grupos, renderizar_pantalla(
+                              2, catalogo_paginado.resumen_dict(), catalogo_paginado,
+                              true, false, {}, {}, false, 0, {}, 0, {}, {}, botones,
+                              false, true, 80, {}, 1));
+    const std::string salida_pagina = quitar_secuencias_ansi(pagina_grupos.ToString());
+    const bool hallazgo_paginacion =
+        salida_pagina.find("Página 2 de 2") == std::string::npos ||
+        salida_pagina.find("PAGINA-GRP-13") == std::string::npos ||
+        salida_pagina.find("PAGINA-GRP-01") != std::string::npos;
+    hallazgos += hallazgo_paginacion ? 1 : 0;
+    std::cout << "Paginación directorio de grupos  "
+              << (hallazgo_paginacion ? "1" : "0") << "\n";
+
     for (int entidad = 1; entidad <= 3; ++entidad) {
         for (int accion = 1; accion <= 5; ++accion) {
             Screen screen = Screen::Create(Dimension::Fixed(120), Dimension::Fixed(40));
@@ -921,6 +976,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
 
     std::vector<Component> botones;
     int seleccion = 0;
+    int pagina_actual = 0;
     QString filtro;
     bool filtro_activo = false;
     servicios::FiltroAnios filtro_anios;
@@ -1009,7 +1065,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                 auto catalogo_compartido = std::shared_ptr<servicios::CatalogoInvestigacion>(
                     &catalogo, [](servicios::CatalogoInvestigacion*) {});
                 ingesta::ServicioIngesta servicio(catalogo_compartido);
-                std::optional<ingesta::InformeIngesta> informe;
+                QList<ingesta::InformeIngesta> informes;
                 if (accion_formulario == 6) {
                     const QString ruta = valor_importacion(0);
                     QString tipo = valor_importacion(1).toLower();
@@ -1023,7 +1079,8 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                             "El tipo debe ser auto, grupos, investigadores, productos o autores.");
                     }
                     servicio.encolar_csv(ruta, tipo, true);
-                    informe = servicio.procesar_siguiente();
+                    const auto informe = servicio.procesar_siguiente();
+                    if (informe) informes.push_back(*informe);
                 } else {
                     const QString url = valor_importacion(0);
                     const QString anonimizar_texto = valor_importacion(1).toLower();
@@ -1035,24 +1092,39 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                         throw std::invalid_argument("Indique si o no para anonimizar datos personales.");
                     }
                     servicio.encolar_url(url, true, anonimizar_texto != "no");
-                    informe = servicio.procesar_siguiente();
+                    informes = servicio.procesar_todas();
                 }
-                if (!informe || !informe->exito) {
-                    const QString detalle = informe ? informe->mensaje : "No se recibió un informe de ingesta.";
-                    throw std::runtime_error(detalle.toStdString());
+                if (informes.isEmpty()) {
+                    throw std::runtime_error("No se recibió ningún informe de ingesta.");
                 }
-                const int procesados = informe->grupos_procesados +
-                                       informe->investigadores_procesados +
-                                       informe->productos_procesados +
-                                       informe->autores_procesados;
+                int procesados = 0;
+                int errores = 0;
+                int filas_erroneas = 0;
+                bool con_advertencias = false;
+                for (const auto& informe : informes) {
+                    if (!informe.exito) ++errores;
+                    procesados += informe.grupos_procesados +
+                                  informe.investigadores_procesados +
+                                  informe.productos_procesados +
+                                  informe.autores_procesados;
+                    filas_erroneas += informe.filas_erroneas.size();
+                    con_advertencias = con_advertencias || !informe.advertencias.isEmpty();
+                }
                 mensaje_estado = "Importación completada: " + std::to_string(procesados) +
-                                 " registro(s) procesado(s).";
-                if (!informe->filas_erroneas.isEmpty()) {
-                    mensaje_estado += " Filas con errores: " +
-                                      std::to_string(informe->filas_erroneas.size()) + ".";
+                                 " registro(s) en " + std::to_string(informes.size()) +
+                                 " tarea(s).";
+                if (errores > 0) {
+                    mensaje_estado += " Tareas con error: " + std::to_string(errores) + ".";
                 }
-                if (!informe->advertencias.isEmpty()) {
+                if (filas_erroneas > 0) {
+                    mensaje_estado += " Filas con errores: " +
+                                      std::to_string(filas_erroneas) + ".";
+                }
+                if (con_advertencias) {
                     mensaje_estado += " Revise las advertencias del informe.";
+                }
+                if (errores > 0) {
+                    mensaje_estado = "Importación parcial. " + mensaje_estado;
                 }
                 accion_formulario = 0;
             } catch (const std::exception& error) {
@@ -1255,7 +1327,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
             seleccion, catalogo.resumen_dict(), catalogo, datos_demostracion, conectado,
             mensaje_conexion, filtro, filtro_activo, accion_formulario, valores_formulario,
             campo_activo, mensaje_estado, ficha_detalle, botones, color_activo, ascii,
-            dimensiones.dimx, filtro_anios);
+            dimensiones.dimx, filtro_anios, pagina_actual);
     });
     auto pantalla = ScreenInteractive::Fullscreen();
     auto salir = pantalla.ExitLoopClosure();
@@ -1306,6 +1378,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     }
     auto aplicacion = CatchEvent(contenido, [&seleccion, &filtro, &filtro_activo,
                                              &filtro_anios,
+                                             &pagina_actual,
                                              &accion_formulario, &valores_formulario,
                                              &campo_activo, &mensaje_estado, &abrir_formulario,
                                              &guardar_formulario, &catalogo, &conectado,
@@ -1385,6 +1458,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         if (evento == Event::Character("/") &&
             (seleccion == 1 || seleccion == 2 || seleccion == 3)) {
             filtro_activo = true;
+            pagina_actual = 0;
             return true;
         }
         if (evento == Event::Escape && !ficha_detalle.empty()) {
@@ -1393,6 +1467,15 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         }
         if (evento == Event::Escape && !filtro.isEmpty()) {
             filtro.clear();
+            pagina_actual = 0;
+            return true;
+        }
+        if ((seleccion == 1 || seleccion == 2 || seleccion == 3) &&
+            (evento == Event::Character("[") || evento == Event::Character("]"))) {
+            const int ultima = ultima_pagina(seleccion, catalogo, filtro);
+            pagina_actual = evento == Event::Character("[")
+                                ? std::max(0, pagina_actual - 1)
+                                : std::min(ultima, pagina_actual + 1);
             return true;
         }
         if (evento == Event::Character("n")) {
@@ -1475,16 +1558,19 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         }
         if (evento == Event::ArrowRight) {
             seleccion = (seleccion + 1) % static_cast<int>(PESTANAS.size());
+            pagina_actual = 0;
             return true;
         }
         if (evento == Event::ArrowLeft) {
             seleccion = (seleccion + static_cast<int>(PESTANAS.size()) - 1) %
                         static_cast<int>(PESTANAS.size());
+            pagina_actual = 0;
             return true;
         }
         for (std::size_t i = 0; i < PESTANAS.size(); ++i) {
             if (evento == Event::Character(std::to_string(i + 1))) {
                 seleccion = static_cast<int>(i);
+                pagina_actual = 0;
                 return true;
             }
         }

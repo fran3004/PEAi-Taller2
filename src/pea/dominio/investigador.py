@@ -1,5 +1,7 @@
 """Entidad de dominio Investigador."""
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -17,6 +19,8 @@ class Investigador(BaseModel):
     sexo: str | None = None
     categoria: str | None = None  # Emerito, Senior, Asociado, Junior, Sin categoria
     formacion_academica: str | None = None  # Doctorado, Maestria, Especializacion, Pregrado
+    par_evaluador: bool = False
+    detalles: dict[str, Any] = Field(default_factory=dict)
     activo: bool = True
     es_ejemplo: bool = False
 

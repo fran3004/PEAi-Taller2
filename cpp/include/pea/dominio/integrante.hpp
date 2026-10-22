@@ -16,6 +16,9 @@ public:
     QString rol{"Investigador"};
     QString fecha_inicio;
     QString fecha_fin;
+    QString vinculacion;
+    int horas_dedicacion{0};
+    QJsonObject detalles;
     bool activo{true};
     bool es_ejemplo{false};
 
@@ -42,6 +45,9 @@ public:
         json["rol"] = rol;
         if (!fecha_inicio.isEmpty()) json["fecha_inicio"] = fecha_inicio;
         if (!fecha_fin.isEmpty()) json["fecha_fin"] = fecha_fin;
+        if (!vinculacion.isEmpty()) json["vinculacion"] = vinculacion;
+        json["horas_dedicacion"] = horas_dedicacion;
+        json["detalles"] = detalles;
         json["activo"] = activo;
         json["es_ejemplo"] = es_ejemplo;
         return json;
@@ -67,6 +73,9 @@ public:
         }
         ig.fecha_inicio = json["fecha_inicio"].toString();
         ig.fecha_fin = json["fecha_fin"].toString();
+        ig.vinculacion = json["vinculacion"].toString();
+        ig.horas_dedicacion = json["horas_dedicacion"].toInt();
+        if (json["detalles"].isObject()) ig.detalles = json["detalles"].toObject();
         if (json.contains("activo")) {
             ig.activo = json["activo"].toBool(true);
         }

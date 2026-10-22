@@ -28,6 +28,8 @@ class IntegranteIngesta(BaseModel):
 
     nombre: str
     vinculacion: str
+    codigo_rh: str | None = None
+    url_cvlac: str | None = None
     horas_dedicacion: str | None = None
     inicio_vinculacion: str | None = None
     fin_vinculacion: str | None = None
@@ -89,6 +91,7 @@ class GrupoIngesta(BaseModel):
     codigo_gruplac: str
     nombre_grupo: str | None = None
     ano_mes_formacion: str | None = None
+    fecha_creacion: str | None = None
     departamento_ciudad: str | None = None
     lider: str | None = None
     certificacion: str | None = None
@@ -97,6 +100,7 @@ class GrupoIngesta(BaseModel):
     clasificacion: str | None = None
     area_conocimiento: str | None = None
     programa_nacional: str | None = None
+    programa_secundario: str | None = None
     instituciones: list[InstitucionIngesta] = Field(default_factory=list)
     lineas_investigacion: list[LineaIngesta] = Field(default_factory=list)
     integrantes: list[IntegranteIngesta] = Field(default_factory=list)

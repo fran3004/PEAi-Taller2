@@ -5,6 +5,7 @@ import pytest
 
 import pea.cli as cli
 from pea.ingesta.extractor_url import ExtractorURL
+from pea.ingesta.modelos import GrupoIngesta
 from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 
@@ -57,10 +58,27 @@ def test_importa_lote_desde_fixture_sin_conexion_de_red(
     def servicio_con_cache_temporal(catalogo: CatalogoInvestigacion) -> ServicioIngesta:
         return servicio_real(
             catalogo,
-            extractor_url=ExtractorURL(cache_dir=tmp_path / "cache"),
+            extractor_url=ExtractorURL(cache_dir=tmp_path / "cache", pausa_segundos=0),
         )
 
+    parsear_gruplac = ExtractorURL.parsear_gruplac
+
+    def parsear_gruplac_sin_enlaces_cvlac(
+        extractor: ExtractorURL,
+        html: str,
+        meta: dict,
+        anonimizar: bool = False,
+    ) -> tuple[GrupoIngesta, str, dict]:
+        resultado, transcripcion, tablas = parsear_gruplac(
+            extractor, html, meta, anonimizar=anonimizar
+        )
+        for integrante in resultado.integrantes:
+            integrante.codigo_rh = None
+            integrante.url_cvlac = None
+        return resultado, transcripcion, tablas
+
     monkeypatch.setattr("pea.ingesta.extractor_url.requests.get", obtener_fixture)
+    monkeypatch.setattr(ExtractorURL, "parsear_gruplac", parsear_gruplac_sin_enlaces_cvlac)
     monkeypatch.setattr(cli, "ServicioIngesta", servicio_con_cache_temporal)
 
     codigo_salida = cli.main(

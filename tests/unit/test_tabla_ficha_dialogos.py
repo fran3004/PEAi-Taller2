@@ -82,6 +82,39 @@ def test_tabla_estilizada_y_delegados(qapp: QApplication, qtbot: Any) -> None:
     assert len(bloque_copia.args) == 1
 
 
+def test_tabla_estilizada_pagina_resultados_filtrados_y_ordenados(
+    qapp: QApplication, qtbot: Any
+) -> None:
+    tabla = TablaEstilizada()
+    qtbot.addWidget(tabla)
+    tabla.establecer_modelo(
+        ModeloTabla(
+            TablaDatos(
+                columnas=("Nombre",),
+                filas=tuple((f"Fila {indice:02d}",) for indice in range(61)),
+                claves=tuple(f"F-{indice:02d}" for indice in range(61)),
+            )
+        )
+    )
+
+    assert tabla.proxy.rowCount() == 61
+    assert tabla.vista.isRowHidden(0) is False
+    assert tabla.vista.isRowHidden(49) is False
+    assert tabla.vista.isRowHidden(50) is True
+    assert "Mostrando 50 de 61" in tabla._lbl_pie.text()
+
+    qtbot.mouseClick(tabla._btn_pagina_siguiente, Qt.MouseButton.LeftButton)
+    assert tabla.vista.isRowHidden(49) is True
+    assert tabla.vista.isRowHidden(50) is False
+    assert "Mostrando 11 de 61" in tabla._lbl_pie.text()
+
+    tabla.proxy.setFilterFixedString("Fila 60")
+    qapp.processEvents()
+    assert tabla.proxy.rowCount() == 1
+    assert "Mostrando 1 de 1" in tabla._lbl_pie.text()
+    assert tabla._btn_pagina_siguiente.isEnabled() is False
+
+
 def test_encabezado_y_contenido_definen_ancho_minimo_con_tooltip(
     qapp: QApplication, qtbot: Any
 ) -> None:

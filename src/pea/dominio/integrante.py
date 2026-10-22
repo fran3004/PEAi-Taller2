@@ -1,5 +1,7 @@
 """Entidad de dominio Integrante de Grupo (membresía)."""
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -16,5 +18,8 @@ class IntegranteGrupo(BaseModel):
     rol: str = "Investigador"  # Lider, Investigador, Estudiante
     fecha_inicio: str | None = None
     fecha_fin: str | None = None
+    vinculacion: str | None = None
+    horas_dedicacion: int = 0
+    detalles: dict[str, Any] = Field(default_factory=dict)
     activo: bool = True
     es_ejemplo: bool = False

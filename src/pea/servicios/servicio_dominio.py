@@ -5,6 +5,7 @@ aplica transaccionalidad local con compensación en caso de fallo remoto,
 registra historial en la Pila de Deshacer y controla la concurrencia optimista.
 """
 
+from datetime import date
 from typing import Any
 
 from pea.cliente_http import ClienteHTTPSupabase
@@ -114,6 +115,20 @@ class CatalogoInvestigacion:
         # 2. Persistir en Supabase
         if persistir and self.cliente is not None and self.repo_grupos is not None:
             try:
+                if not grupo.fecha_creacion:
+                    grupo.fecha_creacion = date.today().isoformat()
+                if not grupo.nombre:
+                    grupo.nombre = f"Grupo {grupo.codigo_gruplac}"
+                if not grupo.departamento_ciudad:
+                    grupo.departamento_ciudad = "Sin información"
+                if not grupo.lider:
+                    grupo.lider = "Sin información"
+                if not grupo.gran_area_ocde:
+                    grupo.gran_area_ocde = "Sin información"
+                if not grupo.area_ocde:
+                    grupo.area_ocde = "Sin información"
+                if grupo.categoria not in {"A1", "A", "B", "C", "Reconocido"}:
+                    grupo.categoria = "Reconocido"
                 self.controlador_revision.verificar_consistencia(self.cliente)
                 grupo_creado = self.repo_grupos.crear(grupo)
                 if grupo_creado.id is not None:
@@ -465,6 +480,11 @@ class CatalogoInvestigacion:
         codigo_rh: str,
         rol: str = "Investigador",
         persistir: bool = True,
+        fecha_inicio: str | None = None,
+        fecha_fin: str | None = None,
+        vinculacion: str | None = None,
+        horas_dedicacion: int = 0,
+        detalles: dict[str, Any] | None = None,
     ) -> IntegranteGrupo:
         self._verificar_autenticacion_si_aplica()
         grupo = self.buscar_grupo(codigo_gruplac)
@@ -480,6 +500,11 @@ class CatalogoInvestigacion:
             investigador_id=inv.id,
             codigo_rh=codigo_rh,
             rol=rol,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            vinculacion=vinculacion,
+            horas_dedicacion=horas_dedicacion,
+            detalles=detalles or {},
         )
         nodo = self.integrantes.insertar_final(integrante)
 

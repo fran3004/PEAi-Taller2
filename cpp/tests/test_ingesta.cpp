@@ -31,6 +31,28 @@ TEST_CASE("Ingesta CSV rechaza tipos de entidad desconocidos") {
     CHECK(catalogo->cola_importacion.esta_vacia());
 }
 
+TEST_CASE("Parser GrupLAC extrae nombre de grupo y códigos CvLAC verificables") {
+    const QString html = QStringLiteral(
+        "<span class='celdaEncabezado'>GICAV - Grupo Instrumento</span>"
+        "<table><tr><td class='celdaEncabezado'>Datos básicos</td></tr>"
+        "<tr><td>Año y mes de formación</td><td>2015 - 5</td></tr></table>"
+        "<table><tr><td class='celdaEncabezado'>Integrantes del grupo</td></tr>"
+        "<tr><td>Nombre</td><td>Vinculación</td><td>Horas</td><td>Período</td></tr>"
+        "<tr><td><a href='/cvlac/cv.do?cod_rh=000123'>Ana Prueba</a></td>"
+        "<td>Investigador</td><td>10</td><td>2018 - Actual</td></tr></table>");
+    QJsonObject meta;
+    meta[QStringLiteral("url")] =
+        QStringLiteral("https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000017353");
+
+    const auto grupo = ParserHTML::parsear_gruplac(html, meta, false);
+
+    REQUIRE(grupo.nombre_grupo.has_value());
+    CHECK(*grupo.nombre_grupo == QStringLiteral("Grupo Instrumento"));
+    REQUIRE(grupo.integrantes.size() == 1);
+    CHECK(grupo.integrantes[0].codigo_rh == QStringLiteral("000123"));
+    CHECK(grupo.integrantes[0].url_cvlac.contains(QStringLiteral("cod_rh=000123")));
+}
+
 TEST_CASE("Ingesta C++ - Extracción y Parsing HTML contra Oráculo") {
     const QString ruta_fixtures =
         QStringLiteral(PEA_TEST_SCIENTI_FIXTURES_DIR);
@@ -103,6 +125,10 @@ TEST_CASE("Ingesta C++ - Extracción y Parsing HTML contra Oráculo") {
         QJsonArray res_integrantes = res[QStringLiteral("integrantes")].toArray();
         CHECK(res_integrantes.size() == oraculo_integrantes.size());
         CHECK(res_integrantes.size() >= 10);
+        for (const auto& integrante : grupo.integrantes) {
+            CHECK_FALSE(integrante.codigo_rh.isEmpty());
+            CHECK(integrante.url_cvlac.contains(QStringLiteral("cod_rh=")));
+        }
 
         QJsonArray oraculo_articulos = oraculo[QStringLiteral("articulos")].toArray();
         QJsonArray res_articulos = res[QStringLiteral("articulos")].toArray();

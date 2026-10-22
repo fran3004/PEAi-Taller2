@@ -219,25 +219,35 @@ def comando_importar_url(
     )
     print(f"Tarea encolada: ID={tarea.id_tarea}, Estado={tarea.estado}")
 
-    informe = servicio.procesar_siguiente()
-    if informe and informe.exito:
-        print("============================================================")
-        print("EXTRACCIÓN WEB Y PROCESAMIENTO COMPLETADOS")
-        print("============================================================")
-        print(f"Grupos:        {informe.grupos_procesados}")
-        print(f"Investigadores:{informe.investigadores_procesados}")
-        print(f"Productos:     {informe.productos_procesados}")
-        print("Archivos generados:")
-        for k, v in informe.archivos_generados.items():
-            print(f" - {k}: {v}")
+    informes = servicio.procesar_todas()
+    if not informes:
+        print("Error en la extracción web: no se recibió ningún resultado.", file=sys.stderr)
+        return 1
+
+    print("============================================================")
+    print("EXTRACCIÓN WEB Y PROCESAMIENTO COMPLETADOS")
+    print("============================================================")
+    errores = 0
+    for informe in informes:
+        if not informe.exito:
+            errores += 1
+            print(
+                f"Error al procesar {informe.tipo_fuente} ({informe.origen}): {informe.mensaje}",
+                file=sys.stderr,
+            )
+            continue
+        print(
+            f"{informe.tipo_fuente} ({informe.origen}): "
+            f"{informe.grupos_procesados} grupo(s), "
+            f"{informe.investigadores_procesados} investigador(es), "
+            f"{informe.productos_procesados} producto(s)."
+        )
+        for tipo, ruta in informe.archivos_generados.items():
+            print(f" - {tipo}: {ruta}")
         for advertencia in informe.advertencias:
             print(f"Advertencia: {advertencia}", file=sys.stderr)
-        print("============================================================")
-        return 0
-    else:
-        err_msg = informe.mensaje if informe else "Fallo desconocido"
-        print(f"Error en la extracción web: {err_msg}", file=sys.stderr)
-        return 1
+    print("============================================================")
+    return 1 if errores else 0
 
 
 def _leer_codigos_grupos(archivo: Path) -> list[str]:
@@ -299,7 +309,16 @@ def comando_importar_url_lote(
 
     informes = servicio.procesar_todas()
     errores = 0
-    for codigo, informe in zip(codigos, informes, strict=False):
+    if len(informes) < len(codigos):
+        print(
+            f"Error: se recibieron {len(informes)} resultados para "
+            f"{len(codigos)} grupos encolados.",
+            file=sys.stderr,
+        )
+        return 1
+
+    errores = 0
+    for codigo, informe in zip(codigos, informes[: len(codigos)], strict=True):
         if not informe.exito:
             errores += 1
             print(
@@ -317,13 +336,22 @@ def comando_importar_url_lote(
         for advertencia in informe.advertencias:
             print(f"Advertencia: {advertencia}", file=sys.stderr)
 
-    if len(informes) != len(codigos):
+    for informe in informes[len(codigos) :]:
+        if not informe.exito:
+            errores += 1
+            print(
+                f"Error al importar perfil CvLAC enlazado ({informe.origen}): "
+                f"{informe.mensaje}",
+                file=sys.stderr,
+            )
+            continue
         print(
-            f"Error: se recibieron {len(informes)} resultados para "
-            f"{len(codigos)} códigos.",
-            file=sys.stderr,
+            f"CvLAC enlazado ({informe.origen}): "
+            f"{informe.investigadores_procesados} investigador(es), "
+            f"{informe.productos_procesados} producto(s)."
         )
-        return 1
+        for advertencia in informe.advertencias:
+            print(f"Advertencia: {advertencia}", file=sys.stderr)
     return 1 if errores else 0
 
 

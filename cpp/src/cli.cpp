@@ -146,25 +146,33 @@ int comandoImportarUrl(const QString& url, bool persistir, bool anonimizar) {
     ingesta::ServicioIngesta servicio(catalogo);
     try {
         servicio.encolar_url(url, persistir, anonimizar);
-        auto informe = servicio.procesar_siguiente();
-        if (!informe || !informe->exito) {
-            std::cerr << "Error en extracción web: " << (informe ? informe->mensaje.toStdString() : "Error desconocido") << "\n";
+        const auto informes = servicio.procesar_todas();
+        if (informes.isEmpty()) {
+            std::cerr << "Error en extracción web: no se recibió ningún resultado.\n";
             return 1;
         }
 
-        std::cout << "============================================================\n";
-        std::cout << "INFORME DE EXTRACCIÓN SCIENTI\n";
-        std::cout << "============================================================\n";
-        std::cout << "Origen:                   " << informe->origen.toStdString() << "\n";
-        std::cout << "Tipo de Fuente:           " << informe->tipo_fuente.toStdString() << "\n";
-        std::cout << "Grupos procesados:        " << informe->grupos_procesados << "\n";
-        std::cout << "Investigadores procesados: " << informe->investigadores_procesados << "\n";
-        std::cout << "Productos procesados:      " << informe->productos_procesados << "\n";
-        std::cout << "Estado:                   "
-                  << (persistir ? "Importación guardada en Supabase.\n"
-                                : "Extracción completada; no se guardó en Supabase.\n");
-        std::cout << "============================================================\n";
-        return 0;
+        int errores = 0;
+        for (const auto& informe : informes) {
+            std::cout << "============================================================\n";
+            std::cout << "INFORME DE EXTRACCIÓN SCIENTI\n";
+            std::cout << "============================================================\n";
+            std::cout << "Origen:                   " << informe.origen.toStdString() << "\n";
+            std::cout << "Tipo de Fuente:           " << informe.tipo_fuente.toStdString() << "\n";
+            std::cout << "Grupos procesados:        " << informe.grupos_procesados << "\n";
+            std::cout << "Investigadores procesados: " << informe.investigadores_procesados << "\n";
+            std::cout << "Productos procesados:      " << informe.productos_procesados << "\n";
+            if (!informe.exito) {
+                ++errores;
+                std::cerr << "Error al procesar: " << informe.mensaje.toStdString() << "\n";
+            } else {
+                std::cout << "Estado:                   "
+                          << (persistir ? "Importación guardada en Supabase.\n"
+                                        : "Extracción completada; no se guardó en Supabase.\n");
+            }
+            std::cout << "============================================================\n";
+        }
+        return errores == 0 ? 0 : 1;
     } catch (const std::exception& err) {
         std::cerr << "Error: " << err.what() << "\n";
         return 1;
