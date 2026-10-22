@@ -175,7 +175,7 @@ def test_pantalla_importar_acumula_errores_al_procesar_cola(
         ]
     )
 
-    def procesar_siguiente() -> dict[str, int]:
+    def procesar_siguiente() -> dict[str, int | bool]:
         pendientes[0] -= 1
         return next(resultados)
 
@@ -187,6 +187,40 @@ def test_pantalla_importar_acumula_errores_al_procesar_cola(
     assert len(avisos) == 1
     assert "Autores: 2" in avisos[0][0]
     assert "Filas con errores: 7" in avisos[0][0]
+
+
+def test_pantalla_importar_detiene_cola_en_conflicto_revision(
+    servicio_demo: ServicioAplicacion, qapp: QApplication, qtbot: Any, monkeypatch: Any
+) -> None:
+    pantalla = PantallaImportar(servicio=servicio_demo, ejecutor=None)
+    qtbot.addWidget(pantalla)
+    avisos: list[tuple[str, str, bool]] = []
+    monkeypatch.setattr(
+        pantalla,
+        "_notificar_aviso",
+        lambda mensaje, titulo="Aviso", exito=True: avisos.append((mensaje, titulo, exito)),
+    )
+    monkeypatch.setattr(pantalla, "refrescar", lambda: None)
+
+    pendientes = [2]
+    llamadas = [0]
+
+    def procesar_siguiente() -> dict[str, int | bool]:
+        llamadas[0] += 1
+        pendientes[0] -= 1
+        return {"exito": False, "requiere_recarga": True, "filas_erroneas": 0}
+
+    monkeypatch.setattr(servicio_demo, "tareas_pendientes", lambda: pendientes[0])
+    monkeypatch.setattr(servicio_demo, "procesar_siguiente_tarea", procesar_siguiente)
+
+    pantalla._al_procesar_todas()
+
+    assert llamadas[0] == 1
+    assert pendientes[0] == 1
+    assert len(avisos) == 1
+    assert avisos[0][1] == "Cola detenida por conflicto"
+    assert not avisos[0][2]
+    assert "Recargue los datos" in avisos[0][0]
 
 
 def test_zona_soltar_archivo_formatos_aceptados_adaptable(

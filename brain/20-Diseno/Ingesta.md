@@ -92,11 +92,15 @@ tablas de dominio. Para los grupos nuevos, `fecha_creacion` se deriva del
 año y mes de formación; si la fuente no lo informa, se usa la fecha de ingesta
 para cumplir el esquema obligatorio. Los listados Supabase se solicitan por
 rangos paginados; las tablas Python muestran 50 filas por página y la TUI C++
-presenta 12 registros por página, navegables con `[` y `]`. La importación
-directa por URL de ambas CLI procesa la cola de perfiles CvLAC asociada antes
-de finalizar; en la interfaz Python la acción **Procesar todas** realiza ese
-procesamiento secuencial respetando la pausa entre solicitudes. Las consultas
-de C++ mantienen los filtros al solicitar cada rango.
+presenta 12 registros por página, navegables con `[` y `]`. La revisión global
+de la base aumenta una sola vez por transacción, incluso si un RPC inserta un
+producto y sus relaciones en varias tablas. La importación directa por URL de
+ambas CLI procesa la cola de perfiles CvLAC asociada antes de finalizar; en la
+interfaz Python la acción **Procesar todas** realiza ese procesamiento
+secuencial respetando la pausa entre solicitudes. Si se detecta una edición
+externa, la cola se detiene para no marcar en error todas las tareas restantes;
+hay que recargar y volver a encolar la tarea interrumpida. Las consultas de C++
+mantienen los filtros al solicitar cada rango.
 
 ## 3. Vía B: Importación por Archivos Tabulares (CSV)
 

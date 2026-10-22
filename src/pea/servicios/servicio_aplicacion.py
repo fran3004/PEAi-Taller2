@@ -1200,6 +1200,7 @@ class ServicioAplicacion:
             "id_tarea": tarea.id_tarea,
             "exito": informe.exito and tarea.estado == EstadoTarea.TERMINADA,
             "mensaje": informe.mensaje or tarea.mensaje_error or "",
+            "requiere_recarga": informe.requiere_recarga,
             "grupos": informe.grupos_procesados,
             "investigadores": informe.investigadores_procesados,
             "productos": informe.productos_procesados,

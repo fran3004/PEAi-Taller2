@@ -12,6 +12,7 @@ from PIL import Image
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.estructuras.cola import EstadoTarea
+from pea.excepciones import ConflictoRevision
 from pea.ingesta.extractor_pdf import ExtractorPDF
 from pea.ingesta.extractor_url import (
     ExtractorURL,
@@ -686,3 +687,24 @@ class TestServicioIngestaYCola:
         assert nodo_p.grupo.codigo_gruplac == "GRP-01"
         assert len(nodo_p.autores) == 1
         assert nodo_p.autores[0].codigo_rh == "INV-01"
+
+    def test_conflicto_revision_detiene_procesamiento_y_conserva_tareas_pendientes(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        servicio = ServicioIngesta(CatalogoInvestigacion())
+        url_base = "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh="
+        servicio.encolar_url(f"{url_base}0000000001", salida_dir=tmp_path)
+        servicio.encolar_url(f"{url_base}0000000002", salida_dir=tmp_path)
+
+        def fallar_por_conflicto(_tarea: object) -> InformeIngesta:
+            raise ConflictoRevision("La base de datos cambió", "revisión remota 2, local 1")
+
+        monkeypatch.setattr(servicio, "_procesar_tarea_url", fallar_por_conflicto)
+        informes = servicio.procesar_todas()
+
+        assert len(informes) == 1
+        assert not informes[0].exito
+        assert informes[0].requiere_recarga
+        assert len(servicio.cola_tareas) == 1

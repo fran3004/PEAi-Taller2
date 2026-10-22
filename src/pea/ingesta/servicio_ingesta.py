@@ -11,6 +11,7 @@ from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto, validar_ano_producto
 from pea.estructuras.cola import Cola, EstadoTarea, TareaIngesta
+from pea.excepciones import ConflictoRevision
 from pea.ingesta.extractor_pdf import ExtractorPDF
 from pea.ingesta.extractor_url import ExtractorURL
 from pea.ingesta.lector_csv import LectorCSV
@@ -130,6 +131,7 @@ class ServicioIngesta:
                 tipo_fuente=tarea.tipo_fuente,
                 exito=False,
                 mensaje=f"Error durante la ingesta: {err}",
+                requiere_recarga=isinstance(err, ConflictoRevision),
                 advertencias=[str(err)],
             )
             return informe_error
@@ -141,6 +143,8 @@ class ServicioIngesta:
             inf = self.procesar_siguiente()
             if inf is not None:
                 resultados.append(inf)
+                if inf.requiere_recarga:
+                    break
         return resultados
 
     # =========================================================================
