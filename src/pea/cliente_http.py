@@ -77,6 +77,14 @@ class ClienteHTTPSupabase:
             raise ErrorAutorizacion("Acceso denegado por políticas de seguridad RLS", detalle)
         elif codigo == 404:
             raise RecursoNoEncontrado("Recurso o registro no encontrado", detalle)
+        elif (
+            codigo == 400
+            and isinstance(detalle, dict)
+            and detalle.get("code") == "P0001"
+            and "CONFLICTO_REVISION"
+            in f"{detalle.get('message', '')} {detalle.get('details', '')}"
+        ):
+            raise ConflictoRevision("La base de datos cambió", detalle)
         elif codigo == 409:
             raise ConflictoRevision("Conflicto de concurrencia o violación de clave única", detalle)
         elif codigo == 422:

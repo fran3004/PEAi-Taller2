@@ -69,6 +69,52 @@ TEST_CASE("La revisión remota usa meta como respaldo y falla explícitamente si
     CHECK(controlador.revision_local() == 3);
 }
 
+TEST_CASE("El cliente clasifica P0001 de PostgREST como conflicto de revisión") {
+    int argc = 1;
+    char nombre_aplicacion[] = "pruebas_cpp";
+    char* argumentos[] = {nombre_aplicacion, nullptr};
+    QCoreApplication aplicacion(argc, argumentos);
+    QTcpServer servidor;
+    REQUIRE(servidor.listen(QHostAddress::LocalHost, 0));
+
+    QObject::connect(&servidor, &QTcpServer::newConnection, &servidor, [&] {
+        while (servidor.hasPendingConnections()) {
+            QTcpSocket* socket = servidor.nextPendingConnection();
+            auto* solicitud = new QByteArray;
+            QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket, solicitud] {
+                *solicitud += socket->readAll();
+                const qsizetype fin_cabeceras = solicitud->indexOf("\r\n\r\n");
+                if (fin_cabeceras < 0) return;
+
+                qsizetype longitud_cuerpo = 0;
+                const auto lineas = solicitud->left(fin_cabeceras).split('\n');
+                for (const QByteArray& linea : lineas) {
+                    if (linea.toLower().startsWith("content-length:")) {
+                        longitud_cuerpo = linea.mid(linea.indexOf(':') + 1).trimmed().toLongLong();
+                    }
+                }
+                if (solicitud->size() < fin_cabeceras + 4 + longitud_cuerpo) return;
+
+                const QByteArray cuerpo =
+                    R"json({"code":"P0001","message":"CONFLICTO_REVISION: La base de datos cambio (remota 2, esperada 1)"})json";
+                const QByteArray respuesta =
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: " +
+                    QByteArray::number(cuerpo.size()) + "\r\nConnection: close\r\n\r\n" + cuerpo;
+                socket->write(respuesta);
+                socket->disconnectFromHost();
+            });
+            QObject::connect(socket, &QTcpSocket::disconnected, socket, [socket, solicitud] {
+                delete solicitud;
+                socket->deleteLater();
+            });
+        }
+    });
+
+    const QString url = QString("http://127.0.0.1:%1").arg(servidor.serverPort());
+    pea::ClienteHTTPSupabase cliente(url, "clave-publicable-de-prueba", 2000);
+    CHECK_THROWS_AS(cliente.rpc("transaccion_crear_producto"), pea::ConflictoRevision);
+}
+
 TEST_CASE("Las escrituras persistentes sin cliente Supabase se bloquean antes de mutar") {
     CatalogoInvestigacion catalogo;
     auto grupo = std::make_shared<Grupo>("PRUEBA-OFFLINE-01", "Grupo fuera de línea");

@@ -5,6 +5,7 @@ aplica transaccionalidad local con compensación en caso de fallo remoto,
 registra historial en la Pila de Deshacer y controla la concurrencia optimista.
 """
 
+import time
 from datetime import date
 from typing import Any
 
@@ -28,7 +29,7 @@ from pea.estructuras.hipercubo import Hipercubo5D
 from pea.estructuras.lista_doble import ListaDoble
 from pea.estructuras.multilista import Multilista
 from pea.estructuras.pila import ComandoInverso, Pila
-from pea.excepciones import ErrorAutenticacion, RecursoNoEncontrado
+from pea.excepciones import ConflictoRevision, ErrorAutenticacion, RecursoNoEncontrado
 from pea.servicios.servicio_estadisticas import ServicioEstadisticas
 
 
@@ -571,16 +572,23 @@ class CatalogoInvestigacion:
         # 2. Persistir en Supabase
         if persistir and self.cliente is not None and self.repo_productos is not None:
             try:
-                self.controlador_revision.verificar_consistencia(self.cliente)
                 grupo_id = grupo.id if grupo else None
                 inv_ids = [inv.id for inv in autores if inv.id is not None]
-
-                prod_id = self.repo_productos.crear_con_rpc(
-                    producto,
-                    grupo_id=grupo_id,
-                    investigadores_ids=inv_ids,
-                    revision_esperada=self.controlador_revision.revision_local,
-                )
+                for intento in range(3):
+                    try:
+                        self.controlador_revision.verificar_consistencia(self.cliente)
+                        prod_id = self.repo_productos.crear_con_rpc(
+                            producto,
+                            grupo_id=grupo_id,
+                            investigadores_ids=inv_ids,
+                            revision_esperada=self.controlador_revision.revision_local,
+                        )
+                        break
+                    except ConflictoRevision as err:
+                        if err.mensaje != "La base de datos cambió" or intento == 2:
+                            raise
+                        self.controlador_revision.sincronizar(self.cliente)
+                        time.sleep(0.05 * (2**intento))
                 if prod_id > 0:
                     producto.id = prod_id
                 self.controlador_revision.actualizar_local(self.controlador_revision.revision_local + 1)

@@ -102,7 +102,10 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
    ambas CLI procesa también esos perfiles antes de terminar. También puede
    importarse un enlace CvLAC directamente. Las tablas Python muestran 50 filas
    y los directorios C++ 12 registros por página (`[` / `]`). Ambas aplicaciones
-   consultan Supabase por rangos paginados. Las fuentes remotas pueden estar indisponibles.
+   consultan Supabase por rangos paginados. La creación de productos reintenta
+   brevemente ante conflictos concurrentes; si persisten, se detiene la cola en
+   lugar de continuar con una revisión desactualizada. Las fuentes remotas pueden
+   estar indisponibles.
 5. **Interoperabilidad**: en Configuración de Python ejecute la verificación
    cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
    escenarios sin red mediante ambas CLI.

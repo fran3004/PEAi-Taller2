@@ -76,6 +76,44 @@ def test_compensacion_persistencia_fallida_producto() -> None:
     assert catalogo.buscar_producto("P-FAIL-01") is None
 
 
+@responses.activate
+def test_creacion_producto_reintenta_conflicto_p0001_de_supabase() -> None:
+    cliente = ClienteHTTPSupabase("https://ejemplo.supabase.co", "anon-key")
+    catalogo = CatalogoInvestigacion(cliente=cliente)
+
+    revision_url = "https://ejemplo.supabase.co/rest/v1/rpc/obtener_revision_actual"
+    producto_url = "https://ejemplo.supabase.co/rest/v1/rpc/transaccion_crear_producto"
+    responses.add(responses.POST, revision_url, json=1, status=200)
+    responses.add(
+        responses.POST,
+        producto_url,
+        json={
+            "code": "P0001",
+            "message": "CONFLICTO_REVISION: La base de datos cambio (remota 2, esperada 1)",
+        },
+        status=400,
+    )
+    responses.add(responses.POST, revision_url, json=2, status=200)
+    responses.add(responses.POST, revision_url, json=2, status=200)
+    responses.add(
+        responses.POST,
+        producto_url,
+        json={"resultado": "creado", "producto_id": 42},
+        status=200,
+    )
+
+    producto = Producto(
+        codigo_identificador="P-RETRY-01",
+        titulo="Producto con reintento",
+        tipo_mayor="GNC",
+        ano=2024,
+    )
+    catalogo.crear_producto(producto, persistir=True)
+
+    assert producto.id == 42
+    assert catalogo.controlador_revision.revision_local == 3
+
+
 def test_sesion_expirada_bloquea_operacion(monkeypatch: pytest.MonkeyPatch) -> None:
     instante_actual = [1_000.0]
     monkeypatch.setattr("pea.datos.sesion.time.time", lambda: instante_actual[0])
