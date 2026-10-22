@@ -135,6 +135,21 @@ std::shared_ptr<dominio::Grupo> CatalogoInvestigacion::crear_grupo(
     // 2. Persistencia en Supabase
     if (persistir && m_cliente && m_repo_grupos) {
         try {
+            if (grupo->fecha_creacion.isEmpty()) {
+                grupo->fecha_creacion = QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+            }
+            if (grupo->nombre.isEmpty()) grupo->nombre = QStringLiteral("Grupo %1").arg(grupo->codigo_gruplac);
+            if (grupo->departamento_ciudad.isEmpty()) grupo->departamento_ciudad = QStringLiteral("Sin información");
+            if (grupo->lider.isEmpty()) grupo->lider = QStringLiteral("Sin información");
+            if (grupo->gran_area_ocde.isEmpty()) grupo->gran_area_ocde = QStringLiteral("Sin información");
+            if (grupo->area_ocde.isEmpty()) grupo->area_ocde = QStringLiteral("Sin información");
+            if (grupo->categoria != QStringLiteral("A1")
+                && grupo->categoria != QStringLiteral("A")
+                && grupo->categoria != QStringLiteral("B")
+                && grupo->categoria != QStringLiteral("C")
+                && grupo->categoria != QStringLiteral("Reconocido")) {
+                grupo->categoria = QStringLiteral("Reconocido");
+            }
             controlador_revision.verificar_consistencia(*m_cliente);
             dominio::Grupo creado = m_repo_grupos->crear(*grupo);
             if (!creado.id.has_value()) {
@@ -408,6 +423,14 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::actualizar_investi
         valores_anteriores["nombre_completo"] = inv->nombre_completo;
         inv->nombre_completo = datos["nombre_completo"].toString();
     }
+    if (datos.contains("nombre_en_citas")) {
+        valores_anteriores["nombre_en_citas"] = inv->nombre_en_citas;
+        inv->nombre_en_citas = datos["nombre_en_citas"].toString();
+    }
+    if (datos.contains("sexo")) {
+        valores_anteriores["sexo"] = inv->sexo;
+        inv->sexo = datos["sexo"].toString();
+    }
     if (datos.contains("categoria")) {
         valores_anteriores["categoria"] = inv->categoria;
         inv->categoria = datos["categoria"].toString();
@@ -420,6 +443,14 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::actualizar_investi
         valores_anteriores["nacionalidad"] = inv->nacionalidad;
         inv->nacionalidad = datos["nacionalidad"].toString();
     }
+    if (datos.contains("par_evaluador")) {
+        valores_anteriores["par_evaluador"] = inv->par_evaluador;
+        inv->par_evaluador = datos["par_evaluador"].toBool();
+    }
+    if (datos.contains("detalles")) {
+        valores_anteriores["detalles"] = inv->detalles;
+        inv->detalles = datos["detalles"].toObject();
+    }
 
     if (persistir && m_cliente && m_repo_investigadores) {
         try {
@@ -428,9 +459,13 @@ std::shared_ptr<dominio::Investigador> CatalogoInvestigacion::actualizar_investi
             controlador_revision.actualizar_local(controlador_revision.revision_local() + 1);
         } catch (...) {
             if (valores_anteriores.contains("nombre_completo")) inv->nombre_completo = valores_anteriores["nombre_completo"].toString();
+            if (valores_anteriores.contains("nombre_en_citas")) inv->nombre_en_citas = valores_anteriores["nombre_en_citas"].toString();
+            if (valores_anteriores.contains("sexo")) inv->sexo = valores_anteriores["sexo"].toString();
             if (valores_anteriores.contains("categoria")) inv->categoria = valores_anteriores["categoria"].toString();
             if (valores_anteriores.contains("formacion_academica")) inv->formacion_academica = valores_anteriores["formacion_academica"].toString();
             if (valores_anteriores.contains("nacionalidad")) inv->nacionalidad = valores_anteriores["nacionalidad"].toString();
+            if (valores_anteriores.contains("par_evaluador")) inv->par_evaluador = valores_anteriores["par_evaluador"].toBool();
+            if (valores_anteriores.contains("detalles")) inv->detalles = valores_anteriores["detalles"].toObject();
             throw;
         }
     }
@@ -569,7 +604,12 @@ dominio::IntegranteGrupo CatalogoInvestigacion::vincular_integrante(
     const QString& codigo_gruplac,
     const QString& codigo_rh,
     const QString& rol,
-    bool persistir) {
+    bool persistir,
+    const QString& fecha_inicio,
+    const QString& fecha_fin,
+    const QString& vinculacion,
+    int horas_dedicacion,
+    const QJsonObject& detalles) {
     verificar_autenticacion_si_aplica(persistir);
     auto grupo = buscar_grupo(codigo_gruplac);
     if (!grupo) {
@@ -588,6 +628,13 @@ dominio::IntegranteGrupo CatalogoInvestigacion::vincular_integrante(
     integrante.investigador_id = inv->id;
     integrante.codigo_rh = codigo_rh;
     integrante.rol = rol;
+    integrante.fecha_inicio = fecha_inicio.isEmpty()
+        ? QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"))
+        : fecha_inicio;
+    integrante.fecha_fin = fecha_fin;
+    integrante.vinculacion = vinculacion;
+    integrante.horas_dedicacion = horas_dedicacion;
+    integrante.detalles = detalles;
 
     auto* nodo = integrantes.insertar_final(integrante);
 

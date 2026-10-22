@@ -24,7 +24,7 @@ import re
 import time
 import unicodedata
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -214,6 +214,11 @@ class ExtractorURL:
                 codigo_http=meta.get("codigo_http", 200),
             ),
         )
+        encabezado_grupo = soup.find("span", class_="celdaEncabezado")
+        if encabezado_grupo:
+            nombre_grupo = normalizar_texto(encabezado_grupo.get_text(" ", strip=True))
+            nombre_grupo = re.sub(r"^[^-]+-\s*", "", nombre_grupo)
+            grupo.nombre_grupo = nombre_grupo or None
 
         md_lines.append(f"# Transcripción Integral GrupLAC · {codigo_gruplac or 'Grupo'}\n")
         md_lines.append(f"- **URL:** `{meta.get('url', '')}`")
@@ -261,6 +266,11 @@ class ExtractorURL:
 
                         if "Año y mes" in k:
                             grupo.ano_mes_formacion = v
+                            match_formacion = re.search(r"\b(19\d{2}|20\d{2})\s*-\s*(\d{1,2})\b", v)
+                            if match_formacion:
+                                anio, mes = map(int, match_formacion.groups())
+                                if 1 <= mes <= 12:
+                                    grupo.fecha_creacion = f"{anio:04d}-{mes:02d}-01"
                         elif "Departamento" in k:
                             grupo.departamento_ciudad = v
                         elif "Líder" in k:
@@ -276,7 +286,10 @@ class ExtractorURL:
                         elif "Área de conocimiento" in k:
                             grupo.area_conocimiento = v
                         elif "Programa nacional" in k:
-                            grupo.programa_nacional = v
+                            if "secundario" in k.lower():
+                                grupo.programa_secundario = v
+                            else:
+                                grupo.programa_nacional = v
                 md_lines.append("")
 
             elif "Instituciones" in sec_title:
@@ -300,6 +313,18 @@ class ExtractorURL:
                         nom = normalizar_texto(tds[0].get_text())
                         if nom == "Nombre":
                             continue
+                        enlace_cvlac = tr.find("a", href=re.compile(r"cod_rh=", re.IGNORECASE))
+                        url_cvlac = (
+                            urljoin(meta.get("url", ""), enlace_cvlac.get("href", ""))
+                            if enlace_cvlac
+                            else None
+                        )
+                        codigo_rh = None
+                        if url_cvlac:
+                            codigo_rh = parse_qs(urlparse(url_cvlac).query).get("cod_rh", [None])[0]
+                            if not codigo_rh or not codigo_rh.isdigit():
+                                codigo_rh = None
+                                url_cvlac = None
                         vinc = normalizar_texto(tds[1].get_text())
                         hrs = normalizar_texto(tds[2].get_text())
                         per = normalizar_texto(tds[3].get_text())
@@ -312,6 +337,8 @@ class ExtractorURL:
                             IntegranteIngesta(
                                 nombre=nom,
                                 vinculacion=vinc,
+                                codigo_rh=codigo_rh,
+                                url_cvlac=url_cvlac,
                                 horas_dedicacion=hrs,
                                 inicio_vinculacion=ini,
                                 fin_vinculacion=fin,

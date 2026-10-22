@@ -1,11 +1,35 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
+#include <QDate>
 #include <QDateTime>
+#include <QRegularExpression>
+#include <QStringList>
 #include <stdexcept>
 #include <QUuid>
 #include "pea/ingesta/lector_csv.hpp"
 #include "pea/ingesta/parser_html.hpp"
 
 namespace pea::ingesta {
+namespace {
+
+QString normalizar_categoria_cvlac(const std::optional<QString>& declarada) {
+    const QString texto = declarada.value_or(QString()).toLower();
+    if (texto.contains(QStringLiteral("emerit"))) return QStringLiteral("Investigador Emérito");
+    if (texto.contains(QStringLiteral("senior"))) return QStringLiteral("Investigador Senior");
+    if (texto.contains(QStringLiteral("asociado"))) return QStringLiteral("Investigador Asociado");
+    if (texto.contains(QStringLiteral("junior"))) return QStringLiteral("Investigador Junior");
+    return QStringLiteral("Sin categoría / Vinculado");
+}
+
+QString normalizar_formacion_cvlac(const QList<FormacionIngesta>& formacion) {
+    if (formacion.isEmpty()) return QStringLiteral("Pregrado");
+    const QString nivel = formacion[0].nivel.toLower();
+    if (nivel.contains(QStringLiteral("doctor"))) return QStringLiteral("Doctorado");
+    if (nivel.contains(QStringLiteral("maestr"))) return QStringLiteral("Maestría");
+    if (nivel.contains(QStringLiteral("especial"))) return QStringLiteral("Especialización");
+    return QStringLiteral("Pregrado");
+}
+
+} // namespace
 
 ServicioIngesta::ServicioIngesta(
     std::shared_ptr<servicios::CatalogoInvestigacion> catalogo,
@@ -133,13 +157,101 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
             dominio::Grupo g;
             g.codigo_gruplac = grupo_ing.codigo_gruplac;
             g.nombre = grupo_ing.nombre_grupo ? *grupo_ing.nombre_grupo : QStringLiteral("Grupo %1").arg(g.codigo_gruplac);
-            g.categoria = grupo_ing.clasificacion ? *grupo_ing.clasificacion : QStringLiteral("Reconocido");
-            if (grupo_ing.lider) g.lider = *grupo_ing.lider;
-            if (grupo_ing.departamento_ciudad) g.departamento_ciudad = *grupo_ing.departamento_ciudad;
-            if (grupo_ing.area_conocimiento) g.gran_area_ocde = *grupo_ing.area_conocimiento;
+            const QString clasificacion = grupo_ing.clasificacion.value_or(QString());
+            static const QRegularExpression categoria_re(QStringLiteral("\\b(A1|A|B|C)\\b"), QRegularExpression::CaseInsensitiveOption);
+            const auto categoria_match = categoria_re.match(clasificacion);
+            g.categoria = categoria_match.hasMatch()
+                ? categoria_match.captured(1).toUpper()
+                : QStringLiteral("Reconocido");
+            g.fecha_creacion = QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+            if (grupo_ing.ano_mes_formacion) {
+                static const QRegularExpression formacion_re(QStringLiteral("\\b(19\\d{2}|20\\d{2})\\s*-\\s*(\\d{1,2})\\b"));
+                const auto formacion_match = formacion_re.match(*grupo_ing.ano_mes_formacion);
+                if (formacion_match.hasMatch()) {
+                    const int anio = formacion_match.captured(1).toInt();
+                    const int mes = formacion_match.captured(2).toInt();
+                    const QDate fecha(anio, mes, 1);
+                    if (fecha.isValid()) g.fecha_creacion = fecha.toString(QStringLiteral("yyyy-MM-dd"));
+                }
+            }
+            g.lider = grupo_ing.lider.value_or(QStringLiteral("Sin información"));
+            g.departamento_ciudad = grupo_ing.departamento_ciudad.value_or(QStringLiteral("Sin información"));
+            g.gran_area_ocde = grupo_ing.area_conocimiento.value_or(QStringLiteral("Sin información"));
+            g.area_ocde = grupo_ing.area_conocimiento.value_or(QStringLiteral("Sin información"));
             if (!grupo_ing.instituciones.isEmpty()) g.institucion_principal = grupo_ing.instituciones[0].nombre;
+            g.detalles = grupo_ing.a_json();
 
             m_catalogo->crear_grupo(std::make_shared<dominio::Grupo>(g), persistir);
+        } else {
+            QJsonObject cambios;
+            cambios[QStringLiteral("detalles")] = grupo_ing.a_json();
+            m_catalogo->actualizar_grupo(grupo_ing.codigo_gruplac, cambios, persistir);
+        }
+
+        const QString fecha_grupo = m_catalogo->buscar_grupo(grupo_ing.codigo_gruplac)->fecha_creacion;
+        QStringList urls_cvlac_encoladas;
+        for (const auto& integrante : grupo_ing.integrantes) {
+            if (integrante.codigo_rh.isEmpty()) {
+                informe.advertencias.append(
+                    QStringLiteral("No se pudo crear el vínculo de %1: GrupLAC no informa su código CvLAC.")
+                        .arg(integrante.nombre));
+                continue;
+            }
+            const QString url_cvlac = integrante.url_cvlac.isEmpty()
+                ? QStringLiteral("https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=%1")
+                    .arg(integrante.codigo_rh)
+                : integrante.url_cvlac;
+            if (!urls_cvlac_encoladas.contains(url_cvlac)) {
+                encolar_url(url_cvlac, persistir, anonimizar, salida_dir);
+                urls_cvlac_encoladas.append(url_cvlac);
+            }
+            auto investigador = m_catalogo->buscar_investigador(integrante.codigo_rh);
+            if (!investigador) {
+                investigador = std::make_shared<dominio::Investigador>();
+                investigador->codigo_rh = integrante.codigo_rh;
+                investigador->nombre_completo = integrante.nombre;
+                investigador->nacionalidad = QStringLiteral("Colombiana");
+                investigador->sexo = QStringLiteral("No especificado");
+                investigador->categoria = QStringLiteral("Sin categoría / Vinculado");
+                investigador->formacion_academica = QStringLiteral("Pregrado");
+                m_catalogo->crear_investigador(investigador, persistir);
+            }
+            const QString vinculacion = integrante.vinculacion;
+            const QString vinculacion_lower = vinculacion.toLower();
+            const QString rol = vinculacion_lower.contains(QStringLiteral("lider"))
+                    || vinculacion_lower.contains(QStringLiteral("líder"))
+                ? QStringLiteral("Lider")
+                : (vinculacion_lower.contains(QStringLiteral("estudiante"))
+                    ? QStringLiteral("Estudiante")
+                    : QStringLiteral("Investigador"));
+            bool ya_vinculado = false;
+            for (const auto& actual : m_catalogo->integrantes) {
+                if (actual.codigo_gruplac == grupo_ing.codigo_gruplac
+                    && actual.codigo_rh == integrante.codigo_rh) {
+                    ya_vinculado = true;
+                    break;
+                }
+            }
+            if (!urls_cvlac_encoladas.isEmpty()) {
+                informe.mensaje += QStringLiteral(" Se encolaron %1 perfiles CvLAC enlazados.")
+                    .arg(urls_cvlac_encoladas.size());
+            }
+            if (!ya_vinculado) {
+                bool ok = false;
+                const int horas = integrante.horas_dedicacion.value_or(QString()).toInt(&ok);
+                QJsonObject detalles;
+                detalles[QStringLiteral("url_cvlac")] = integrante.url_cvlac;
+                m_catalogo->vincular_integrante(
+                    grupo_ing.codigo_gruplac,
+                    integrante.codigo_rh,
+                    rol,
+                    persistir,
+                    integrante.inicio_vinculacion.value_or(fecha_grupo),
+                    integrante.fin_vinculacion.value_or(QString()),
+                    vinculacion,
+                    ok ? horas : 0,
+                    detalles);
+            }
         }
 
         // Cargar productos de grupo
@@ -149,49 +261,98 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
         todos_prods.append(grupo_ing.libros);
         todos_prods.append(grupo_ing.capitulos);
         todos_prods.append(grupo_ing.softwares);
+        todos_prods.append(grupo_ing.trabajos_dirigidos);
+        todos_prods.append(grupo_ing.proyectos);
 
         for (const auto& p_ing : todos_prods) {
+            if (!p_ing.ano.has_value()) {
+                informe.advertencias.append(
+                    QStringLiteral("Se omitió el producto GrupLAC #%1: la fuente no informa el año.")
+                        .arg(prod_idx));
+                ++prod_idx;
+                continue;
+            }
             QString cod_prod = QStringLiteral("PROD-%1-%2").arg(grupo_ing.codigo_gruplac).arg(prod_idx++, 4, 10, QLatin1Char('0'));
             if (!m_catalogo->buscar_producto(cod_prod)) {
                 dominio::Producto p;
                 p.codigo_identificador = cod_prod;
                 p.titulo = p_ing.titulo;
                 p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") : QStringLiteral("GNC");
-                p.subtipo = p_ing.tipo;
-                p.ano = p_ing.ano.value_or(2024);
-                p.estado_validacion = QStringLiteral("Aprobado");
+                p.subtipo = p_ing.tipo.isEmpty() ? QStringLiteral("Producto GrupLAC") : p_ing.tipo.left(100);
+                p.ano = *p_ing.ano;
+                p.estado_validacion = QStringLiteral("Avalado");
+                p.detalles[QStringLiteral("fuente")] = tarea.origen;
+                p.detalles[QStringLiteral("referencia_original")] = p_ing.detalles.value_or(QString());
+                if (p_ing.autores) p.detalles[QStringLiteral("autores")] = *p_ing.autores;
                 m_catalogo->crear_producto(std::make_shared<dominio::Producto>(p), grupo_ing.codigo_gruplac, {}, persistir);
             }
         }
     } else if (tipo == QStringLiteral("cvlac")) {
         auto inv_ing = ParserHTML::parsear_cvlac(html, meta, anonimizar);
-        if (!m_catalogo->buscar_investigador(inv_ing.codigo_rh)) {
-            dominio::Investigador inv;
-            inv.codigo_rh = inv_ing.codigo_rh;
-            inv.nombre_completo = inv_ing.nombre_completo ? *inv_ing.nombre_completo : QStringLiteral("Investigador %1").arg(inv.codigo_rh);
-            inv.categoria = inv_ing.categoria_declarada ? *inv_ing.categoria_declarada : QStringLiteral("Investigador");
-            inv.nacionalidad = inv_ing.nacionalidad ? *inv_ing.nacionalidad : QStringLiteral("Colombiana");
-            if (!inv_ing.formacion.isEmpty()) inv.formacion_academica = inv_ing.formacion[0].nivel;
+        const auto investigador_existente = m_catalogo->buscar_investigador(inv_ing.codigo_rh);
+        QJsonObject cambios_investigador;
+        cambios_investigador[QStringLiteral("nombre_completo")] =
+            inv_ing.nombre_completo.value_or(
+                investigador_existente ? investigador_existente->nombre_completo
+                                       : QStringLiteral("Investigador %1").arg(inv_ing.codigo_rh));
+        cambios_investigador[QStringLiteral("nombre_en_citas")] =
+            inv_ing.nombre_citaciones.value_or(QString());
+        cambios_investigador[QStringLiteral("nacionalidad")] =
+            inv_ing.nacionalidad.value_or(QStringLiteral("Colombiana"));
+        cambios_investigador[QStringLiteral("sexo")] =
+            inv_ing.sexo.value_or(QStringLiteral("No especificado"));
+        cambios_investigador[QStringLiteral("categoria")] =
+            normalizar_categoria_cvlac(inv_ing.categoria_declarada);
+        cambios_investigador[QStringLiteral("formacion_academica")] =
+            normalizar_formacion_cvlac(inv_ing.formacion);
+        cambios_investigador[QStringLiteral("par_evaluador")] = inv_ing.par_evaluador;
+        cambios_investigador[QStringLiteral("detalles")] = inv_ing.a_json();
 
-            m_catalogo->crear_investigador(std::make_shared<dominio::Investigador>(inv), persistir);
+        if (investigador_existente) {
+            m_catalogo->actualizar_investigador(inv_ing.codigo_rh, cambios_investigador, persistir);
+        } else {
+            auto investigador = std::make_shared<dominio::Investigador>();
+            investigador->codigo_rh = inv_ing.codigo_rh;
+            investigador->nombre_completo = cambios_investigador[QStringLiteral("nombre_completo")].toString();
+            investigador->nombre_en_citas = inv_ing.nombre_citaciones.value_or(QString());
+            investigador->nacionalidad = cambios_investigador[QStringLiteral("nacionalidad")].toString();
+            investigador->sexo = cambios_investigador[QStringLiteral("sexo")].toString();
+            investigador->categoria = cambios_investigador[QStringLiteral("categoria")].toString();
+            investigador->formacion_academica = cambios_investigador[QStringLiteral("formacion_academica")].toString();
+            investigador->par_evaluador = inv_ing.par_evaluador;
+            investigador->detalles = inv_ing.a_json();
+            m_catalogo->crear_investigador(investigador, persistir);
         }
 
         int prod_idx = 1;
         QList<ProductoIngesta> todos_prods;
         todos_prods.append(inv_ing.articulos);
+        todos_prods.append(inv_ing.libros);
         todos_prods.append(inv_ing.capitulos);
         todos_prods.append(inv_ing.softwares);
+        todos_prods.append(inv_ing.trabajos_dirigidos);
+        todos_prods.append(inv_ing.proyectos);
 
         for (const auto& p_ing : todos_prods) {
+            if (!p_ing.ano.has_value()) {
+                informe.advertencias.append(
+                    QStringLiteral("Se omitió el producto CvLAC #%1: la fuente no informa el año.")
+                        .arg(prod_idx));
+                ++prod_idx;
+                continue;
+            }
             QString cod_prod = QStringLiteral("PROD-CVLAC-%1-%2").arg(inv_ing.codigo_rh).arg(prod_idx++, 4, 10, QLatin1Char('0'));
             if (!m_catalogo->buscar_producto(cod_prod)) {
                 dominio::Producto p;
                 p.codigo_identificador = cod_prod;
                 p.titulo = p_ing.titulo;
                 p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") : QStringLiteral("GNC");
-                p.subtipo = p_ing.tipo;
-                p.ano = p_ing.ano.value_or(2024);
-                p.estado_validacion = QStringLiteral("Aprobado");
+                p.subtipo = p_ing.tipo.left(100);
+                p.ano = *p_ing.ano;
+                p.estado_validacion = QStringLiteral("Avalado");
+                p.detalles[QStringLiteral("fuente")] = tarea.origen;
+                p.detalles[QStringLiteral("referencia_original")] = p_ing.detalles.value_or(QString());
+                if (p_ing.autores) p.detalles[QStringLiteral("autores")] = *p_ing.autores;
                 m_catalogo->crear_producto(std::make_shared<dominio::Producto>(p), QString(), {inv_ing.codigo_rh}, persistir);
             }
         }

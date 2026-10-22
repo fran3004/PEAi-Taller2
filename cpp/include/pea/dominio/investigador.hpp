@@ -17,6 +17,8 @@ public:
     QString sexo;
     QString categoria;
     QString formacion_academica;
+    bool par_evaluador{false};
+    QJsonObject detalles;
     bool activo{true};
     bool es_ejemplo{false};
 
@@ -44,6 +46,8 @@ public:
         if (!sexo.isEmpty()) json["sexo"] = sexo;
         if (!categoria.isEmpty()) json["categoria"] = categoria;
         if (!formacion_academica.isEmpty()) json["formacion_academica"] = formacion_academica;
+        json["par_evaluador"] = par_evaluador;
+        json["detalles"] = detalles;
         json["activo"] = activo;
         json["es_ejemplo"] = es_ejemplo;
         return json;
@@ -64,6 +68,8 @@ public:
         inv.sexo = json["sexo"].toString();
         inv.categoria = json["categoria"].toString();
         inv.formacion_academica = json["formacion_academica"].toString();
+        inv.par_evaluador = json["par_evaluador"].toBool(false);
+        if (json["detalles"].isObject()) inv.detalles = json["detalles"].toObject();
         if (json.contains("activo")) {
             inv.activo = json["activo"].toBool(true);
         }

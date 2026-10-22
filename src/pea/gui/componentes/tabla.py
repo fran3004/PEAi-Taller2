@@ -42,8 +42,10 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
+    QPushButton,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -579,6 +581,8 @@ class TablaEstilizada(QWidget):
         self._proxy.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self._proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self._vista.setModel(self._proxy)
+        self._tamano_pagina = 50
+        self._pagina_actual = 0
 
         # Delegados predeterminados disponibles
         self.delegado_texto = TextoDelegate(self)
@@ -589,15 +593,33 @@ class TablaEstilizada(QWidget):
 
         layout.addWidget(self._vista)
 
-        # Pie con conteo
+        # Pie y controles compartidos para paginar todas las tablas de la aplicación.
+        pie = QHBoxLayout()
+        pie.setContentsMargins(4, 0, 4, 0)
+        pie.setSpacing(8)
         self._lbl_pie = QLabel("Mostrando 0 de 0", self)
         self._lbl_pie.setObjectName("tablaPie")
         self._lbl_pie.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO}; padding: 2px 4px;")
-        layout.addWidget(self._lbl_pie)
+        self._btn_pagina_anterior = QPushButton("Anterior", self)
+        self._btn_pagina_siguiente = QPushButton("Siguiente", self)
+        self._lbl_pagina = QLabel("Página 0 de 0", self)
+        self._btn_pagina_anterior.clicked.connect(lambda: self._cambiar_pagina(-1))
+        self._btn_pagina_siguiente.clicked.connect(lambda: self._cambiar_pagina(1))
+        pie.addWidget(self._lbl_pie)
+        pie.addStretch(1)
+        pie.addWidget(self._btn_pagina_anterior)
+        pie.addWidget(self._lbl_pagina)
+        pie.addWidget(self._btn_pagina_siguiente)
+        layout.addLayout(pie)
+        self._pagina_anterior_rango = (0, 0)
 
         # Conectar señales
         self._vista.clicked.connect(self._al_hacer_clic)
         self._vista.doubleClicked.connect(self._al_doble_clic)
+        self._proxy.modelReset.connect(lambda: self.actualizar_pie())
+        self._proxy.rowsInserted.connect(lambda *_: self.actualizar_pie())
+        self._proxy.rowsRemoved.connect(lambda *_: self.actualizar_pie())
+        self._proxy.layoutChanged.connect(lambda *_: self.actualizar_pie())
         sm = self._vista.selectionModel()
         if sm is not None:
             sm.selectionChanged.connect(self._al_cambiar_seleccion)
@@ -647,14 +669,34 @@ class TablaEstilizada(QWidget):
         self._vista.configurar_columnas(especificaciones)
 
     def actualizar_pie(self, mostrados: int | None = None, total: int | None = None) -> None:
-        """Actualiza el texto del pie con las filas visibles y el total."""
-        if mostrados is None:
-            mostrados = self._proxy.rowCount()
-        if total is None:
-            src = self._proxy.sourceModel()
-            total = src.rowCount() if src is not None else mostrados
+        """Actualiza la página visible y el total de filas tras filtro u ordenamiento."""
+        total = self._proxy.rowCount() if total is None else total
+        paginas = (total + self._tamano_pagina - 1) // self._tamano_pagina
+        self._pagina_actual = min(self._pagina_actual, max(0, paginas - 1))
+        inicio = self._pagina_actual * self._tamano_pagina
+        fin = min(inicio + self._tamano_pagina, total)
 
+        anterior_inicio, anterior_fin = self._pagina_anterior_rango
+        for fila in range(anterior_inicio, min(anterior_fin, self._proxy.rowCount())):
+            self._vista.setRowHidden(fila, False)
+        for fila in range(self._proxy.rowCount()):
+            self._vista.setRowHidden(fila, not inicio <= fila < fin)
+
+        self._pagina_anterior_rango = (inicio, fin)
+        mostrados = fin - inicio if mostrados is None else mostrados
         self._lbl_pie.setText(f"Mostrando {mostrados} de {total}")
+        self._lbl_pagina.setText(f"Página {self._pagina_actual + 1} de {max(1, paginas)}")
+        self._btn_pagina_anterior.setEnabled(self._pagina_actual > 0)
+        self._btn_pagina_siguiente.setEnabled(self._pagina_actual + 1 < paginas)
+
+    def _cambiar_pagina(self, desplazamiento: int) -> None:
+        total = self._proxy.rowCount()
+        paginas = (total + self._tamano_pagina - 1) // self._tamano_pagina
+        nueva_pagina = self._pagina_actual + desplazamiento
+        if 0 <= nueva_pagina < paginas:
+            self._vista.clearSelection()
+            self._pagina_actual = nueva_pagina
+            self.actualizar_pie()
 
     def _al_cambiar_seleccion(self, *_: Any) -> None:
         sm = self._vista.selectionModel()

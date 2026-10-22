@@ -55,6 +55,8 @@ struct LineaIngesta {
 struct IntegranteIngesta {
     QString nombre;
     QString vinculacion;
+    QString codigo_rh;
+    QString url_cvlac;
     std::optional<QString> horas_dedicacion{std::nullopt};
     std::optional<QString> inicio_vinculacion{std::nullopt};
     std::optional<QString> fin_vinculacion{std::nullopt};
@@ -63,6 +65,8 @@ struct IntegranteIngesta {
         QJsonObject obj;
         obj["nombre"] = nombre;
         obj["vinculacion"] = vinculacion;
+        obj["codigo_rh"] = codigo_rh.isEmpty() ? QJsonValue::Null : QJsonValue(codigo_rh);
+        obj["url_cvlac"] = url_cvlac.isEmpty() ? QJsonValue::Null : QJsonValue(url_cvlac);
         obj["horas_dedicacion"] = horas_dedicacion ? QJsonValue(*horas_dedicacion) : QJsonValue::Null;
         obj["inicio_vinculacion"] = inicio_vinculacion ? QJsonValue(*inicio_vinculacion) : QJsonValue::Null;
         obj["fin_vinculacion"] = fin_vinculacion ? QJsonValue(*fin_vinculacion) : QJsonValue::Null;
@@ -160,6 +164,7 @@ struct GrupoIngesta {
     std::optional<QString> clasificacion{std::nullopt};
     std::optional<QString> area_conocimiento{std::nullopt};
     std::optional<QString> programa_nacional{std::nullopt};
+    std::optional<QString> programa_secundario{std::nullopt};
 
     QList<InstitucionIngesta> instituciones;
     QList<LineaIngesta> lineas_investigacion;
@@ -185,6 +190,7 @@ struct GrupoIngesta {
         obj["clasificacion"] = clasificacion ? QJsonValue(*clasificacion) : QJsonValue::Null;
         obj["area_conocimiento"] = area_conocimiento ? QJsonValue(*area_conocimiento) : QJsonValue::Null;
         obj["programa_nacional"] = programa_nacional ? QJsonValue(*programa_nacional) : QJsonValue::Null;
+        obj["programa_secundario"] = programa_secundario ? QJsonValue(*programa_secundario) : QJsonValue::Null;
 
         QJsonArray arr_inst;
         for (const auto& i : instituciones) arr_inst.append(i.a_json());

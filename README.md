@@ -97,7 +97,12 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
 4. **Importación**: use CSV o URL SCIENTI y revise el informe de filas rechazadas.
    C++ ofrece `i` para CSV y `w` para URL. Los fixtures ficticios de
    `tests/fixtures/` y `cpp/tests/fixtures/` permiten revisar el procesamiento sin
-   descargar datos personales. Las fuentes remotas pueden estar indisponibles.
+   descargar datos personales. GrupLAC conserva sus secciones y encola los
+   CvLAC enlazados; **Procesar todas** los descarga, y la importación por URL de
+   ambas CLI procesa también esos perfiles antes de terminar. También puede
+   importarse un enlace CvLAC directamente. Las tablas Python muestran 50 filas
+   y los directorios C++ 12 registros por página (`[` / `]`). Ambas aplicaciones
+   consultan Supabase por rangos paginados. Las fuentes remotas pueden estar indisponibles.
 5. **Interoperabilidad**: en Configuración de Python ejecute la verificación
    cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
    escenarios sin red mediante ambas CLI.

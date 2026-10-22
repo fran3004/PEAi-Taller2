@@ -1,4 +1,5 @@
 #include "pea/ingesta/parser_html.hpp"
+#include <QUrl>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 
@@ -208,6 +209,17 @@ GrupoIngesta ParserHTML::parsear_gruplac(
         codigo_gruplac.remove(QStringLiteral("gruplac_"));
     }
     grupo.codigo_gruplac = codigo_gruplac;
+    static const QRegularExpression titulo_grupo_re(
+        QStringLiteral("<span\\b[^>]*class=[\"'][^\"']*celdaEncabezado[^\"']*[\"'][^>]*>(.*?)</span>"),
+        QRegularExpression::CaseInsensitiveOption | QRegularExpression::DotMatchesEverythingOption
+    );
+    auto titulo_match = titulo_grupo_re.match(html);
+    if (titulo_match.hasMatch()) {
+        QString titulo = limpiar_texto(titulo_match.captured(1));
+        int separador = titulo.indexOf(QStringLiteral(" - "));
+        if (separador >= 0) titulo = titulo.mid(separador + 3).trimmed();
+        if (!titulo.isEmpty()) grupo.nombre_grupo = titulo;
+    }
 
     grupo.origen.url = url;
     grupo.origen.fecha_descarga = meta.value(QStringLiteral("fecha_descarga")).toString();
@@ -255,7 +267,11 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                     } else if (k.contains(QStringLiteral("Área de conocimiento")) || k.contains(QStringLiteral("rea de conocimiento"))) {
                         grupo.area_conocimiento = v;
                     } else if (k.contains(QStringLiteral("Programa nacional"))) {
-                        grupo.programa_nacional = v;
+                        if (k.contains(QStringLiteral("secundario"), Qt::CaseInsensitive)) {
+                            grupo.programa_secundario = v;
+                        } else {
+                            grupo.programa_nacional = v;
+                        }
                     }
                 }
             }
@@ -277,6 +293,22 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                 if (tds.size() >= 4) {
                     QString nom = limpiar_texto(tds[0]);
                     if (nom == QStringLiteral("Nombre")) continue;
+                    static const QRegularExpression enlace_cvlac_re(
+                        QStringLiteral("<a\\b[^>]*href\\s*=\\s*[\"']([^\"']*cod_rh=([^&\"']+)[^\"']*)[\"']"),
+                        QRegularExpression::CaseInsensitiveOption
+                    );
+                    auto enlace_match = enlace_cvlac_re.match(tr);
+                    QString url_cvlac;
+                    QString codigo_rh;
+                    if (enlace_match.hasMatch()) {
+                        url_cvlac = QUrl(QUrl(url).resolved(QUrl(enlace_match.captured(1)))).toString();
+                        codigo_rh = enlace_match.captured(2);
+                        static const QRegularExpression codigo_rh_re(QStringLiteral("^\\d+$"));
+                        if (!codigo_rh_re.match(codigo_rh).hasMatch()) {
+                            codigo_rh.clear();
+                            url_cvlac.clear();
+                        }
+                    }
                     QString vinc = limpiar_texto(tds[1]);
                     QString hrs = limpiar_texto(tds[2]);
                     QString per = limpiar_texto(tds[3]);
@@ -288,6 +320,8 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                     IntegranteIngesta int_ing;
                     int_ing.nombre = nom;
                     int_ing.vinculacion = vinc;
+                    int_ing.codigo_rh = codigo_rh;
+                    int_ing.url_cvlac = url_cvlac;
                     int_ing.horas_dedicacion = hrs;
                     int_ing.inicio_vinculacion = ini;
                     int_ing.fin_vinculacion = fin;

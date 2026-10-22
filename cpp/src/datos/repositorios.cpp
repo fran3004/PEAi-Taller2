@@ -15,10 +15,7 @@ estructuras::ListaDoble<dominio::Grupo> RepositorioGrupos::listar(std::optional<
     QJsonArray filas;
     if (es_ejemplo.has_value()) {
         QString params = QString("select=*&es_ejemplo=eq.%1").arg(*es_ejemplo ? "true" : "false");
-        QJsonDocument doc = m_cliente.get("grupos", params);
-        if (doc.isArray()) {
-            filas = doc.array();
-        }
+        filas = m_cliente.getPaginado("grupos?" + params);
     } else {
         filas = m_cliente.getPaginado("grupos");
     }
@@ -98,10 +95,7 @@ estructuras::ListaDoble<dominio::Investigador> RepositorioInvestigadores::listar
     QJsonArray filas;
     if (es_ejemplo.has_value()) {
         QString params = QString("select=*&es_ejemplo=eq.%1").arg(*es_ejemplo ? "true" : "false");
-        QJsonDocument doc = m_cliente.get("investigadores", params);
-        if (doc.isArray()) {
-            filas = doc.array();
-        }
+        filas = m_cliente.getPaginado("investigadores?" + params);
     } else {
         filas = m_cliente.getPaginado("investigadores");
     }
@@ -183,10 +177,7 @@ estructuras::ListaDoble<dominio::IntegranteGrupo> RepositorioIntegrantes::listar
         "select=*,grupos!inner(codigo_gruplac),investigadores!inner(codigo_rh)";
     if (!codigo_gruplac.isEmpty()) {
         QString params = QString("%1&grupos.codigo_gruplac=eq.%2").arg(seleccion, codigo_gruplac);
-        QJsonDocument doc = m_cliente.get("integrantes_grupo", params);
-        if (doc.isArray()) {
-            filas = doc.array();
-        }
+        filas = m_cliente.getPaginado("integrantes_grupo?" + params);
     } else {
         filas = m_cliente.getPaginado("integrantes_grupo?" + seleccion);
     }
@@ -226,10 +217,7 @@ estructuras::ListaDoble<dominio::Producto> RepositorioProductos::listar(std::opt
     QJsonArray filas;
     if (es_ejemplo.has_value()) {
         QString params = QString("select=*&es_ejemplo=eq.%1").arg(*es_ejemplo ? "true" : "false");
-        QJsonDocument doc = m_cliente.get("productos", params);
-        if (doc.isArray()) {
-            filas = doc.array();
-        }
+        filas = m_cliente.getPaginado("productos?" + params);
     } else {
         filas = m_cliente.getPaginado("productos");
     }
@@ -407,10 +395,7 @@ estructuras::ListaDoble<dominio::Proyecto> RepositorioProyectos::listar(const QS
     QJsonArray filas;
     if (!codigo_gruplac.isEmpty()) {
         QString params = QString("select=*&codigo_gruplac=eq.%1").arg(codigo_gruplac);
-        QJsonDocument doc = m_cliente.get("proyectos", params);
-        if (doc.isArray()) {
-            filas = doc.array();
-        }
+        filas = m_cliente.getPaginado("proyectos?" + params);
     } else {
         filas = m_cliente.getPaginado("proyectos");
     }
