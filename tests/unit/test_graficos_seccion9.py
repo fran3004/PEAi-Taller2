@@ -27,6 +27,23 @@ from pea.gui.componentes.graficos import (
     Minigrafico,
     MiniRed,
 )
+from pea.gui.componentes.graficos.eje_anios import seleccionar_anios_eje
+
+
+def test_eje_anios_reduce_etiquetas_sin_perder_extremos() -> None:
+    anios = list(range(1990, 2021))
+
+    visibles = seleccionar_anios_eje(anios, ancho_px=500)
+
+    assert min(visibles) == 1990
+    assert max(visibles) == 2020
+    assert len(visibles) <= 11
+    assert seleccionar_anios_eje([2024, 2025], ancho_px=500) == {2024, 2025}
+    posiciones = [anios.index(anio) * 500 / len(anios) for anio in sorted(visibles)]
+    assert all(
+        siguiente - anterior >= 48
+        for anterior, siguiente in zip(posiciones, posiciones[1:], strict=False)
+    )
 
 
 def test_grafico_base_estado_vacio_y_exportar_png(tmp_path: Path, qapp: QApplication, qtbot: Any) -> None:

@@ -19,6 +19,7 @@ import json
 import os
 import platform
 import re
+import unicodedata
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, TypeVar
@@ -650,22 +651,33 @@ class ServicioAplicacion:
     def _normalizar_nombre_institucion(nombre: str) -> str:
         nombre = re.sub(r"^\s*\d+\s*[\.\)\-]+\s*", "", nombre).strip()
         nombre = re.sub(r"\s*\((?:no\s+)?avalad[oa]\)\s*$", "", nombre, flags=re.IGNORECASE)
-        return " ".join(nombre.split())
+        nombre = re.sub(r"\s*[-–]\s*UPC\s*$", "", nombre, flags=re.IGNORECASE)
+        nombre = " ".join(nombre.split()).strip(" .,-")
+        clave_sin_acentos = unicodedata.normalize("NFKD", nombre.casefold())
+        clave = "".join(caracter for caracter in clave_sin_acentos if not unicodedata.combining(caracter))
+        clave = re.sub(r"[^a-z0-9]+", " ", clave).strip()
+        if clave in {"upc", "universidad popular del cesar", "universidad popular del cesar upc"}:
+            return "Universidad Popular del Cesar"
+        return nombre
+
+    @classmethod
+    def _clave_institucion(cls, nombre: str) -> str:
+        normalizado = unicodedata.normalize("NFKD", cls._normalizar_nombre_institucion(nombre).casefold())
+        sin_acentos = "".join(caracter for caracter in normalizado if not unicodedata.combining(caracter))
+        return re.sub(r"[^a-z0-9]+", " ", sin_acentos).strip()
 
     def _instituciones_grupo(self, grupo: Any) -> tuple[str, ...]:
         detalles = grupo.detalles if isinstance(grupo.detalles, dict) else {}
         instituciones = detalles.get("instituciones")
-        nombres: list[str] = []
         if isinstance(instituciones, list):
             for institucion in instituciones:
                 nombre = institucion.get("nombre") if isinstance(institucion, dict) else institucion
                 if isinstance(nombre, str):
                     normalizado = self._normalizar_nombre_institucion(nombre)
-                    if normalizado and normalizado not in nombres:
-                        nombres.append(normalizado)
-
-        if nombres:
-            return tuple(nombres)
+                    if normalizado:
+                        # Las afiliaciones secundarias siguen en detalles, pero cada grupo
+                        # aporta sus estadísticas a una sola institución principal.
+                        return (normalizado,)
         if detalles.get("origen") == "GrupLAC":
             return (INSTITUCION_SIN_INFORMACION,)
 
@@ -675,19 +687,22 @@ class ServicioAplicacion:
         return (principal,)
 
     def opciones_instituciones(self) -> tuple[str, ...]:
-        """Instituciones avaladoras disponibles; los grupos sin dato quedan separados."""
-        instituciones = {
-            institucion
-            for grupo in self._catalogo.grupos
-            for institucion in self._instituciones_grupo(grupo)
-        }
-        return tuple(sorted(instituciones, key=str.casefold))
+        """Instituciones principales disponibles, deduplicadas por nombre normalizado."""
+        instituciones: dict[str, str] = {}
+        for grupo in self._catalogo.grupos:
+            for institucion in self._instituciones_grupo(grupo):
+                instituciones.setdefault(self._clave_institucion(institucion), institucion)
+        return tuple(sorted(instituciones.values(), key=str.casefold))
 
     def codigos_grupos_institucion(self, institucion: str) -> tuple[str, ...]:
+        clave_institucion = self._clave_institucion(institucion)
         return tuple(
             grupo.codigo_gruplac
             for grupo in self._catalogo.grupos
-            if institucion in self._instituciones_grupo(grupo)
+            if any(
+                self._clave_institucion(institucion_grupo) == clave_institucion
+                for institucion_grupo in self._instituciones_grupo(grupo)
+            )
         )
 
     def opciones_investigadores(self) -> tuple[tuple[str, str], ...]:

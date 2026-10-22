@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import re
+import time
 import uuid
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+from typing import TypeVar
 
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
@@ -17,6 +20,8 @@ from pea.ingesta.extractor_url import ExtractorURL
 from pea.ingesta.lector_csv import LectorCSV
 from pea.ingesta.modelos import InformeIngesta, InvestigadorIngesta
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
+
+TResultado = TypeVar("TResultado")
 
 
 class ServicioIngesta:
@@ -32,6 +37,24 @@ class ServicioIngesta:
         self.extractor_url = extractor_url or ExtractorURL()
         self.extractor_pdf = extractor_pdf or ExtractorPDF()
         self.cola_tareas: Cola[TareaIngesta] = self.catalogo.cola_importacion
+
+    def _ejecutar_con_reintento_revision(self, operacion: Callable[[], TResultado]) -> TResultado:
+        """Reintenta una mutación idempotente de ingesta tras sincronizar la revisión remota."""
+        max_intentos = 5
+        for intento in range(max_intentos):
+            try:
+                return operacion()
+            except ConflictoRevision as err:
+                if (
+                    err.mensaje != "La base de datos cambió"
+                    or self.catalogo.cliente is None
+                    or intento == max_intentos - 1
+                ):
+                    raise
+                self.catalogo.controlador_revision.sincronizar(self.catalogo.cliente)
+                time.sleep(min(0.05 * (2**intento), 0.8))
+
+        raise RuntimeError("La mutación de ingesta terminó sin resultado.")
 
     def encolar_url(
         self,
@@ -222,18 +245,22 @@ class ServicioIngesta:
             "detalles": investigador_ing.model_dump(mode="json"),
         }
         if investigador_existente is None:
-            self.catalogo.crear_investigador(
-                Investigador(
-                    codigo_rh=investigador_ing.codigo_rh,
-                    **datos_investigador,
+            self._ejecutar_con_reintento_revision(
+                lambda: self.catalogo.crear_investigador(
+                    Investigador(
+                        codigo_rh=investigador_ing.codigo_rh,
+                        **datos_investigador,
+                    ),
+                    persistir=persistir,
                 ),
-                persistir=persistir,
             )
         else:
-            self.catalogo.actualizar_investigador(
-                investigador_ing.codigo_rh,
-                datos_investigador,
-                persistir=persistir,
+            self._ejecutar_con_reintento_revision(
+                lambda: self.catalogo.actualizar_investigador(
+                    investigador_ing.codigo_rh,
+                    datos_investigador,
+                    persistir=persistir,
+                )
             )
 
         productos = (
@@ -268,10 +295,12 @@ class ServicioIngesta:
                         "doi_o_isbn": producto_ing.doi_o_isbn,
                     },
                 )
-                self.catalogo.crear_producto(
-                    producto,
-                    codigos_rh_autores=[investigador_ing.codigo_rh],
-                    persistir=persistir,
+                self._ejecutar_con_reintento_revision(
+                    lambda producto_actual=producto: self.catalogo.crear_producto(
+                        producto_actual,
+                        codigos_rh_autores=[investigador_ing.codigo_rh],
+                        persistir=persistir,
+                    )
                 )
             elif investigador_existente is not None:
                 self.catalogo.multilista_productos.agregar_autor_a_producto(
@@ -354,19 +383,23 @@ class ServicioIngesta:
                     area_ocde=grupo_ing.area_conocimiento or "Sin información",
                     detalles=detalles_grupo,
                 )
-                self.catalogo.crear_grupo(nuevo_grp, persistir=persistir)
+                self._ejecutar_con_reintento_revision(
+                    lambda: self.catalogo.crear_grupo(nuevo_grp, persistir=persistir)
+                )
             else:
-                self.catalogo.actualizar_grupo(
-                    grupo_ing.codigo_gruplac,
-                    {
-                        "detalles": detalles_grupo,
-                        "institucion_principal": (
-                            grupo_ing.instituciones[0].nombre
-                            if grupo_ing.instituciones
-                            else "Sin institución informada"
-                        ),
-                    },
-                    persistir=persistir,
+                self._ejecutar_con_reintento_revision(
+                    lambda: self.catalogo.actualizar_grupo(
+                        grupo_ing.codigo_gruplac,
+                        {
+                            "detalles": detalles_grupo,
+                            "institucion_principal": (
+                                grupo_ing.instituciones[0].nombre
+                                if grupo_ing.instituciones
+                                else "Sin institución informada"
+                            ),
+                        },
+                        persistir=persistir,
+                    )
                 )
 
             # Crear perfiles mínimos solo cuando GrupLAC publica un código CvLAC
@@ -378,6 +411,7 @@ class ServicioIngesta:
                         f"No se pudo crear el vínculo de {integrante.nombre}: GrupLAC no informa su código CvLAC."
                     )
                     continue
+                codigo_rh_integrante = integrante.codigo_rh
                 url_cvlac = integrante.url_cvlac or (
                     "https://scienti.minciencias.gov.co/cvlac/visualizador/"
                     f"generarCurriculoCv.do?cod_rh={integrante.codigo_rh}"
@@ -401,7 +435,12 @@ class ServicioIngesta:
                         categoria="Sin categoría / Vinculado",
                         formacion_academica="Pregrado",
                     )
-                    self.catalogo.crear_investigador(investigador, persistir=persistir)
+                    self._ejecutar_con_reintento_revision(
+                        lambda investigador_actual=investigador: self.catalogo.crear_investigador(
+                            investigador_actual,
+                            persistir=persistir,
+                        )
+                    )
 
                 rol_texto = integrante.vinculacion.casefold()
                 if "lider" in rol_texto or "líder" in rol_texto:
@@ -416,16 +455,19 @@ class ServicioIngesta:
                     for m in self.catalogo.integrantes
                 ):
                     horas = re.search(r"\d+", integrante.horas_dedicacion or "")
-                    self.catalogo.vincular_integrante(
-                        grupo_ing.codigo_gruplac,
-                        integrante.codigo_rh,
-                        rol=rol,
-                        persistir=persistir,
-                        fecha_inicio=integrante.inicio_vinculacion or fecha_creacion,
-                        fecha_fin=integrante.fin_vinculacion,
-                        vinculacion=integrante.vinculacion,
-                        horas_dedicacion=int(horas.group()) if horas else 0,
-                        detalles={"url_cvlac": integrante.url_cvlac},
+                    horas_dedicacion = int(horas.group()) if horas else 0
+                    self._ejecutar_con_reintento_revision(
+                        lambda integrante_actual=integrante, rol_actual=rol, horas_actuales=horas_dedicacion, codigo_rh_actual=codigo_rh_integrante: self.catalogo.vincular_integrante(
+                            grupo_ing.codigo_gruplac,
+                            codigo_rh_actual,
+                            rol=rol_actual,
+                            persistir=persistir,
+                            fecha_inicio=integrante_actual.inicio_vinculacion or fecha_creacion,
+                            fecha_fin=integrante_actual.fin_vinculacion,
+                            vinculacion=integrante_actual.vinculacion,
+                            horas_dedicacion=horas_actuales,
+                            detalles={"url_cvlac": integrante_actual.url_cvlac},
+                        )
                     )
             if urls_cvlac_encoladas:
                 informe.mensaje = (
@@ -466,10 +508,12 @@ class ServicioIngesta:
                             "disponibilidad": prod_ing.detalles if prod_ing.tipo == "Software" else None,
                         },
                     )
-                    self.catalogo.crear_producto(
-                        p,
-                        codigo_gruplac=grupo_ing.codigo_gruplac,
-                        persistir=persistir,
+                    self._ejecutar_con_reintento_revision(
+                        lambda producto_actual=p: self.catalogo.crear_producto(
+                            producto_actual,
+                            codigo_gruplac=grupo_ing.codigo_gruplac,
+                            persistir=persistir,
+                        )
                     )
 
         elif tipo == "cvlac":
@@ -494,7 +538,12 @@ class ServicioIngesta:
             grupos, errs = LectorCSV.leer_grupos(tarea.origen)
             for g in grupos:
                 if self.catalogo.buscar_grupo(g.codigo_gruplac) is None:
-                    self.catalogo.crear_grupo(g, persistir=persistir)
+                    self._ejecutar_con_reintento_revision(
+                        lambda grupo_actual=g: self.catalogo.crear_grupo(
+                            grupo_actual,
+                            persistir=persistir,
+                        )
+                    )
                     informe.grupos_procesados += 1
             informe.filas_erroneas.extend(errs)
 
@@ -502,7 +551,12 @@ class ServicioIngesta:
             invs, errs = LectorCSV.leer_investigadores(tarea.origen)
             for inv in invs:
                 if self.catalogo.buscar_investigador(inv.codigo_rh) is None:
-                    self.catalogo.crear_investigador(inv, persistir=persistir)
+                    self._ejecutar_con_reintento_revision(
+                        lambda investigador_actual=inv: self.catalogo.crear_investigador(
+                            investigador_actual,
+                            persistir=persistir,
+                        )
+                    )
                     informe.investigadores_procesados += 1
             informe.filas_erroneas.extend(errs)
 
@@ -510,7 +564,13 @@ class ServicioIngesta:
             prods, errs = LectorCSV.leer_productos(tarea.origen)
             for p, grp_cod in prods:
                 if self.catalogo.buscar_producto(p.codigo_identificador) is None:
-                    self.catalogo.crear_producto(p, codigo_gruplac=grp_cod, persistir=persistir)
+                    self._ejecutar_con_reintento_revision(
+                        lambda producto_actual=p, codigo_grupo_actual=grp_cod: self.catalogo.crear_producto(
+                            producto_actual,
+                            codigo_gruplac=codigo_grupo_actual,
+                            persistir=persistir,
+                        )
+                    )
                     informe.productos_procesados += 1
             informe.filas_erroneas.extend(errs)
 

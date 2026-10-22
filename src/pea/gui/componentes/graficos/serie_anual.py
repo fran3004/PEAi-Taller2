@@ -31,6 +31,7 @@ from PySide6.QtWidgets import QWidget
 
 from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
+from pea.gui.componentes.graficos.eje_anios import seleccionar_anios_eje
 from pea.gui.estilo import (
     COLOR_DTI,
     LINEA,
@@ -170,6 +171,7 @@ class GraficoSerieAnual(GraficoBase):
         n_anios = max(1, len(anios))
         paso_col = area_grafico.width() / float(n_anios)
         ancho_barra = min(32.0, paso_col * 0.55)
+        anios_etiquetados = seleccionar_anios_eje(anios, area_grafico.width())
 
         self._rects_columnas = []
         fuente_total = QFont()
@@ -220,17 +222,18 @@ class GraficoSerieAnual(GraficoBase):
                 painter.fillRect(rect_barra, QColor(COLOR_DTI))
 
             # Valor numérico encima de la barra
-            if val > 0 and prog >= 0.7:
+            if val > 0 and prog >= 0.7 and anio in anios_etiquetados:
                 painter.setFont(fuente_total)
                 painter.setPen(QPen(QColor(TEXTO)))
                 rect_val = QRectF(x_centro - 20.0, rect_barra.top() - 18.0, 40.0, 16.0)
                 painter.drawText(rect_val, Qt.AlignmentFlag.AlignCenter, formatear_entero(val))
 
             # Año debajo en el eje X
-            painter.setFont(fuente_anio)
-            painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
-            rect_anio = QRectF(x_centro - 24.0, area_grafico.bottom() + 6.0, 48.0, 16.0)
-            painter.drawText(rect_anio, Qt.AlignmentFlag.AlignCenter, str(anio))
+            if anio in anios_etiquetados:
+                painter.setFont(fuente_anio)
+                painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
+                rect_anio = QRectF(x_centro - 24.0, area_grafico.bottom() + 6.0, 48.0, 16.0)
+                painter.drawText(rect_anio, Qt.AlignmentFlag.AlignCenter, str(anio))
 
         # 3. Tooltip interactivo si hay hover
         if self._tooltip_visible and self._columna_hover is not None and self._pos_cursor is not None:

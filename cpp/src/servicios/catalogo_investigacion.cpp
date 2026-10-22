@@ -1219,6 +1219,12 @@ bool CatalogoInvestigacion::verificar_revision() {
     return remota != controlador_revision.revision_local();
 }
 
+void CatalogoInvestigacion::sincronizar_revision() {
+    if (m_cliente) {
+        controlador_revision.sincronizar(*m_cliente);
+    }
+}
+
 // ============================================================================
 // RESUMEN INSTITUCIONAL Y PARIDAD JSON
 // ============================================================================

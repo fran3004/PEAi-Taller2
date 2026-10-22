@@ -110,6 +110,7 @@ public:
 
     // Recarga y sincronización
     void recargar_todo();
+    void sincronizar_revision();
     [[nodiscard]] bool verificar_revision();
 
     // Resumen institucional y paridad JSON

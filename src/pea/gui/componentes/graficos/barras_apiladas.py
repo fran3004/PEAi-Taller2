@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
 
 from pea.gui import estilo
 from pea.gui.componentes.graficos.base import GraficoBase
+from pea.gui.componentes.graficos.eje_anios import seleccionar_anios_eje
 from pea.gui.estilo import (
     COLOR_ASC,
     COLOR_DTI,
@@ -266,6 +267,7 @@ class _LienzoBarrasApiladas(GraficoBase):
         n_anios = max(1, len(anios))
         paso_col = area_grafico.width() / float(n_anios)
         ancho_barra = min(36.0, paso_col * 0.55)
+        anios_etiquetados = seleccionar_anios_eje(anios, area_grafico.width())
 
         self._rects_columnas = []
         fuente_total = QFont()
@@ -338,17 +340,18 @@ class _LienzoBarrasApiladas(GraficoBase):
                 y_base_seg -= alto_seg
 
             # Total sobre la barra (10 pt negrita)
-            if total_anio > 0 and prog >= 0.7:
+            if total_anio > 0 and prog >= 0.7 and anio in anios_etiquetados:
                 painter.setFont(fuente_total)
                 painter.setPen(QPen(QColor(TEXTO)))
                 rect_total = QRectF(x_centro - 24.0, y_base_seg - 18.0, 48.0, 16.0)
                 painter.drawText(rect_total, Qt.AlignmentFlag.AlignCenter, formatear_entero(total_anio))
 
             # Etiqueta del año en el eje X
-            painter.setFont(fuente_anio)
-            painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
-            rect_x_lbl = QRectF(x_centro - 26.0, area_grafico.bottom() + 6.0, 52.0, 16.0)
-            painter.drawText(rect_x_lbl, Qt.AlignmentFlag.AlignCenter, str(anio))
+            if anio in anios_etiquetados:
+                painter.setFont(fuente_anio)
+                painter.setPen(QPen(QColor(TEXTO_SECUNDARIO)))
+                rect_x_lbl = QRectF(x_centro - 26.0, area_grafico.bottom() + 6.0, 52.0, 16.0)
+                painter.drawText(rect_x_lbl, Qt.AlignmentFlag.AlignCenter, str(anio))
 
         # 3. Leyenda inferior con clic interactivo
         self._dibujar_leyenda(painter, rect, area_grafico.bottom() + 26.0)

@@ -82,6 +82,86 @@ def test_serie_anual_por_categoria_con_filtro_grupo() -> None:
         assert sum(serie_grupo[anio].values()) == conteo_esperado
 
 
+def test_filtro_institucional_asigna_grupo_multiafiliado_a_su_institucion_principal() -> None:
+    app = ServicioAplicacion()
+    catalogo = app._catalogo
+    catalogo.crear_grupo(
+        Grupo(
+            codigo_gruplac="GRP-FUNDACION",
+            nombre="Grupo afiliado a varias instituciones",
+            institucion_principal="Fundación Caribe",
+            detalles={
+                "origen": "GrupLAC",
+                "instituciones": [
+                    {"nombre": "Fundación Caribe"},
+                    {"nombre": "Universidad Popular del César - UPC"},
+                ],
+            },
+        ),
+        persistir=False,
+    )
+    catalogo.crear_grupo(
+        Grupo(
+            codigo_gruplac="GRP-UPC",
+            nombre="Grupo UPC",
+            institucion_principal="UPC",
+        ),
+        persistir=False,
+    )
+    catalogo.crear_grupo(
+        Grupo(
+            codigo_gruplac="GRP-UPC-ALT",
+            nombre="Grupo UPC con variación de nombre",
+            institucion_principal="UNIVERSIDAD POPULAR DEL CÉSAR.",
+        ),
+        persistir=False,
+    )
+    catalogo.crear_grupo(
+        Grupo(
+            codigo_gruplac="GRP-FUNDACION-ALT",
+            nombre="Grupo Fundación con variación de nombre",
+            institucion_principal="FUNDACION CARIBE",
+        ),
+        persistir=False,
+    )
+    catalogo.crear_producto(
+        Producto(
+            codigo_identificador="PROD-FUNDACION",
+            titulo="Producto de la Fundación",
+            tipo_mayor="GNC",
+            ano=2024,
+        ),
+        codigo_gruplac="GRP-FUNDACION",
+        persistir=False,
+    )
+    catalogo.crear_producto(
+        Producto(
+            codigo_identificador="PROD-UPC",
+            titulo="Producto de UPC",
+            tipo_mayor="GNC",
+            ano=2024,
+        ),
+        codigo_gruplac="GRP-UPC",
+        persistir=False,
+    )
+
+    assert app.codigos_grupos_institucion("Fundación Caribe") == (
+        "GRP-FUNDACION",
+        "GRP-FUNDACION-ALT",
+    )
+    assert app.codigos_grupos_institucion("Universidad Popular del Cesar") == (
+        "GRP-UPC",
+        "GRP-UPC-ALT",
+    )
+    assert app.opciones_instituciones() == ("Fundación Caribe", "Universidad Popular del Cesar")
+
+    filtro = FiltroAnios(modo=ModoFiltroAnios.TODOS)
+    resumen_fundacion = app.resumen_general(filtro, institucion="Fundación Caribe")
+    resumen_upc = app.resumen_general(filtro, institucion="Universidad Popular del Cesar")
+    assert resumen_fundacion["productos_totales"] == 1
+    assert resumen_upc["productos_totales"] == 1
+
+
 # =============================================================================
 # 2. RED DE COAUTORÍA
 # =============================================================================

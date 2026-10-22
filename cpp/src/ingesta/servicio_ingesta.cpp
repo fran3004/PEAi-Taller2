@@ -4,7 +4,10 @@
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QStringList>
+#include <chrono>
 #include <stdexcept>
+#include <thread>
+#include <utility>
 #include <QUuid>
 #include "pea/ingesta/lector_csv.hpp"
 #include "pea/ingesta/parser_html.hpp"
@@ -28,6 +31,26 @@ QString normalizar_formacion_cvlac(const QList<FormacionIngesta>& formacion) {
     if (nivel.contains(QStringLiteral("maestr"))) return QStringLiteral("Maestría");
     if (nivel.contains(QStringLiteral("especial"))) return QStringLiteral("Especialización");
     return QStringLiteral("Pregrado");
+}
+
+template <typename Operacion>
+auto ejecutar_con_reintento_revision(
+    servicios::CatalogoInvestigacion& catalogo,
+    Operacion&& operacion
+) -> decltype(operacion()) {
+    constexpr int max_intentos = 5;
+    for (int intento = 0; intento < max_intentos; ++intento) {
+        try {
+            return operacion();
+        } catch (const ConflictoRevision&) {
+            if (intento == max_intentos - 1) {
+                throw;
+            }
+            catalogo.sincronizar_revision();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50 * (1 << intento)));
+        }
+    }
+    throw std::runtime_error("La mutación de ingesta terminó sin resultado.");
 }
 
 } // namespace
@@ -186,11 +209,15 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
             if (!grupo_ing.instituciones.isEmpty()) g.institucion_principal = grupo_ing.instituciones[0].nombre;
             g.detalles = grupo_ing.a_json();
 
-            m_catalogo->crear_grupo(std::make_shared<dominio::Grupo>(g), persistir);
+            ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                return m_catalogo->crear_grupo(std::make_shared<dominio::Grupo>(g), persistir);
+            });
         } else {
             QJsonObject cambios;
             cambios[QStringLiteral("detalles")] = grupo_ing.a_json();
-            m_catalogo->actualizar_grupo(grupo_ing.codigo_gruplac, cambios, persistir);
+            ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                return m_catalogo->actualizar_grupo(grupo_ing.codigo_gruplac, cambios, persistir);
+            });
         }
 
         const QString fecha_grupo = m_catalogo->buscar_grupo(grupo_ing.codigo_gruplac)->fecha_creacion;
@@ -219,7 +246,9 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 investigador->sexo = QStringLiteral("No especificado");
                 investigador->categoria = QStringLiteral("Sin categoría / Vinculado");
                 investigador->formacion_academica = QStringLiteral("Pregrado");
-                m_catalogo->crear_investigador(investigador, persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_investigador(investigador, persistir);
+                });
             }
             const QString vinculacion = integrante.vinculacion;
             const QString vinculacion_lower = vinculacion.toLower();
@@ -246,16 +275,18 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 const int horas = integrante.horas_dedicacion.value_or(QString()).toInt(&ok);
                 QJsonObject detalles;
                 detalles[QStringLiteral("url_cvlac")] = integrante.url_cvlac;
-                m_catalogo->vincular_integrante(
-                    grupo_ing.codigo_gruplac,
-                    integrante.codigo_rh,
-                    rol,
-                    persistir,
-                    integrante.inicio_vinculacion.value_or(fecha_grupo),
-                    integrante.fin_vinculacion.value_or(QString()),
-                    vinculacion,
-                    ok ? horas : 0,
-                    detalles);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->vincular_integrante(
+                        grupo_ing.codigo_gruplac,
+                        integrante.codigo_rh,
+                        rol,
+                        persistir,
+                        integrante.inicio_vinculacion.value_or(fecha_grupo),
+                        integrante.fin_vinculacion.value_or(QString()),
+                        vinculacion,
+                        ok ? horas : 0,
+                        detalles);
+                });
             }
         }
 
@@ -289,7 +320,13 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 p.detalles[QStringLiteral("fuente")] = tarea.origen;
                 p.detalles[QStringLiteral("referencia_original")] = p_ing.detalles.value_or(QString());
                 if (p_ing.autores) p.detalles[QStringLiteral("autores")] = *p_ing.autores;
-                m_catalogo->crear_producto(std::make_shared<dominio::Producto>(p), grupo_ing.codigo_gruplac, {}, persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_producto(
+                        std::make_shared<dominio::Producto>(p),
+                        grupo_ing.codigo_gruplac,
+                        {},
+                        persistir);
+                });
             }
         }
     } else if (tipo == QStringLiteral("cvlac")) {
@@ -314,7 +351,12 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
         cambios_investigador[QStringLiteral("detalles")] = inv_ing.a_json();
 
         if (investigador_existente) {
-            m_catalogo->actualizar_investigador(inv_ing.codigo_rh, cambios_investigador, persistir);
+            ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                return m_catalogo->actualizar_investigador(
+                    inv_ing.codigo_rh,
+                    cambios_investigador,
+                    persistir);
+            });
         } else {
             auto investigador = std::make_shared<dominio::Investigador>();
             investigador->codigo_rh = inv_ing.codigo_rh;
@@ -326,7 +368,9 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
             investigador->formacion_academica = cambios_investigador[QStringLiteral("formacion_academica")].toString();
             investigador->par_evaluador = inv_ing.par_evaluador;
             investigador->detalles = inv_ing.a_json();
-            m_catalogo->crear_investigador(investigador, persistir);
+            ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                return m_catalogo->crear_investigador(investigador, persistir);
+            });
         }
 
         int prod_idx = 1;
@@ -358,7 +402,13 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 p.detalles[QStringLiteral("fuente")] = tarea.origen;
                 p.detalles[QStringLiteral("referencia_original")] = p_ing.detalles.value_or(QString());
                 if (p_ing.autores) p.detalles[QStringLiteral("autores")] = *p_ing.autores;
-                m_catalogo->crear_producto(std::make_shared<dominio::Producto>(p), QString(), {inv_ing.codigo_rh}, persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_producto(
+                        std::make_shared<dominio::Producto>(p),
+                        QString(),
+                        {inv_ing.codigo_rh},
+                        persistir);
+                });
             }
         }
     }
@@ -382,7 +432,9 @@ InformeIngesta ServicioIngesta::procesar_tarea_csv(estructuras::TareaIngesta& ta
         auto [grupos, errs] = LectorCSV::leer_grupos(tarea.origen);
         for (const auto& g : grupos) {
             if (!m_catalogo->buscar_grupo(g.codigo_gruplac)) {
-                m_catalogo->crear_grupo(std::make_shared<dominio::Grupo>(g), persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_grupo(std::make_shared<dominio::Grupo>(g), persistir);
+                });
                 informe.grupos_procesados++;
             }
         }
@@ -391,7 +443,11 @@ InformeIngesta ServicioIngesta::procesar_tarea_csv(estructuras::TareaIngesta& ta
         auto [invs, errs] = LectorCSV::leer_investigadores(tarea.origen);
         for (const auto& inv : invs) {
             if (!m_catalogo->buscar_investigador(inv.codigo_rh)) {
-                m_catalogo->crear_investigador(std::make_shared<dominio::Investigador>(inv), persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_investigador(
+                        std::make_shared<dominio::Investigador>(inv),
+                        persistir);
+                });
                 informe.investigadores_procesados++;
             }
         }
@@ -400,7 +456,13 @@ InformeIngesta ServicioIngesta::procesar_tarea_csv(estructuras::TareaIngesta& ta
         auto [prods, errs] = LectorCSV::leer_productos(tarea.origen);
         for (const auto& [p, grp_cod] : prods) {
             if (!m_catalogo->buscar_producto(p.codigo_identificador)) {
-                m_catalogo->crear_producto(std::make_shared<dominio::Producto>(p), grp_cod, {}, persistir);
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    return m_catalogo->crear_producto(
+                        std::make_shared<dominio::Producto>(p),
+                        grp_cod,
+                        {},
+                        persistir);
+                });
                 informe.productos_procesados++;
             }
         }

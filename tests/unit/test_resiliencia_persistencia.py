@@ -10,6 +10,7 @@ from pea.datos.sesion import Sesion
 from pea.dominio.grupo import Grupo
 from pea.dominio.producto import Producto
 from pea.excepciones import ConflictoRevision, ErrorAutenticacion, ErrorConexion, ErrorPEA
+from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 
 
@@ -112,6 +113,37 @@ def test_creacion_producto_reintenta_conflicto_p0001_de_supabase(monkeypatch: py
     assert producto.id == 42
     assert catalogo.controlador_revision.revision_local == 3
     assert len([call for call in responses.calls if call.request.url == producto_url]) == 2
+
+
+@responses.activate
+def test_ingesta_reintenta_conflictos_de_revision_antes_de_persistir(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cliente = ClienteHTTPSupabase("https://ejemplo.supabase.co", "anon-key")
+    catalogo = CatalogoInvestigacion(cliente=cliente)
+    ingesta = ServicioIngesta(catalogo)
+    revision_url = "https://ejemplo.supabase.co/rest/v1/rpc/obtener_revision_actual"
+    grupo_url = "https://ejemplo.supabase.co/rest/v1/grupos"
+
+    for revision in (2, 2, 3, 3, 3):
+        responses.add(responses.POST, revision_url, json=revision, status=200)
+    responses.add(
+        responses.POST,
+        grupo_url,
+        json=[{"id": 42, "codigo_gruplac": "GRP-RETRY-01", "nombre": "Grupo recuperado"}],
+        status=201,
+    )
+    monkeypatch.setattr("pea.ingesta.servicio_ingesta.time.sleep", lambda _: None)
+
+    grupo = Grupo(codigo_gruplac="GRP-RETRY-01", nombre="Grupo recuperado")
+    resultado = ingesta._ejecutar_con_reintento_revision(
+        lambda: catalogo.crear_grupo(grupo, persistir=True)
+    )
+
+    assert resultado.id == 42
+    assert catalogo.controlador_revision.revision_local == 4
+    assert len([call for call in responses.calls if call.request.url == revision_url]) == 5
+    assert len([call for call in responses.calls if call.request.url == grupo_url]) == 1
 
 
 def test_sesion_expirada_bloquea_operacion(monkeypatch: pytest.MonkeyPatch) -> None:

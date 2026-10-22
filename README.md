@@ -87,13 +87,18 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
 
 1. **Python**: Inicio → Grupos → Investigadores → Productos → Análisis de redes.
    En Inicio, use el selector de institución para limitar los indicadores, gráficas
-   y exportaciones a sus grupos; «Todas las instituciones» permite ver el panorama
-   completo. En Investigadores, filtre por grupo. Seleccione filas para ver fichas,
-   cambie filtros anuales y pruebe exportaciones.
+   y exportaciones a sus grupos; cada grupo se contabiliza bajo su afiliación
+   principal para que las afiliaciones secundarias no dupliquen los indicadores.
+   «Todas las instituciones» permite ver el panorama completo. En Investigadores,
+   filtre por grupo. Seleccione filas para ver fichas, cambie filtros anuales y
+   pruebe exportaciones.
 2. **Redes**: el grafo y el ranking muestran investigadores con coautorías; si
    los filtros no encuentran enlaces, se explica que no hay colaboraciones en ese
    ámbito en lugar de presentar nodos aislados como una red. El resumen conserva
    el total analizado y cuántos investigadores no tienen enlaces.
+   Los gráficos históricos espacian automáticamente las etiquetas de año cuando
+   hay muchos períodos; al pasar el cursor por cualquier barra se consulta su año
+   y sus valores completos.
 3. **C++**: use las pestañas y el mouse. En directorios, `/` busca; `n` crea;
    `e` edita; `t` activa/desactiva; `x` elimina con confirmación; `v` abre una ficha;
    `u` deshace; `r` recarga. Los formularios usan Tab, Enter y Escape. La búsqueda
@@ -109,10 +114,10 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
    ambas CLI procesa también esos perfiles antes de terminar. También puede
    importarse un enlace CvLAC directamente. Las tablas Python muestran 50 filas
    y los directorios C++ 12 registros por página (`[` / `]`). Ambas aplicaciones
-   consultan Supabase por rangos paginados. La creación de productos reintenta
-   brevemente ante conflictos concurrentes; si persisten, se detiene la cola en
-   lugar de continuar con una revisión desactualizada. Las fuentes remotas pueden
-   estar indisponibles.
+   consultan Supabase por rangos paginados. Las mutaciones de ingesta en Python y
+   C++ sincronizan la revisión y reintentan de forma acotada ante conflictos
+   concurrentes; si persisten, el error se propaga en lugar de continuar con una
+   revisión desactualizada. Las fuentes remotas pueden estar indisponibles.
 6. **Interoperabilidad**: en Configuración de Python ejecute la verificación
    cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
    escenarios sin red mediante ambas CLI.
