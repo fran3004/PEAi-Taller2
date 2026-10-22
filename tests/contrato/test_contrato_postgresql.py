@@ -5,7 +5,7 @@ Verifica:
 1. Conformidad sintáctica y estructural del archivo de migración SQL oficial.
 2. Presencia de id bigint identity, activo, es_ejemplo, creado_en, actualizado_en en entidades.
 3. Constraints de clave única, rangos (CHECK) e integridad referencial (FOREIGN KEY).
-4. Mecanismo de incremento de meta.revision por triggers por sentencia (FOR EACH STATEMENT).
+4. Mecanismo de incremento de meta.revision una vez por transacción, aunque varias tablas se modifiquen.
 5. Funciones RPC para transacciones atómicas con validación de revision_esperada.
 6. Políticas de seguridad Auth + RLS (anon denegado, authenticated autorizado).
 7. Semilla de datos de prueba exclusiva con prefijo PRUEBA- y es_ejemplo = true.
@@ -68,7 +68,7 @@ def test_entidades_dominio_columnas_obligatorias(contenido_migracion: str):
 
 
 def test_tabla_meta_y_mecanismo_revision(contenido_migracion: str):
-    """Verifica tabla meta y trigger de incremento de revisión por sentencia."""
+    """Verifica revisión única por transacción ante varios triggers de sentencia."""
     assert "create table if not exists public.meta" in contenido_migracion.lower()
     assert "revision bigint not null default 1" in contenido_migracion.lower()
     assert "check (id = 1)" in contenido_migracion.lower()
@@ -87,6 +87,8 @@ def test_tabla_meta_y_mecanismo_revision(contenido_migracion: str):
         patron_trg = r"FOR\s+EACH\s+STATEMENT\s+EXECUTE\s+FUNCTION\s+public\.fn_incrementar_meta_revision\(\)"
         assert re.search(patron_trg, contenido_migracion, re.IGNORECASE), \
             f"Falta trigger FOR EACH STATEMENT de revisión en {t}"
+    assert "current_setting('pea.revision_incrementada', true) = '1'" in contenido_migracion
+    assert "set_config('pea.revision_incrementada', '1', true)" in contenido_migracion
 
 
 def test_constraints_e_indices_normativos(contenido_migracion: str):

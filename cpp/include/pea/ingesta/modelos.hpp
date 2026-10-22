@@ -312,6 +312,7 @@ struct InformeIngesta {
     QString fecha;
     bool exito{true};
     QString mensaje;
+    bool requiere_recarga{false};
     int grupos_procesados{0};
     int investigadores_procesados{0};
     int productos_procesados{0};

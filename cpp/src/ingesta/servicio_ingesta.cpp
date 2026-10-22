@@ -1,4 +1,5 @@
 #include "pea/ingesta/servicio_ingesta.hpp"
+#include "pea/excepciones.hpp"
 #include <QDate>
 #include <QDateTime>
 #include <QRegularExpression>
@@ -123,6 +124,7 @@ std::optional<InformeIngesta> ServicioIngesta::procesar_siguiente() {
         err_inf.fecha = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
         err_inf.exito = false;
         err_inf.mensaje = QStringLiteral("Error durante la ingesta: %1").arg(QString::fromStdString(e.what()));
+        err_inf.requiere_recarga = dynamic_cast<const ConflictoRevision*>(&e) != nullptr;
         err_inf.advertencias.append(QString::fromStdString(e.what()));
         return err_inf;
     }
@@ -134,6 +136,9 @@ QList<InformeIngesta> ServicioIngesta::procesar_todas() {
         auto inf = procesar_siguiente();
         if (inf.has_value()) {
             resultados.append(*inf);
+            if (inf->requiere_recarga) {
+                break;
+            }
         }
     }
     return resultados;

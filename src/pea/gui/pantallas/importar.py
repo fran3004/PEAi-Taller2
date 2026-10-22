@@ -621,13 +621,14 @@ class PantallaImportar(QWidget):
 
         self._establecer_estado_procesando(True)
 
-        def trabajo() -> tuple[int, int, int, int, int, int]:
+        def trabajo() -> tuple[int, int, int, int, int, int, bool]:
             procesadas = 0
             grupos = 0
             investigadores = 0
             productos = 0
             autores = 0
             filas_erroneas = 0
+            requiere_recarga = False
             while self.servicio.tareas_pendientes() > 0:
                 res = self.servicio.procesar_siguiente_tarea()
                 procesadas += 1
@@ -637,20 +638,32 @@ class PantallaImportar(QWidget):
                     productos += int(res.get("productos", 0))
                     autores += int(res.get("autores", 0))
                     filas_erroneas += int(res.get("filas_erroneas", 0))
-            return procesadas, grupos, investigadores, productos, autores, filas_erroneas
+                    if res.get("requiere_recarga"):
+                        requiere_recarga = True
+                        break
+            return procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga
 
-        def al_terminar(datos: tuple[int, int, int, int, int, int]) -> None:
+        def al_terminar(datos: tuple[int, int, int, int, int, int, bool]) -> None:
             self._establecer_estado_procesando(False)
             self.refrescar()
             self.datos_modificados.emit()
-            procesadas, grupos, investigadores, productos, autores, filas_erroneas = datos
+            procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga = datos
             msg = (
                 f"Se procesaron {procesadas} tareas.\n"
                 f"Grupos: {grupos} · Investigadores: {investigadores} · "
                 f"Productos: {productos} · Autores: {autores}\n"
                 f"Filas con errores: {filas_erroneas}"
             )
-            self._notificar_aviso(msg, titulo="Cola Procesada", exito=True)
+            if requiere_recarga:
+                msg += (
+                    "\nLa cola se detuvo para proteger la base de datos. "
+                    "Recargue los datos y vuelva a encolar la tarea que falló."
+                )
+            self._notificar_aviso(
+                msg,
+                titulo="Cola detenida por conflicto" if requiere_recarga else "Cola Procesada",
+                exito=not requiere_recarga,
+            )
 
         def al_fallar(err: Exception, detalle: str) -> None:
             self._establecer_estado_procesando(False)

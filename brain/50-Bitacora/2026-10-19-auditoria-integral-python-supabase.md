@@ -124,7 +124,7 @@ Los repositorios de grupos e investigadores, y las rutas REST equivalentes, devu
 
 La creacion de producto en RPC inserta el producto, la relacion con el grupo y cada relacion de autor en instrucciones separadas. Los triggers locales incrementan `meta.revision` por sentencia; el servicio, en cambio, suma exactamente uno a la revision local al terminar. Una creacion con grupo y varios autores puede dejar al cliente con una revision menor que la remota.
 
-**Correccion sugerida:** devolver la revision resultante desde la RPC (o releerla de forma fiable) y actualizar el estado local con ese valor; no inferirla como `revision_anterior + 1`.
+**Corrección aplicada en migración 008:** los triggers incrementan `meta.revision` una sola vez por transacción aunque un RPC ejecute varias sentencias en tablas relacionadas. De este modo, el incremento local de una unidad vuelve a coincidir con una escritura transaccional. Si una escritura externa causa un conflicto real, Python y C++ detienen el procesamiento masivo de la cola y preservan las tareas que aún no se ejecutaron.
 
 ### F-08 · Desacuerdo entre dominio y esquema
 

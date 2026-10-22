@@ -1101,8 +1101,10 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                 int errores = 0;
                 int filas_erroneas = 0;
                 bool con_advertencias = false;
+                bool requiere_recarga = false;
                 for (const auto& informe : informes) {
                     if (!informe.exito) ++errores;
+                    requiere_recarga = requiere_recarga || informe.requiere_recarga;
                     procesados += informe.grupos_procesados +
                                   informe.investigadores_procesados +
                                   informe.productos_procesados +
@@ -1125,6 +1127,10 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                 }
                 if (errores > 0) {
                     mensaje_estado = "Importación parcial. " + mensaje_estado;
+                }
+                if (requiere_recarga) {
+                    mensaje_estado +=
+                        " Presione r para recargar y vuelva a encolar la tarea interrumpida.";
                 }
                 accion_formulario = 0;
             } catch (const std::exception& error) {

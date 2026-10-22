@@ -248,6 +248,7 @@ class InformeIngesta(BaseModel):
     fecha: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     exito: bool = True
     mensaje: str = ""
+    requiere_recarga: bool = False
     grupos_procesados: int = 0
     investigadores_procesados: int = 0
     productos_procesados: int = 0
