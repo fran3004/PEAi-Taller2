@@ -111,7 +111,13 @@ def _mensaje_validacion(err: ValidationError) -> str:
     partes = []
     for e in err.errors():
         campo = ".".join(str(x) for x in e.get("loc", ()))
-        partes.append(f"campo «{campo}» inválido o vacío")
+        msg = e.get("msg", "")
+        if msg.startswith("Value error, "):
+            msg = msg.removeprefix("Value error, ")
+        if msg and msg != "Field required":
+            partes.append(f"campo «{campo}»: {msg}")
+        else:
+            partes.append(f"campo «{campo}» inválido o vacío")
     return "Datos inválidos: " + "; ".join(partes)
 
 

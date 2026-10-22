@@ -83,6 +83,23 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
    - Comando: `.\dist\PEAi-Windows-x64\PEAi-Python\pea-cli.exe --verificar-cruzada`
    - Resultado: 3 de 3 comprobaciones coincidentes (versión de aplicación, resumen JSON canónico y mutaciones/deshacer).
 
+## Corrección 1: Validación de rango de año en entidad Producto (esquema Supabase)
+
+- **Problema:** En `src/pea/dominio/producto.py`, la entidad `Producto` aceptaba cualquier año (por ejemplo 1800), fallando únicamente en persistencia si Supabase rechazaba el valor por la restricción `CHECK (ano >= 1970 AND ano <= 2100)`.
+- **Acciones realizadas:**
+  1. **TDD:** Se crearon pruebas unitarias en `tests/unit/test_dominio_producto.py` reproduciendo la falla con años 1800, 1969 y 2101, validando aceptación de 1970 y 2100, y rechazo de tipos no enteros o booleanos (`True`/`False`).
+  2. **Modelo de dominio:** Se definieron las constantes `ANO_MINIMO_BASE = 1970` y `ANO_MAXIMO_BASE = 2100` (`ANO_MINIMO_PRODUCTO` / `ANO_MAXIMO_PRODUCTO`), y se añadió `@field_validator("ano", mode="before")` en `Producto` alineado con la base de datos sin restringir al año actual en el modelo. Se conservó `validar_ano_producto` con el límite del año actual para flujos de ingesta/importación.
+  3. **Manejo en GUI / Servicio de Aplicación:** Se mejoró `_mensaje_validacion` en `servicio_aplicacion.py` para traducir `ValidationError` de Pydantic a `ErrorValidacion` con mensajes amables y claros en español ante formularios con campos inválidos.
+  4. **Paridad Python/C++:** Se verificó que en C++ `validar_ano_producto` valida enteros y el rango 1970 a año actual en el catálogo, mientras `Producto` en Python valida contra el esquema de base de datos (1970-2100). Se añadió prueba de paridad de casos compartidos en `test_dominio_producto.py`.
+- **Resultados de validación:**
+  - `ruff check .`: Limpio (0 errores).
+  - `pytest -m "not red"`: 332 aprobadas, 3 omitidas.
+  - C++ build y CTest: 100% aprobado (62 casos doctest, 862 aserciones).
+  - `pea-cpp --autoprueba`: 0 hallazgos en 32 pantallas.
+  - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
+  - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
+
 ## Próximos pasos
 
-Iniciar la resolución progresiva de los hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD (reproducir con prueba que falle, aplicar cambio mínimo, verificar paridad y confirmar suite completa).
+Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.
+
