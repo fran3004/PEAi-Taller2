@@ -574,9 +574,8 @@ class CatalogoInvestigacion:
             try:
                 grupo_id = grupo.id if grupo else None
                 inv_ids = [inv.id for inv in autores if inv.id is not None]
-                for intento in range(3):
+                for intento in range(6):
                     try:
-                        self.controlador_revision.verificar_consistencia(self.cliente)
                         prod_id = self.repo_productos.crear_con_rpc(
                             producto,
                             grupo_id=grupo_id,
@@ -585,10 +584,10 @@ class CatalogoInvestigacion:
                         )
                         break
                     except ConflictoRevision as err:
-                        if err.mensaje != "La base de datos cambió" or intento == 2:
+                        if err.mensaje != "La base de datos cambió" or intento == 5:
                             raise
                         self.controlador_revision.sincronizar(self.cliente)
-                        time.sleep(0.05 * (2**intento))
+                        time.sleep(min(0.1 * (2**intento), 1.6))
                 if prod_id > 0:
                     producto.id = prod_id
                 self.controlador_revision.actualizar_local(self.controlador_revision.revision_local + 1)

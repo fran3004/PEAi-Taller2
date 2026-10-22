@@ -339,7 +339,7 @@ std::pair<estructuras::ListaDoble<dominio::Grupo>, QList<QString>> LectorCSV::le
             g.codigo_gruplac = f[idx_cod].trimmed();
             g.nombre = f[idx_nom].trimmed();
             if (idx_cat != -1 && idx_cat < f.size()) g.categoria = f[idx_cat].trimmed();
-            g.institucion_principal = (idx_inst != -1 && idx_inst < f.size()) ? f[idx_inst].trimmed() : QStringLiteral("Universidad Popular del Cesar");
+            g.institucion_principal = (idx_inst != -1 && idx_inst < f.size()) ? f[idx_inst].trimmed() : QStringLiteral("Sin institución informada");
             if (idx_lid != -1 && idx_lid < f.size()) g.lider = f[idx_lid].trimmed();
             g.pais = valor_columna(f, mapa_col, QStringLiteral("pais")).value_or(QStringLiteral("Colombia"));
             g.departamento_ciudad = valor_columna(f, mapa_col, QStringLiteral("departamento_ciudad")).value_or(QString());

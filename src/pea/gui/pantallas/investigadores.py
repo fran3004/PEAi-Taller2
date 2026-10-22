@@ -786,8 +786,13 @@ class PantallaInvestigadores(QWidget):
 
         # Combo Grupo
         self.combo_grupo = QComboBox(contenedor_filtros)
-        self.combo_grupo.setMinimumWidth(0)
-        self.combo_grupo.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.combo_grupo.setObjectName("comboGrupoInvestigadores")
+        self.combo_grupo.setMinimumWidth(150)
+        self.combo_grupo.setMinimumContentsLength(14)
+        self.combo_grupo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.combo_grupo.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.combo_grupo.setAccessibleName("Filtrar investigadores por grupo")
+        self.combo_grupo.setToolTip("Mostrar investigadores de un grupo específico")
         self.combo_grupo.addItem("Todos los grupos")
         self.combo_grupo.currentTextChanged.connect(self._al_cambiar_combo_grupo)
         layout_f.addWidget(self.combo_grupo)

@@ -267,6 +267,34 @@ def test_pantalla_redes_filtros_reactivos(
     qapp.processEvents()
 
     total_inicial = len(pantalla.vista_red.items_nodos)
+    red_conectada = {
+        "nodos": [
+            {
+                "codigo": f"INV-FILTRO-{i}",
+                "nombre": f"Investigador {i}",
+                "grado": 1,
+                "intermediacion": 0.0,
+            }
+            for i in range(2)
+        ],
+        "aristas": [
+            {
+                "origen": "INV-FILTRO-0",
+                "destino": "INV-FILTRO-1",
+                "peso": 1,
+            }
+        ],
+        "resumen": {
+            "investigadores": 2,
+            "investigadores_con_coautorias": 2,
+            "investigadores_sin_coautorias": 0,
+            "vinculos": 1,
+        },
+    }
+    if not total_inicial:
+        assert "no hay coautorías" in pantalla.vista_red._estado_vacio.text().lower()
+        pantalla._al_grafo_cargado(red_conectada)
+        total_inicial = len(pantalla.vista_red.items_nodos)
 
     # Subir mínimo de coautorías a 5
     idx_5 = pantalla.combo_min_coautorias.findData(5)
@@ -277,6 +305,7 @@ def test_pantalla_redes_filtros_reactivos(
         assert len(pantalla.vista_red.items_nodos) <= total_inicial
 
     # Buscar por texto
+    pantalla._al_grafo_cargado(red_conectada)
     nodo_codigo = next(iter(pantalla.vista_red.items_nodos.keys()))
     nodo_item = pantalla.vista_red.items_nodos[nodo_codigo]
     pantalla._al_buscar_investigador(nodo_item.nombre[:5])
@@ -300,13 +329,16 @@ def test_pantalla_redes_banner_limite_400(
 
     # Simular una red con 450 nodos
     nodos_ficticios = [{"codigo": f"INV-{i}", "nombre": f"Inv {i}", "grado": 1, "intermediacion": 0.0} for i in range(450)]
-    aristas_ficticias: list[dict[str, Any]] = []
+    aristas_ficticias: list[dict[str, Any]] = [
+        {"origen": f"INV-{i}", "destino": f"INV-{i + 1}", "peso": 1}
+        for i in range(449)
+    ]
     red_ficticia = {
         "nodos": nodos_ficticios,
         "aristas": aristas_ficticias,
         "resumen": {
             "investigadores": 450,
-            "vinculos": 0,
+            "vinculos": len(aristas_ficticias),
             "densidad": 0.01,
         },
     }
@@ -350,4 +382,3 @@ def test_pantalla_redes_filtro_inicial_y_demostracion(
     assert pantalla.btn_zoom_mas.accessibleName() == "Acercar lienzo"
     assert pantalla.btn_zoom_menos.accessibleName() == "Alejar lienzo"
     assert pantalla.btn_zoom_ajustar.accessibleName() == "Ajustar vista"
-

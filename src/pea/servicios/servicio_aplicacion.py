@@ -18,7 +18,8 @@ import datetime
 import json
 import os
 import platform
-from collections.abc import Callable
+import re
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -27,7 +28,7 @@ from pydantic import ValidationError
 from pea.cliente_http import ClienteHTTPSupabase
 from pea.datos.configuracion_portable import leer_configuracion_portable
 from pea.datos.sesion import Sesion
-from pea.dominio.grupo import Grupo
+from pea.dominio.grupo import INSTITUCION_SIN_INFORMACION, Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto, validar_ano_producto
 from pea.estructuras.cola import EstadoTarea, TareaIngesta
@@ -93,8 +94,6 @@ _CAMPOS_EDITABLES_PRODUCTO = (
     "estado_validacion",
     "codigo_grupo",
 )
-
-
 def _limpiar(datos: dict[str, Any]) -> dict[str, Any]:
     """Recorta textos y convierte cadenas vacías en None."""
     limpio: dict[str, Any] = {}
@@ -647,30 +646,104 @@ class ServicioAplicacion:
     def opciones_grupos(self) -> tuple[tuple[str, str], ...]:
         return tuple((g.codigo_gruplac, g.nombre) for g in self._catalogo.grupos)
 
+    @staticmethod
+    def _normalizar_nombre_institucion(nombre: str) -> str:
+        nombre = re.sub(r"^\s*\d+\s*[\.\)\-]+\s*", "", nombre).strip()
+        nombre = re.sub(r"\s*\((?:no\s+)?avalad[oa]\)\s*$", "", nombre, flags=re.IGNORECASE)
+        return " ".join(nombre.split())
+
+    def _instituciones_grupo(self, grupo: Any) -> tuple[str, ...]:
+        detalles = grupo.detalles if isinstance(grupo.detalles, dict) else {}
+        instituciones = detalles.get("instituciones")
+        nombres: list[str] = []
+        if isinstance(instituciones, list):
+            for institucion in instituciones:
+                nombre = institucion.get("nombre") if isinstance(institucion, dict) else institucion
+                if isinstance(nombre, str):
+                    normalizado = self._normalizar_nombre_institucion(nombre)
+                    if normalizado and normalizado not in nombres:
+                        nombres.append(normalizado)
+
+        if nombres:
+            return tuple(nombres)
+        if detalles.get("origen") == "GrupLAC":
+            return (INSTITUCION_SIN_INFORMACION,)
+
+        principal = self._normalizar_nombre_institucion(str(grupo.institucion_principal or ""))
+        if not principal or principal.casefold() == INSTITUCION_SIN_INFORMACION.casefold():
+            return (INSTITUCION_SIN_INFORMACION,)
+        return (principal,)
+
+    def opciones_instituciones(self) -> tuple[str, ...]:
+        """Instituciones avaladoras disponibles; los grupos sin dato quedan separados."""
+        instituciones = {
+            institucion
+            for grupo in self._catalogo.grupos
+            for institucion in self._instituciones_grupo(grupo)
+        }
+        return tuple(sorted(instituciones, key=str.casefold))
+
+    def codigos_grupos_institucion(self, institucion: str) -> tuple[str, ...]:
+        return tuple(
+            grupo.codigo_gruplac
+            for grupo in self._catalogo.grupos
+            if institucion in self._instituciones_grupo(grupo)
+        )
+
     def opciones_investigadores(self) -> tuple[tuple[str, str], ...]:
         return tuple((i.codigo_rh, i.nombre_completo) for i in self._catalogo.investigadores)
 
     def descripcion_filtro(self, filtro: FiltroAnios) -> str:
         return filtro.descripcion(self._anio_actual())
 
-    def resumen_general(self, filtro: FiltroAnios) -> dict[str, Any]:
+    def resumen_general(
+        self,
+        filtro: FiltroAnios,
+        institucion: str | None = None,
+    ) -> dict[str, Any]:
         cat = self._catalogo
         inicio, fin, modelo = self._rango(filtro)
+        codigos_grupos = (
+            self.codigos_grupos_institucion(institucion)
+            if institucion is not None
+            else None
+        )
+        grupos_ambito = (
+            [g for g in cat.grupos if g.codigo_gruplac in codigos_grupos]
+            if codigos_grupos is not None
+            else list(cat.grupos)
+        )
+        codigos_investigadores = {
+            m.codigo_rh
+            for m in cat.integrantes
+            if codigos_grupos is None or m.codigo_gruplac in codigos_grupos
+        }
         vista = cat.estadisticas.obtener_vista_institucional(
             modelo_2024=modelo,
             anio_inicio=inicio,
             anio_fin=fin,
-            codigos_investigadores=(i.codigo_rh for i in cat.investigadores),
+            codigos_investigadores=codigos_investigadores,
+            codigos_grupos=codigos_grupos,
         )
         top_inv = tuple((c, self._nombre_investigador(c), n) for c, n in vista["top_5_investigadores"])
         top_grp = tuple((c, self._nombre_grupo(c), n) for c, n in vista["top_5_grupos"])
+        codigos_inv_ambito = codigos_investigadores
+        if codigos_grupos is None:
+            codigos_inv_ambito = {i.codigo_rh for i in cat.investigadores}
         return {
             "filtro": self.descripcion_filtro(filtro),
-            "grupos_activos": sum(1 for g in cat.grupos if g.activo),
-            "grupos_totales": len(cat.grupos),
-            "investigadores_activos": sum(1 for i in cat.investigadores if i.activo),
-            "investigadores_totales": len(cat.investigadores),
-            "productos_totales": len(cat.multilista_productos),
+            "institucion": institucion,
+            "grupos_activos": sum(1 for g in grupos_ambito if g.activo),
+            "grupos_totales": len(grupos_ambito),
+            "investigadores_activos": sum(
+                1
+                for i in cat.investigadores
+                if i.activo and i.codigo_rh in codigos_inv_ambito
+            ),
+            "investigadores_totales": len(codigos_inv_ambito),
+            "productos_totales": cat.hipercubo.subcubo_por_ventana(
+                grupos=set(codigos_grupos) if codigos_grupos is not None else None
+            ).total_productos_unicos(),
             "total_productos": vista["total_productos"],
             "promedio_por_investigador": vista["promedio_por_investigador"],
             "productos_por_anio": dict(vista["productos_por_anio"]),
@@ -689,7 +762,7 @@ class ServicioAplicacion:
                 filas=tuple((c, nom, n) for c, nom, n in top_grp),
                 claves=tuple(c for c, _, _ in top_grp),
             ),
-            "hay_datos": vista["total_productos"] > 0,
+            "hay_datos": bool(grupos_ambito or codigos_inv_ambito),
         }
 
     def vista_grupo(self, codigo: str, filtro: FiltroAnios) -> dict[str, Any]:
@@ -698,6 +771,15 @@ class ServicioAplicacion:
         if grupo is None:
             raise RecursoNoEncontrado(f"Grupo {codigo} no encontrado")
         inicio, fin, modelo = self._rango(filtro)
+        instituciones = self._instituciones_grupo(grupo)
+        codigos_grupos_institucion = tuple(
+            sorted({
+                codigo_relacionado
+                for institucion in instituciones
+                if institucion != INSTITUCION_SIN_INFORMACION
+                for codigo_relacionado in self.codigos_grupos_institucion(institucion)
+            })
+        ) or (codigo,)
         vista = cat.estadisticas.obtener_vista_grupo(
             codigo,
             modelo_2024=modelo,
@@ -706,6 +788,7 @@ class ServicioAplicacion:
             codigos_investigadores=(
                 m.codigo_rh for m in cat.integrantes if m.codigo_gruplac == codigo
             ),
+            codigos_grupos_institucion=codigos_grupos_institucion,
         )
         conteo_inv = {k: v for k, v in vista["investigadores"].items() if k != "SIN_INVESTIGADOR"}
         integrantes = [m for m in cat.integrantes if m.codigo_gruplac == codigo]
@@ -861,6 +944,7 @@ class ServicioAplicacion:
         self,
         filtro: FiltroAnios,
         codigo_grupo: str | None = None,
+        codigos_grupos: Iterable[str] | None = None,
     ) -> dict[int, dict[str, int]]:
         """Calcula la matriz año × tipología (GNC, DTI, ASC, FRH) desde el hipercubo con rebanada y enrollar."""
         cat = self._catalogo
@@ -869,6 +953,8 @@ class ServicioAplicacion:
             if grp is None:
                 raise RecursoNoEncontrado(f"Grupo {codigo_grupo} no encontrado")
             cubo_base = cat.hipercubo.rebanada(Hipercubo5D.DIM_GRUPO, codigo_grupo)
+        elif codigos_grupos is not None:
+            cubo_base = cat.hipercubo.subcubo_por_ventana(grupos=set(codigos_grupos))
         else:
             cubo_base = cat.hipercubo
 
@@ -886,6 +972,7 @@ class ServicioAplicacion:
         filtro: FiltroAnios,
         codigo_grupo: str | None = None,
         min_coautorias: int = 2,
+        codigos_grupos: Iterable[str] | None = None,
     ) -> dict[str, Any]:
         """Calcula el grafo de coautorías y sus métricas topológicas desde la Multilista.
 
@@ -901,9 +988,14 @@ class ServicioAplicacion:
                 raise RecursoNoEncontrado(f"Grupo {codigo_grupo} no encontrado")
 
         candidate_nodes: set[str] = set()
+        codigos_grupos_filtro = set(codigos_grupos) if codigos_grupos is not None else None
         if codigo_grupo:
             for m in cat.integrantes:
                 if m.codigo_gruplac == codigo_grupo:
+                    candidate_nodes.add(m.codigo_rh)
+        elif codigos_grupos_filtro is not None:
+            for m in cat.integrantes:
+                if m.codigo_gruplac in codigos_grupos_filtro:
                     candidate_nodes.add(m.codigo_rh)
 
         pesos: dict[tuple[str, str], int] = {}
@@ -915,6 +1007,8 @@ class ServicioAplicacion:
                 continue
             cod_grp = getattr(nodo.grupo, "codigo_gruplac", None)
             if codigo_grupo and cod_grp != codigo_grupo:
+                continue
+            if codigos_grupos_filtro is not None and cod_grp not in codigos_grupos_filtro:
                 continue
 
             autores_rh = sorted(
@@ -939,8 +1033,11 @@ class ServicioAplicacion:
 
         aristas.sort(key=lambda e: (-e["productos_compartidos"], e["origen"], e["destino"]))
 
+        nodos_con_aristas = {codigo for vecinos_nodo in vecinos.values() for codigo in vecinos_nodo}
+        nodos_sin_aristas = len(candidate_nodes - nodos_con_aristas)
+
         # Algoritmo de Brandes para intermediación (Betweenness Centrality)
-        V = sorted(list(candidate_nodes))
+        V = sorted(nodos_con_aristas)
         n = len(V)
         cb: dict[str, float] = {v: 0.0 for v in V}
         for s in V:
@@ -974,10 +1071,13 @@ class ServicioAplicacion:
 
         cb = {v: cb[v] / 2.0 for v in V}
         norm_factor = 2.0 / ((n - 1) * (n - 2)) if n > 2 else 0.0
-        cb_norm = {v: round(cb[v] * norm_factor, 4) if n > 2 else 0.0 for v in V}
+        cb_norm = {
+            v: round(cb.get(v, 0.0) * norm_factor, 4) if n > 2 else 0.0
+            for v in candidate_nodes
+        }
 
         nodos: list[dict[str, Any]] = []
-        for u in V:
+        for u in sorted(candidate_nodes):
             inv = cat.buscar_investigador(u)
             nombre = inv.nombre_completo if inv else u
             cat_inv = inv.categoria if inv and inv.categoria else "Sin categoría"
@@ -1004,9 +1104,12 @@ class ServicioAplicacion:
             "nodos": tuple(nodos),
             "aristas": tuple(aristas),
             "resumen": {
-                "investigadores": n,
+                "investigadores": len(candidate_nodes),
+                "investigadores_con_coautorias": len(nodos_con_aristas),
                 "vinculos": len(aristas),
                 "densidad": densidad,
+                "investigadores_sin_coautorias": nodos_sin_aristas,
+                "investigadores_analizados": len(candidate_nodes),
             },
         }
 

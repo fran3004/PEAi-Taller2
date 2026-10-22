@@ -113,23 +113,31 @@ class MiniRed(GraficoBase):
         self._nodos_geom: list[_NodoMiniRed] = []
         self._aristas_indices: list[tuple[int, int, int]] = []
         self._nodo_hover: _NodoMiniRed | None = None
+        self._nodos_sin_coautorias = 0
 
         if self._datos_nodos:
             self._preparar_grafo()
 
     def esta_vacio(self) -> bool:
-        return len(self._datos_nodos) == 0
+        return len(self._aristas_indices) == 0
 
     def establecer_datos(
         self,
         nodos: list[dict[str, Any]],
         aristas: list[dict[str, Any]],
+        investigadores_sin_coautorias: int = 0,
     ) -> None:
         """Configura los nodos y aristas de la mini red con animación."""
         self._datos_nodos = list(nodos)
         self._datos_aristas = list(aristas)
+        self._nodos_sin_coautorias = max(0, investigadores_sin_coautorias)
         self._nodo_hover = None
         self._preparar_grafo()
+        self.subtitulo = (
+            f"{self._nodos_sin_coautorias} investigadores sin coautorías omitidos"
+            if self._nodos_sin_coautorias
+            else "Principales coautorías entre investigadores"
+        )
         self._iniciar_animacion(duracion_ms=450)
 
     def _preparar_grafo(self) -> None:
@@ -139,11 +147,30 @@ class MiniRed(GraficoBase):
             self._aristas_indices = []
             return
 
-        # Ordenar por grado descendente y tomar hasta 18
+        codigos_con_aristas = {
+            str(codigo)
+            for arista in self._datos_aristas
+            for codigo in (arista.get("origen", ""), arista.get("destino", ""))
+        }
+        nodos_conectados = [
+            nodo for nodo in self._datos_nodos if str(nodo.get("codigo", "")) in codigos_con_aristas
+        ]
+        if not nodos_conectados:
+            self._nodos_sin_coautorias = max(self._nodos_sin_coautorias, len(self._datos_nodos))
+            self.subtitulo = (
+                f"Se analizaron {self._nodos_sin_coautorias} investigadores sin encontrar coautorías"
+                if self._nodos_sin_coautorias
+                else "No hay datos de colaboración para los filtros seleccionados"
+            )
+            self._nodos_geom = []
+            self._aristas_indices = []
+            self._nodos_seleccionados = []
+            return
+
+        # Ordenar por grado descendente y tomar hasta 18 nodos conectados
         nodos_ordenados = sorted(
-            self._datos_nodos,
-            key=lambda n: (n.get("grado", 0), n.get("nombre", "")),
-            reverse=True,
+            nodos_conectados,
+            key=lambda n: (-int(n.get("grado", 0)), str(n.get("nombre", "")).casefold(), str(n.get("codigo", ""))),
         )[:18]
 
         codigos_presentes = {n["codigo"]: idx for idx, n in enumerate(nodos_ordenados)}
@@ -276,7 +303,12 @@ class MiniRed(GraficoBase):
 
         if self.esta_vacio():
             rect_vacio = rect.adjusted(margen, alto_encabezado + 10, -margen, -margen)
-            self.dibujar_estado_vacio(painter, rect_vacio, "Sin red de coautoría", "Prueba con otro grupo o filtro")
+            self.dibujar_estado_vacio(
+                painter,
+                rect_vacio,
+                "Sin red de coautoría",
+                self.subtitulo or "Prueba con otro grupo o filtro",
+            )
             return
 
         area_red = QRectF(

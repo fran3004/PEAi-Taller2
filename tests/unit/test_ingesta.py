@@ -192,6 +192,29 @@ class TestExtractorURL:
         csv_archivos = extractor.exportar_a_csv_canonico(tmp_path / "csv", investigador=inv)
         assert Path(csv_archivos["investigadores_csv"]).exists()
 
+    def test_csv_canonico_relaciona_autores_con_productos_emitidos(self, tmp_path: Path):
+        """Los vínculos de autoría deben apuntar a los códigos reales de productos."""
+        investigador = InvestigadorIngesta(
+            codigo_rh="0000494917",
+            origen=MetadatosOrigen(
+                url="https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917",
+                sha256="fixture",
+            ),
+            articulos=[ProductoIngesta(tipo="Artículo", titulo="Artículo de prueba", ano=2024)],
+            libros=[ProductoIngesta(tipo="Libro", titulo="Libro de prueba", ano=2022)],
+        )
+        extractor = ExtractorURL(cache_dir=tmp_path)
+
+        archivos = extractor.exportar_a_csv_canonico(tmp_path / "csv", investigador=investigador)
+
+        with Path(archivos["productos_csv"]).open(encoding="utf-8", newline="") as archivo:
+            codigos_productos = {fila["codigo_identificador"] for fila in csv.DictReader(archivo)}
+        with Path(archivos["autores_csv"]).open(encoding="utf-8", newline="") as archivo:
+            codigos_autoria = {fila["producto_codigo"] for fila in csv.DictReader(archivo)}
+
+        assert len(codigos_productos) == 2
+        assert codigos_autoria == codigos_productos
+
     @pytest.mark.red
     def test_conexion_real_scienti_red(self, tmp_path: Path):
         """Prueba real de scraping marcada con 'red' que consulta scienti.minciencias.gov.co."""

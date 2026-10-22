@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+INSTITUCION_SIN_INFORMACION = "Sin institución informada"
+
 
 class Grupo(BaseModel):
     """Modelo conceptual de Grupo de Investigación según Minciencias y GrupLAC."""
@@ -17,7 +19,7 @@ class Grupo(BaseModel):
     pais: str = "Colombia"
     departamento_ciudad: str | None = None
     lider: str | None = None
-    institucion_principal: str = "Universidad Popular del Cesar"
+    institucion_principal: str = INSTITUCION_SIN_INFORMACION
     gran_area_ocde: str | None = None
     area_ocde: str | None = None
     categoria: str | None = None  # A1, A, B, C, Reconocido

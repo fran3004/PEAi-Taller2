@@ -726,9 +726,8 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
         try {
             std::optional<qint64> gid = grupo ? grupo->id : std::nullopt;
             qint64 prod_id = 0;
-            for (int intento = 0; intento < 3; ++intento) {
+            for (int intento = 0; intento < 6; ++intento) {
                 try {
-                    controlador_revision.verificar_consistencia(*m_cliente);
                     prod_id = m_repo_productos->crear_con_rpc(
                         *producto,
                         gid,
@@ -737,11 +736,11 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
                     );
                     break;
                 } catch (const ConflictoRevision& error) {
-                    if (error.mensaje() != "La base de datos cambió" || intento == 2) {
+                    if (error.mensaje() != "La base de datos cambió" || intento == 5) {
                         throw;
                     }
                     controlador_revision.sincronizar(*m_cliente);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(50 * (1 << intento)));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100 * (1 << intento)));
                 }
             }
             if (prod_id <= 0) {

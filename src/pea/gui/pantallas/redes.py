@@ -615,6 +615,7 @@ class PantallaRedes(QWidget):
             "Investigadores: 0\nEnlaces de coautoría: 0\nDensidad: 0,0000",
             self._tarjeta_resumen_red,
         )
+        self.lbl_resumen_red.setWordWrap(True)
         self.lbl_resumen_red.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO};")
         layout_res.addWidget(self.lbl_resumen_red)
 
@@ -734,7 +735,7 @@ class PantallaRedes(QWidget):
         resumen = datos_red.get("resumen", {})
 
         # Cargar en el lienzo interactivo
-        self.vista_red.cargar_red(nodos, aristas)
+        self.vista_red.cargar_red(nodos, aristas, resumen=resumen)
 
         # Actualizar panel de métricas con el resumen y top conectados
         self._actualizar_resumen_red(resumen)
@@ -810,14 +811,27 @@ class PantallaRedes(QWidget):
 
     def _actualizar_resumen_red(self, resumen: dict[str, Any]) -> None:
         n_inv = int(resumen.get("investigadores", 0))
+        n_conectados = int(resumen.get("investigadores_con_coautorias", n_inv))
+        n_aislados = int(resumen.get("investigadores_sin_coautorias", max(0, n_inv - n_conectados)))
         n_vinc = int(resumen.get("vinculos", 0))
         dens = float(resumen.get("densidad", 0.0))
 
-        self.lbl_resumen_red.setText(
-            f"Investigadores: {formatear_entero(n_inv)}\n"
-            f"Enlaces de coautoría: {formatear_entero(n_vinc)}\n"
-            f"Densidad: {dens:.4f}"
-        )
+        if n_vinc == 0:
+            mensaje = (
+                f"Investigadores: {formatear_entero(n_inv)} analizados\n"
+                "No se encontraron enlaces de coautoría para estos filtros."
+            )
+        else:
+            mensaje = (
+                f"Investigadores: {formatear_entero(n_conectados)} conectados "
+                f"de {formatear_entero(n_inv)} analizados\n"
+                f"Enlaces de coautoría: {formatear_entero(n_vinc)}\n"
+                f"Densidad: {dens:.4f}"
+            )
+            if n_aislados:
+                mensaje += f"\nSin coautorías (omitidos): {formatear_entero(n_aislados)}"
+        self.lbl_resumen_red.setText(mensaje)
+        self.lbl_resumen_red.setToolTip(mensaje.replace("\n", " · "))
 
     def _actualizar_top_conectados(self, nodos: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> None:
         # Limpiar lista anterior
@@ -826,11 +840,14 @@ class PantallaRedes(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-        nodos_ordenados = sorted(nodos, key=lambda d: -int(d.get("grado", 0)))
+        nodos_ordenados = sorted(
+            (nodo for nodo in nodos if int(nodo.get("grado", 0)) > 0),
+            key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
+        )
         top_5 = nodos_ordenados[:5]
 
         if not top_5:
-            lbl_vac = QLabel("Sin coautorías registradas en este período.", self._caja_sin_seleccion)
+            lbl_vac = QLabel("Sin enlaces de coautoría para los filtros seleccionados.", self._caja_sin_seleccion)
             lbl_vac.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; color: {TEXTO_SECUNDARIO};")
             self._contenedor_top.addWidget(lbl_vac)
             return
@@ -960,7 +977,11 @@ class PantallaRedes(QWidget):
     def _filas_centralidad(self, columnas_largas: bool) -> tuple[tuple[str, ...], list[tuple[Any, ...]]]:
         """Columnas y filas de la tabla de centralidad ordenadas por grado e intermediación."""
         nodos = sorted(
-            self._datos_red_actual.get("nodos", ()),
+            (
+                nodo
+                for nodo in self._datos_red_actual.get("nodos", ())
+                if int(nodo.get("grado", 0)) > 0
+            ),
             key=lambda d: (-int(d.get("grado", 0)), -float(d.get("intermediacion", 0.0))),
         )
         columnas = (

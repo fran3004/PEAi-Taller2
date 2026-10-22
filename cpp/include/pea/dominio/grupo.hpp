@@ -15,7 +15,7 @@ public:
     QString pais{"Colombia"};
     QString departamento_ciudad;
     QString lider;
-    QString institucion_principal{"Universidad Popular del Cesar"};
+    QString institucion_principal{"Sin institución informada"};
     QString gran_area_ocde;
     QString area_ocde;
     QString categoria;

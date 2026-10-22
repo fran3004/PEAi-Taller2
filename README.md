@@ -86,15 +86,22 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
 ## 3. Recorrido de evaluación
 
 1. **Python**: Inicio → Grupos → Investigadores → Productos → Análisis de redes.
-   Seleccione filas para ver fichas, cambie filtros anuales y pruebe exportaciones.
-2. **C++**: use las pestañas y el mouse. En directorios, `/` busca; `n` crea;
+   En Inicio, use el selector de institución para limitar los indicadores, gráficas
+   y exportaciones a sus grupos; «Todas las instituciones» permite ver el panorama
+   completo. En Investigadores, filtre por grupo. Seleccione filas para ver fichas,
+   cambie filtros anuales y pruebe exportaciones.
+2. **Redes**: el grafo y el ranking muestran investigadores con coautorías; si
+   los filtros no encuentran enlaces, se explica que no hay colaboraciones en ese
+   ámbito en lugar de presentar nodos aislados como una red. El resumen conserva
+   el total analizado y cuántos investigadores no tienen enlaces.
+3. **C++**: use las pestañas y el mouse. En directorios, `/` busca; `n` crea;
    `e` edita; `t` activa/desactiva; `x` elimina con confirmación; `v` abre una ficha;
    `u` deshace; `r` recarga. Los formularios usan Tab, Enter y Escape. La búsqueda
    admite, por ejemplo, `categoria:A1`. Ventana recomendada: 100 columnas × 28 filas.
-3. **Persistencia**: con la conexión automática, cree un registro de evaluación, edítelo
+4. **Persistencia**: con la conexión automática, cree un registro de evaluación, edítelo
    y recargue. En la otra aplicación compruebe **La base de datos cambió** y
    recargue. La revisión C++ se consulta cada 30 segundos.
-4. **Importación**: use CSV o URL SCIENTI y revise el informe de filas rechazadas.
+5. **Importación**: use CSV o URL SCIENTI y revise el informe de filas rechazadas.
    C++ ofrece `i` para CSV y `w` para URL. Los fixtures ficticios de
    `tests/fixtures/` y `cpp/tests/fixtures/` permiten revisar el procesamiento sin
    descargar datos personales. GrupLAC conserva sus secciones y encola los
@@ -106,7 +113,7 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
    brevemente ante conflictos concurrentes; si persisten, se detiene la cola en
    lugar de continuar con una revisión desactualizada. Las fuentes remotas pueden
    estar indisponibles.
-5. **Interoperabilidad**: en Configuración de Python ejecute la verificación
+6. **Interoperabilidad**: en Configuración de Python ejecute la verificación
    cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
    escenarios sin red mediante ambas CLI.
 

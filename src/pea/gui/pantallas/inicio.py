@@ -204,6 +204,7 @@ class PantallaInicio(QWidget):
         self._es_cuatro_columnas: bool | None = None
 
         self._construir_ui()
+        self._poblar_combo_instituciones()
         self.refrescar()
 
     # -----------------------------------------------------------------------
@@ -291,6 +292,13 @@ class PantallaInicio(QWidget):
         )
         self._selector_ambito.opcion_cambiada.connect(self._al_cambiar_ambito)
         layout.addWidget(self._selector_ambito)
+
+        self._combo_instituciones = QComboBox(barra)
+        self._combo_instituciones.setObjectName("comboInstitucionesInicio")
+        self._combo_instituciones.setMinimumWidth(210)
+        self._combo_instituciones.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self._combo_instituciones.currentIndexChanged.connect(self._al_cambiar_institucion)
+        layout.addWidget(self._combo_instituciones)
 
         # Combo selector de grupo (oculto en modo institución)
         self._combo_grupos = QComboBox(barra)
@@ -619,10 +627,41 @@ class PantallaInicio(QWidget):
     def _al_cambiar_ambito(self, clave: str) -> None:
         self._modo_ambito = clave
         es_grupo = clave == "grupo"
+        self._combo_instituciones.setVisible(not es_grupo)
         self._combo_grupos.setVisible(es_grupo)
         if es_grupo:
             self._poblar_combo_grupos()
         self.refrescar()
+
+    def _poblar_combo_instituciones(self) -> None:
+        combo = self._combo_instituciones
+        primera_carga = combo.count() == 0
+        sin_opciones_previas = combo.count() <= 1
+        seleccion_previa = combo.currentData()
+        texto_previo = combo.currentText()
+        instituciones = self._servicio.opciones_instituciones()
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem("Todas las instituciones", None)
+        for institucion in instituciones:
+            combo.addItem(institucion, institucion)
+
+        indice = combo.findData(seleccion_previa) if seleccion_previa is not None else -1
+        if (
+            not primera_carga
+            and not (sin_opciones_previas and instituciones)
+            and texto_previo == "Todas las instituciones"
+        ):
+            indice = 0
+        if indice < 0:
+            indice_upc = combo.findData("Universidad Popular del Cesar")
+            indice = indice_upc if indice_upc >= 0 else (1 if combo.count() > 1 else 0)
+        combo.setCurrentIndex(indice)
+        combo.blockSignals(False)
+
+    def _al_cambiar_institucion(self, index: int) -> None:
+        if index >= 0:
+            self.refrescar()
 
     def _poblar_combo_grupos(self) -> None:
         self._combo_grupos.blockSignals(True)
@@ -643,7 +682,13 @@ class PantallaInicio(QWidget):
     def refrescar(self) -> None:
         """Carga y aplica los datos del servicio para el ámbito y filtro activos."""
         try:
-            resumen_inst = self._servicio.resumen_general(self._filtro_actual)
+            self._poblar_combo_instituciones()
+            institucion = (
+                self._combo_instituciones.currentData()
+                if self._modo_ambito == "institucion"
+                else None
+            )
+            resumen_inst = self._servicio.resumen_general(self._filtro_actual, institucion=institucion)
             hay_datos = bool(resumen_inst.get("hay_datos", False))
 
             if not hay_datos:
@@ -666,10 +711,11 @@ class PantallaInicio(QWidget):
 
     def _actualizar_modo_institucion(self, resumen: dict[str, Any]) -> None:
         # 1. Ámbito
-        pix_upc = cargar_pixmap("logo_upc.png", 96, 96)
-        self._avatar_ambito.establecer_nombre("Universidad Popular del Cesar")
-        self._avatar_ambito.establecer_pixmap(pix_upc)
-        self._lbl_titulo_ambito.setText("Universidad Popular del Cesar")
+        institucion = str(resumen.get("institucion") or "Todas las instituciones")
+        pixmap = cargar_pixmap("logo_upc.png", 96, 96) if institucion == "Universidad Popular del Cesar" else None
+        self._avatar_ambito.establecer_nombre(institucion)
+        self._avatar_ambito.establecer_pixmap(pixmap)
+        self._lbl_titulo_ambito.setText(institucion)
         grupos_tot = resumen.get("grupos_totales", 0)
         self._lbl_lineas_ambito.setText(f"Grupos de investigación: {grupos_tot}")
 
@@ -723,7 +769,14 @@ class PantallaInicio(QWidget):
         self._kpi_6.lbl_titulo.setText("Productos históricos")
 
         # 2. Barras apiladas
-        serie = self._servicio.serie_anual_por_categoria(self._filtro_actual)
+        serie = self._servicio.serie_anual_por_categoria(
+            self._filtro_actual,
+            codigos_grupos=(
+                self._servicio.codigos_grupos_institucion(institucion)
+                if institucion != "Todas las instituciones"
+                else None
+            ),
+        )
         self._grafico_barras.establecer_datos(serie)
         self._grafico_histograma.establecer_datos(
             resumen.get("distribucion_productos_por_investigador", {})
@@ -734,8 +787,19 @@ class PantallaInicio(QWidget):
         self._grafico_dona.establecer_datos(tip_map, val_map)
 
         # 4. Mini red
-        red = self._servicio.red_coautoria(self._filtro_actual)
-        self._mini_red.establecer_datos(red.get("nodos", []), red.get("aristas", []))
+        red = self._servicio.red_coautoria(
+            self._filtro_actual,
+            codigos_grupos=(
+                self._servicio.codigos_grupos_institucion(institucion)
+                if institucion != "Todas las instituciones"
+                else None
+            ),
+        )
+        self._mini_red.establecer_datos(
+            red.get("nodos", []),
+            red.get("aristas", []),
+            int(red.get("resumen", {}).get("investigadores_sin_coautorias", 0)),
+        )
 
         # 5. Rankings
         self._tarjeta_ranking_1.establecer_titulo("Investigadores más productivos")
@@ -850,7 +914,11 @@ class PantallaInicio(QWidget):
 
         # 4. Mini red
         red = self._servicio.red_coautoria(self._filtro_actual, codigo_grupo=cod)
-        self._mini_red.establecer_datos(red.get("nodos", []), red.get("aristas", []))
+        self._mini_red.establecer_datos(
+            red.get("nodos", []),
+            red.get("aristas", []),
+            int(red.get("resumen", {}).get("investigadores_sin_coautorias", 0)),
+        )
 
         # 5. Rankings modo grupo
         self._tarjeta_ranking_1.establecer_titulo("Integrantes con más productos")
@@ -962,7 +1030,15 @@ class PantallaInicio(QWidget):
     def _serie_anual_exportable(self) -> list[tuple[Any, ...]]:
         """Serie anual por tipología del ámbito actual, lista para tablas de PDF y CSV."""
         if self._modo_ambito == "institucion":
-            serie = self._servicio.serie_anual_por_categoria(self._filtro_actual)
+            institucion = self._combo_instituciones.currentData()
+            serie = self._servicio.serie_anual_por_categoria(
+                self._filtro_actual,
+                codigos_grupos=(
+                    self._servicio.codigos_grupos_institucion(institucion)
+                    if institucion is not None
+                    else None
+                ),
+            )
         else:
             serie = self._servicio.serie_anual_por_categoria(
                 self._filtro_actual, codigo_grupo=self._codigo_grupo_seleccionado
@@ -975,7 +1051,11 @@ class PantallaInicio(QWidget):
 
     def _nombre_base_exportacion(self, tema: str) -> str:
         """Nombre sugerido coherente con el ámbito, el grupo y la ventana temporal activa."""
-        ambito = "institucion" if self._modo_ambito == "institucion" else f"grupo_{self._codigo_grupo_seleccionado or ''}"
+        ambito = (
+            f"institucion_{self._combo_instituciones.currentText()}"
+            if self._modo_ambito == "institucion"
+            else f"grupo_{self._codigo_grupo_seleccionado or ''}"
+        )
         return f"pea_{tema}_{ambito}_{self._filtro_actual.modo.value}"
 
     def exportar_pdf(self, ruta_destino: str | Path | None = None) -> None:
@@ -1011,15 +1091,19 @@ class PantallaInicio(QWidget):
                 ),
             ]
             titulo_rep = (
-                "Panorama Estadístico Institucional"
+                f"Panorama Estadístico · {self._combo_instituciones.currentText()}"
                 if self._modo_ambito == "institucion"
                 else f"Panorama de Grupo · {self._lbl_titulo_ambito.text()}"
             )
-            ambito_txt = "Institución" if self._modo_ambito == "institucion" else "Grupo de investigación"
+            ambito_txt = (
+                f"Institución · {self._combo_instituciones.currentText()}"
+                if self._modo_ambito == "institucion"
+                else "Grupo de investigación"
+            )
             exportar_reporte_pdf(
                 ruta,
                 titulo=titulo_rep,
-                subtitulo=f"Universidad Popular del Cesar · {self._lbl_lineas_ambito.text()}",
+                subtitulo=f"{self._lbl_titulo_ambito.text()} · {self._lbl_lineas_ambito.text()}",
                 metadatos=[
                     ("Ámbito", ambito_txt),
                     ("Filtro temporal", desc_f),
@@ -1055,9 +1139,10 @@ class PantallaInicio(QWidget):
         try:
             desc_f = self._servicio.descripcion_filtro(self._filtro_actual)
             if self._modo_ambito == "institucion":
-                res = self._servicio.resumen_general(self._filtro_actual)
+                institucion = self._combo_instituciones.currentData()
+                res = self._servicio.resumen_general(self._filtro_actual, institucion=institucion)
                 metadatos = [
-                    ("Ámbito", "Institución · Universidad Popular del Cesar"),
+                    ("Ámbito", f"Institución · {self._combo_instituciones.currentText()}"),
                     ("Filtro temporal", desc_f),
                     ("Grupos activos", str(res.get("grupos_activos", 0))),
                     ("Investigadores activos", str(res.get("investigadores_activos", 0))),

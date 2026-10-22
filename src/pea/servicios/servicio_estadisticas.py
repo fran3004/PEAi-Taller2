@@ -246,11 +246,14 @@ class ServicioEstadisticas:
         anio_inicio: int | None = None,
         anio_fin: int | None = None,
         codigos_investigadores: Iterable[str] = (),
+        codigos_grupos: Iterable[str] | None = None,
     ) -> dict[str, Any]:
         """Vista 1: Vista Institucional General (Consolidado panorámico universitario)."""
         c = self._resolver_cubo(
             ventana_anios=ventana_anios, modelo_2024=modelo_2024, anio_inicio=anio_inicio, anio_fin=anio_fin
         )
+        if codigos_grupos is not None:
+            c = c.subcubo_por_ventana(grupos=set(codigos_grupos))
         total_prods = c.total_productos_unicos()
 
         return {
@@ -278,11 +281,14 @@ class ServicioEstadisticas:
         anio_inicio: int | None = None,
         anio_fin: int | None = None,
         codigos_investigadores: Iterable[str] = (),
+        codigos_grupos_institucion: Iterable[str] | None = None,
     ) -> dict[str, Any]:
         """Vista 2: Vista por Grupo de Investigación (Ficha analítica grupal)."""
         c_inst = self._resolver_cubo(
             ventana_anios=ventana_anios, modelo_2024=modelo_2024, anio_inicio=anio_inicio, anio_fin=anio_fin
         )
+        if codigos_grupos_institucion is not None:
+            c_inst = c_inst.subcubo_por_ventana(grupos=set(codigos_grupos_institucion))
         c_grp = c_inst.rebanada(Hipercubo5D.DIM_GRUPO, id_grupo)
 
         total_grupo = c_grp.total_productos_unicos()

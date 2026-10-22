@@ -159,6 +159,13 @@ class VistaRed(QGraphicsView):
             QSizePolicy.Policy.Preferred,
         )
         self._estado_vacio.show()
+        self._info_conectividad = QLabel(self)
+        self._info_conectividad.setStyleSheet(
+            f"color: {TEXTO_SECUNDARIO}; font-size: {estilo.TAMANO_AUXILIAR}pt; "
+            f"background: {estilo.SUPERPOSICION_CLARA_94}; border: 1px solid {LINEA}; "
+            "border-radius: 6px; padding: 5px 8px;"
+        )
+        self._info_conectividad.hide()
         self._actualizar_posicion_leyenda()
         self._actualizar_estado_vacio()
 
@@ -257,6 +264,13 @@ class VistaRed(QGraphicsView):
             margen_y = 14
             y = self.height() - self._leyenda.height() - margen_y
             self._leyenda.move(margen_x, max(10, y))
+        if hasattr(self, "_info_conectividad") and self._info_conectividad.isVisible():
+            self._info_conectividad.adjustSize()
+            margen = 14
+            self._info_conectividad.move(
+                max(10, self.width() - self._info_conectividad.width() - margen),
+                margen,
+            )
 
     # -----------------------------------------------------------------------
     # Carga y Actualización del Grafo
@@ -267,6 +281,7 @@ class VistaRed(QGraphicsView):
         nodos_data: list[dict[str, Any]] | tuple[dict[str, Any], ...],
         aristas_data: list[dict[str, Any]] | tuple[dict[str, Any], ...],
         posiciones: dict[str, tuple[float, float]] | None = None,
+        resumen: dict[str, Any] | None = None,
     ) -> None:
         """Puebla la escena con los nodos y aristas calculados."""
         self._escena.clear()
@@ -274,12 +289,38 @@ class VistaRed(QGraphicsView):
         self._items_aristas.clear()
         self._nodo_seleccionado = None
         self._nodo_hover = None
+        self._info_conectividad.hide()
         self._actualizar_estado_vacio()
 
-        total_original = len(nodos_data)
+        codigos_nodos = {str(nd.get("codigo", "")) for nd in nodos_data}
+        aristas_validas = [
+            a
+            for a in aristas_data
+            if str(a.get("origen", "")) in codigos_nodos
+            and str(a.get("destino", "")) in codigos_nodos
+            and str(a.get("origen", "")) != str(a.get("destino", ""))
+        ]
+        codigos_con_aristas = {
+            str(codigo)
+            for arista in aristas_validas
+            for codigo in (arista.get("origen", ""), arista.get("destino", ""))
+        }
+        nodos_conectados = [
+            nd for nd in nodos_data if str(nd.get("codigo", "")) in codigos_con_aristas
+        ]
+        total_analizados = int(
+            (resumen or {}).get("investigadores_analizados", len(nodos_data))
+        )
+        aislados = int(
+            (resumen or {}).get(
+                "investigadores_sin_coautorias",
+                max(0, len(nodos_data) - len(nodos_conectados)),
+            )
+        )
 
         # Regla de rendimiento: Tope de 400 nodos con mayor grado
-        nodos_filtrados = list(nodos_data)
+        nodos_filtrados = list(nodos_conectados)
+        total_original = len(nodos_filtrados)
         if len(nodos_filtrados) > 400:
             nodos_filtrados.sort(key=lambda d: (-int(d.get("grado", 0)), str(d.get("codigo", ""))))
             nodos_filtrados = nodos_filtrados[:400]
@@ -288,17 +329,28 @@ class VistaRed(QGraphicsView):
             self.limite_nodos_alcanzado.emit(total_original, total_original)
 
         codigos_visibles = {str(nd.get("codigo", "")) for nd in nodos_filtrados}
-
         aristas_filtradas = [
             a
-            for a in aristas_data
+            for a in aristas_validas
             if str(a.get("origen", "")) in codigos_visibles
             and str(a.get("destino", "")) in codigos_visibles
         ]
 
         if not nodos_filtrados:
+            self._estado_vacio.setText(
+                f"Se analizaron {total_analizados} investigadores, pero no hay coautorías "
+                "para los filtros seleccionados."
+                if total_analizados
+                else "No hay investigadores ni colaboraciones para los filtros seleccionados."
+            )
             self._actualizar_estado_vacio()
             return
+
+        if aislados:
+            self._info_conectividad.setText(f"{aislados} investigadores sin enlaces no se muestran")
+            self._info_conectividad.adjustSize()
+            self._info_conectividad.show()
+            self._actualizar_posicion_leyenda()
 
         # Calcular posiciones si no fueron proporcionadas
         if not posiciones:
@@ -323,7 +375,7 @@ class VistaRed(QGraphicsView):
         for nd in nodos_filtrados:
             cod = str(nd.get("codigo", ""))
             item_nodo = NodoGrafoItem(datos=nd, vista=self)
-            if cod in codigos_top or int(nd.get("grado", 0)) > 0:
+            if cod in codigos_top:
                 item_nodo.mostrar_etiqueta_forzada = True
 
             pos = posiciones.get(cod, (0.0, 0.0))

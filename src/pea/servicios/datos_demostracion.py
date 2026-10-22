@@ -12,6 +12,7 @@ from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
+from pea.version import INSTITUCION
 
 # Tablas de semillas (variables temporales de construcción, no almacenamiento de entidades).
 _GRUPOS: tuple[tuple[str, str, str, str], ...] = (
@@ -65,6 +66,7 @@ def cargar_datos_demostracion(catalogo: CatalogoInvestigacion) -> None:
                 nombre=nombre,
                 categoria=categoria,
                 lider=lider,
+                institucion_principal=INSTITUCION,
                 departamento_ciudad="Cesar - Valledupar",
                 es_ejemplo=True,
             ),

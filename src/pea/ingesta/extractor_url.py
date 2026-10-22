@@ -238,6 +238,8 @@ class ExtractorURL:
         capitulos_extraidos = 0
         softwares_extraidos = 0
         integrantes_extraidos = 0
+        trabajos_dirigidos_extraidos = 0
+        proyectos_extraidos = 0
 
         for idx, table in enumerate(tables):
             header_cell = table.find("td", class_="celdaEncabezado")
@@ -300,6 +302,15 @@ class ExtractorURL:
                     for td in tds:
                         inst = normalizar_texto(td.get_text())
                         if inst and inst != "Instituciones":
+                            inst = re.sub(r"^\d+\s*[\.\)\-]+\s*", "", inst)
+                            inst = re.sub(
+                                r"\s*\((?:no\s+)?avalad[oa]\)\s*$",
+                                "",
+                                inst,
+                                flags=re.IGNORECASE,
+                            ).strip()
+                            if not inst:
+                                continue
                             grupo.instituciones.append(InstitucionIngesta(nombre=inst))
                             md_lines.append(f"| {inst} |")
                 md_lines.append("")
@@ -465,16 +476,60 @@ class ExtractorURL:
                             num += 1
                 md_lines.append("")
 
+            elif sec_title.strip().casefold() == "proyectos":
+                productos = grupo.proyectos
+                texto_seccion = "Proyecto"
+                tipo_mayor = "GNC"
+                for tr in rows:
+                    for td in tr.find_all("td", recursive=False):
+                        txt = normalizar_texto(td.get_text())
+                        if txt and len(txt) > 10:
+                            productos.append(
+                                ProductoIngesta(
+                                    tipo=texto_seccion,
+                                    tipo_mayor=tipo_mayor,
+                                    subtipo=texto_seccion,
+                                    titulo=txt[:200],
+                                    ano=_extraer_ano_producto(txt),
+                                    detalles=txt,
+                                )
+                            )
+                            proyectos_extraidos += 1
+                            display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
+                            md_lines.append(f"- {display_txt}")
+                md_lines.append("")
+
+            elif "Trabajos dirigidos" in sec_title:
+                for tr in rows:
+                    for td in tr.find_all("td", recursive=False):
+                        txt = normalizar_texto(td.get_text())
+                        if txt and len(txt) > 10:
+                            grupo.trabajos_dirigidos.append(
+                                ProductoIngesta(
+                                    tipo="TrabajoDirigido",
+                                    tipo_mayor="FRH",
+                                    subtipo="Trabajo dirigido",
+                                    titulo=txt[:200],
+                                    ano=_extraer_ano_producto(txt),
+                                    detalles=txt,
+                                )
+                            )
+                            trabajos_dirigidos_extraidos += 1
+                            display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
+                            md_lines.append(f"- {display_txt}")
+                md_lines.append("")
+
             else:
                 # Secciones complementarias
                 md_lines.append("> *Contenido complementario preservado:*\n")
                 for tr in rows:
-                    tds = tr.find_all("td")
-                    for td in tds:
-                        t_str = normalizar_texto(td.get_text())
-                        if t_str and t_str != sec_title:
-                            display_t = anonimizar_datos_personales(t_str) if anonimizar else t_str
-                            md_lines.append(f"- {display_t}")
+                    t_str = " | ".join(
+                        normalizar_texto(td.get_text()) for td in tr.find_all("td", recursive=False)
+                    )
+                    if t_str and t_str != sec_title:
+                        grupo.datos_complementarios.setdefault(sec_title, []).append(t_str)
+                        display_t = anonimizar_datos_personales(t_str) if anonimizar else t_str
+                        md_lines.append(f"- {display_t}")
                 md_lines.append("")
 
         resumen = {
@@ -484,6 +539,8 @@ class ExtractorURL:
             "libros": libros_extraidos,
             "capitulos": capitulos_extraidos,
             "softwares": softwares_extraidos,
+            "trabajos_dirigidos": trabajos_dirigidos_extraidos,
+            "proyectos": proyectos_extraidos,
         }
         return grupo, "\n".join(md_lines), resumen
 
@@ -526,8 +583,11 @@ class ExtractorURL:
 
         tables = soup.find_all("table")
         articulos_extraidos = 0
+        libros_extraidos = 0
         capitulos_extraidos = 0
         softwares_extraidos = 0
+        trabajos_dirigidos_extraidos = 0
+        proyectos_extraidos = 0
         formacion_extraida = 0
 
         for idx, table in enumerate(tables):
@@ -640,6 +700,30 @@ class ExtractorURL:
                             num += 1
                 md_lines.append("")
 
+            elif "Libros" in sec_title and "Capítulos" not in sec_title:
+                md_lines.append("| N° | Libro |")
+                md_lines.append("|:---:|---|")
+                num = 1
+                for tr in rows:
+                    for td in tr.find_all("td", recursive=False):
+                        txt = normalizar_texto(td.get_text())
+                        if txt and "Libros" not in txt and len(txt) > 20:
+                            inv.libros.append(
+                                ProductoIngesta(
+                                    tipo="Libro",
+                                    tipo_mayor="GNC",
+                                    subtipo="Libro",
+                                    titulo=txt[:200],
+                                    ano=_extraer_ano_producto(txt),
+                                    detalles=txt,
+                                )
+                            )
+                            libros_extraidos += 1
+                            display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
+                            md_lines.append(f"| {num} | {display_txt} |")
+                            num += 1
+                md_lines.append("")
+
             elif "Capítulos de libro" in sec_title:
                 md_lines.append("| N° | Capítulo de Libro |")
                 md_lines.append("|:---:|---|")
@@ -661,6 +745,54 @@ class ExtractorURL:
                                 )
                             )
                             capitulos_extraidos += 1
+                            display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
+                            md_lines.append(f"| {num} | {display_txt} |")
+                            num += 1
+                md_lines.append("")
+
+            elif "Trabajos dirigidos" in sec_title:
+                md_lines.append("| N° | Trabajo dirigido |")
+                md_lines.append("|:---:|---|")
+                num = 1
+                for tr in rows:
+                    for td in tr.find_all("td", recursive=False):
+                        txt = normalizar_texto(td.get_text())
+                        if txt and "Trabajos dirigidos" not in txt and len(txt) > 20:
+                            inv.trabajos_dirigidos.append(
+                                ProductoIngesta(
+                                    tipo="TrabajoDirigido",
+                                    tipo_mayor="FRH",
+                                    subtipo="Trabajo dirigido",
+                                    titulo=txt[:200],
+                                    ano=_extraer_ano_producto(txt),
+                                    detalles=txt,
+                                )
+                            )
+                            trabajos_dirigidos_extraidos += 1
+                            display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
+                            md_lines.append(f"| {num} | {display_txt} |")
+                            num += 1
+                md_lines.append("")
+
+            elif sec_title.strip().casefold() == "proyectos":
+                md_lines.append("| N° | Proyecto |")
+                md_lines.append("|:---:|---|")
+                num = 1
+                for tr in rows:
+                    for td in tr.find_all("td", recursive=False):
+                        txt = normalizar_texto(td.get_text())
+                        if txt and len(txt) > 20:
+                            inv.proyectos.append(
+                                ProductoIngesta(
+                                    tipo="Proyecto",
+                                    tipo_mayor="GNC",
+                                    subtipo="Proyecto",
+                                    titulo=txt[:200],
+                                    ano=_extraer_ano_producto(txt),
+                                    detalles=txt,
+                                )
+                            )
+                            proyectos_extraidos += 1
                             display_txt = anonimizar_datos_personales(txt) if anonimizar else txt
                             md_lines.append(f"| {num} | {display_txt} |")
                             num += 1
@@ -695,20 +827,24 @@ class ExtractorURL:
             else:
                 md_lines.append("> *Contenido complementario preservado:*\n")
                 for tr in rows:
-                    tds = tr.find_all("td")
-                    for td in tds:
-                        t_str = normalizar_texto(td.get_text())
-                        if t_str and t_str != sec_title:
-                            display_t = anonimizar_datos_personales(t_str) if anonimizar else t_str
-                            md_lines.append(f"- {display_t}")
+                    texto_fila = " | ".join(
+                        normalizar_texto(td.get_text()) for td in tr.find_all("td", recursive=False)
+                    )
+                    if texto_fila and texto_fila != sec_title:
+                        inv.datos_complementarios.setdefault(sec_title, []).append(texto_fila)
+                        display_txt = anonimizar_datos_personales(texto_fila) if anonimizar else texto_fila
+                        md_lines.append(f"- {display_txt}")
                 md_lines.append("")
 
         resumen = {
             "tablas": len(tables),
             "formacion": formacion_extraida,
             "articulos": articulos_extraidos,
+            "libros": libros_extraidos,
             "capitulos": capitulos_extraidos,
             "softwares": softwares_extraidos,
+            "trabajos_dirigidos": trabajos_dirigidos_extraidos,
+            "proyectos": proyectos_extraidos,
         }
         return inv, "\n".join(md_lines), resumen
 
@@ -730,7 +866,7 @@ class ExtractorURL:
                 writer = csv.writer(f)
                 if not existe:
                     writer.writerow(["codigo_minciencias", "nombre", "clasificacion", "institucion"])
-                institucion = grupo.instituciones[0].nombre if grupo.instituciones else "Universidad Popular del Cesar"
+                institucion = grupo.instituciones[0].nombre if grupo.instituciones else "Sin institución informada"
                 writer.writerow([
                     grupo.codigo_gruplac,
                     grupo.nombre_grupo or f"Grupo {grupo.codigo_gruplac}",
@@ -758,10 +894,24 @@ class ExtractorURL:
         # 3. productos.csv y autores.csv
         productos_a_escribir: list[tuple[ProductoIngesta, str | None, str | None]] = []
         if grupo:
-            for p in grupo.articulos + grupo.libros + grupo.capitulos + grupo.softwares:
+            for p in (
+                grupo.articulos
+                + grupo.libros
+                + grupo.capitulos
+                + grupo.softwares
+                + grupo.trabajos_dirigidos
+                + grupo.proyectos
+            ):
                 productos_a_escribir.append((p, grupo.codigo_gruplac, None))
         if investigador:
-            for p in investigador.articulos + investigador.capitulos + investigador.softwares:
+            for p in (
+                investigador.articulos
+                + investigador.libros
+                + investigador.capitulos
+                + investigador.softwares
+                + investigador.trabajos_dirigidos
+                + investigador.proyectos
+            ):
                 productos_a_escribir.append((p, None, investigador.codigo_rh))
 
         if productos_a_escribir:
@@ -780,9 +930,11 @@ class ExtractorURL:
                         "grupo_codigo",
                     ])
 
+                codigos_producto: dict[int, str] = {}
                 for idx, (prod, grp_cod, _) in enumerate(productos_a_escribir, start=1):
                     anio = str(prod.ano) if prod.ano is not None else "SIN-ANO"
                     codigo_prod = f"PROD-{prod.tipo_mayor}-{anio}-{idx:04d}"
+                    codigos_producto[idx] = codigo_prod
                     writer.writerow([
                         codigo_prod,
                         prod.titulo,
@@ -795,17 +947,16 @@ class ExtractorURL:
             archivos_creados["productos_csv"] = str(ruta_prod)
 
             # autores.csv si hay autor identificado
-            autores_validos = [(p, inv_c) for (p, _, inv_c) in productos_a_escribir if inv_c]
-            if autores_validos:
+            if any(inv_c for _, _, inv_c in productos_a_escribir):
                 ruta_aut = destino_dir / "autores.csv"
                 existe_aut = ruta_aut.exists()
                 with ruta_aut.open("a", encoding="utf-8", newline="") as f:
                     writer = csv.writer(f)
                     if not existe_aut:
                         writer.writerow(["producto_codigo", "investigador_codigo", "orden_autoria"])
-                    for idx, (_, inv_c) in enumerate(autores_validos, start=1):
-                        cod_p = f"PROD-GNC-2024-{idx:04d}"
-                        writer.writerow([cod_p, inv_c, 1])
+                    for idx, (_, _, inv_c) in enumerate(productos_a_escribir, start=1):
+                        if inv_c:
+                            writer.writerow([codigos_producto[idx], inv_c, 1])
                 archivos_creados["autores_csv"] = str(ruta_aut)
 
         return archivos_creados
@@ -842,7 +993,12 @@ class ExtractorURL:
             grupo, md_text, metricas = self.parsear_gruplac(html_text, meta, anonimizar=anonimizar)
             informe.grupos_procesados = 1
             informe.productos_procesados = (
-                len(grupo.articulos) + len(grupo.libros) + len(grupo.capitulos) + len(grupo.softwares)
+                len(grupo.articulos)
+                + len(grupo.libros)
+                + len(grupo.capitulos)
+                + len(grupo.softwares)
+                + len(grupo.trabajos_dirigidos)
+                + len(grupo.proyectos)
             )
 
             # 1. Guardar Markdown (distinguiendo privado si contiene datos reales)
@@ -864,7 +1020,14 @@ class ExtractorURL:
         elif tipo_fuente == "cvlac":
             inv, md_text, metricas = self.parsear_cvlac(html_text, meta, anonimizar=anonimizar)
             informe.investigadores_procesados = 1
-            informe.productos_procesados = len(inv.articulos) + len(inv.capitulos) + len(inv.softwares)
+            informe.productos_procesados = (
+                len(inv.articulos)
+                + len(inv.libros)
+                + len(inv.capitulos)
+                + len(inv.softwares)
+                + len(inv.trabajos_dirigidos)
+                + len(inv.proyectos)
+            )
 
             subcarpeta = "privado" if es_privado else "publicado"
             ruta_md = salida / subcarpeta / f"CvLAC-{inv.codigo_rh or alias}.md"

@@ -330,6 +330,7 @@ class ServicioIngesta:
                     ],
                     "proyectos": [producto.model_dump() for producto in grupo_ing.proyectos],
                 },
+                "datos_complementarios": grupo_ing.datos_complementarios,
                 "fecha_descarga": grupo_ing.origen.fecha_descarga,
                 "sha256": grupo_ing.origen.sha256,
             }
@@ -339,7 +340,7 @@ class ServicioIngesta:
                 institucion = (
                     grupo_ing.instituciones[0].nombre
                     if grupo_ing.instituciones
-                    else "Universidad Popular del Cesar"
+                    else "Sin institución informada"
                 )
                 nuevo_grp = Grupo(
                     codigo_gruplac=grupo_ing.codigo_gruplac,
@@ -357,7 +358,14 @@ class ServicioIngesta:
             else:
                 self.catalogo.actualizar_grupo(
                     grupo_ing.codigo_gruplac,
-                    {"detalles": detalles_grupo},
+                    {
+                        "detalles": detalles_grupo,
+                        "institucion_principal": (
+                            grupo_ing.instituciones[0].nombre
+                            if grupo_ing.instituciones
+                            else "Sin institución informada"
+                        ),
+                    },
                     persistir=persistir,
                 )
 

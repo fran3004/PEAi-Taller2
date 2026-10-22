@@ -110,6 +110,7 @@ class GrupoIngesta(BaseModel):
     softwares: list[ProductoIngesta] = Field(default_factory=list)
     trabajos_dirigidos: list[ProductoIngesta] = Field(default_factory=list)
     proyectos: list[ProductoIngesta] = Field(default_factory=list)
+    datos_complementarios: dict[str, list[str]] = Field(default_factory=dict)
     origen: MetadatosOrigen
 
 
@@ -134,6 +135,7 @@ class InvestigadorIngesta(BaseModel):
     softwares: list[ProductoIngesta] = Field(default_factory=list)
     trabajos_dirigidos: list[ProductoIngesta] = Field(default_factory=list)
     proyectos: list[ProductoIngesta] = Field(default_factory=list)
+    datos_complementarios: dict[str, list[str]] = Field(default_factory=dict)
     origen: MetadatosOrigen
 
 
@@ -150,7 +152,7 @@ class FilaGrupoCSV(BaseModel):
     nombre: str
     categoria: str | None = None
     lider: str | None = None
-    institucion_principal: str = "Universidad Popular del Cesar"
+    institucion_principal: str = "Sin institución informada"
     pais: str = "Colombia"
     departamento_ciudad: str | None = None
     gran_area_ocde: str | None = None

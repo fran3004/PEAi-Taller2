@@ -4,7 +4,7 @@ Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 6.5) y ADR-0015
 - Radio proporcional a la raíz cuadrada del grado: 8 + 2.5·√grado.
 - Color según categoría Minciencias (sección 4.1) con degradado radial y contraste alto.
 - Anillo de acento de 3 px cuando está seleccionado.
-- Etiqueta «J. Apellido» (10 pt) visible si zoom >= 0.65, top 10, nodo conectado o hover.
+- Etiqueta «J. Apellido» visible en nodos principales, al acercar el zoom o al pasar el cursor.
 - Hover resalta nodo y vecinos; resto al 25% de opacidad.
 - Doble clic solicita abrir la ficha del investigador.
 - Arrastre fija el nodo en su nueva posición.
@@ -134,7 +134,7 @@ class NodoGrafoItem(QGraphicsItem):
         self._resaltado = False
         self._atenuado = False
         self.fijado = False
-        self.mostrar_etiqueta_forzada = self.grado > 0
+        self.mostrar_etiqueta_forzada = False
 
         self.setAcceptHoverEvents(True)
         self.setFlags(
@@ -342,7 +342,7 @@ class NodoGrafoItem(QGraphicsItem):
         # 5. Rótulo de texto («J. Apellido») dentro de píldora legible
         zoom_actual = self.vista.zoom_actual if self.vista is not None else 1.0
         debe_mostrar_etiqueta = (
-            zoom_actual >= 0.45
+            zoom_actual >= 0.8
             or self.mostrar_etiqueta_forzada
             or self._resaltado
             or self._seleccionado

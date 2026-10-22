@@ -253,7 +253,7 @@ def test_mini_red_filtrado_y_senales(tmp_path: Path, qapp: QApplication, qtbot: 
     ]
     aristas = [
         {"origen": "INV-00", "destino": f"INV-{i:02d}", "peso": 2}
-        for i in range(1, 10)
+        for i in range(1, 25)
     ]
 
     mini_red = MiniRed(nodos=nodos, aristas=aristas)
