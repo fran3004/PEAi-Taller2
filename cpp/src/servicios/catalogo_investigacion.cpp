@@ -5,6 +5,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <cmath>
+#include <chrono>
+#include <thread>
 #include <unordered_map>
 
 namespace pea::servicios {
@@ -722,14 +724,26 @@ std::shared_ptr<dominio::Producto> CatalogoInvestigacion::crear_producto(
     // 2. Persistir en Supabase
     if (persistir && m_cliente && m_repo_productos) {
         try {
-            controlador_revision.verificar_consistencia(*m_cliente);
             std::optional<qint64> gid = grupo ? grupo->id : std::nullopt;
-            qint64 prod_id = m_repo_productos->crear_con_rpc(
-                *producto,
-                gid,
-                inv_ids,
-                controlador_revision.revision_local()
-            );
+            qint64 prod_id = 0;
+            for (int intento = 0; intento < 3; ++intento) {
+                try {
+                    controlador_revision.verificar_consistencia(*m_cliente);
+                    prod_id = m_repo_productos->crear_con_rpc(
+                        *producto,
+                        gid,
+                        inv_ids,
+                        controlador_revision.revision_local()
+                    );
+                    break;
+                } catch (const ConflictoRevision& error) {
+                    if (error.mensaje() != "La base de datos cambió" || intento == 2) {
+                        throw;
+                    }
+                    controlador_revision.sincronizar(*m_cliente);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50 * (1 << intento)));
+                }
+            }
             if (prod_id <= 0) {
                 throw ErrorServidor("Supabase no devolvió el identificador del producto creado.");
             }

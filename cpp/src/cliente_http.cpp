@@ -176,6 +176,20 @@ QJsonDocument ClienteHTTPSupabase::ejecutarSolicitud(const QNetworkRequest& req,
     reply->deleteLater();
 
     if (errorRed != QNetworkReply::NoError) {
+        if (codigoEstado == 400) {
+            QJsonParseError jsonError;
+            const QJsonDocument errorDoc = QJsonDocument::fromJson(respuestaBytes, &jsonError);
+            if (jsonError.error == QJsonParseError::NoError && errorDoc.isObject()) {
+                const QJsonObject error = errorDoc.object();
+                const QString mensaje = error.value("message").toString();
+                const QString detalles = error.value("details").toString();
+                if (error.value("code").toString() == "P0001"
+                    && (mensaje.contains("CONFLICTO_REVISION")
+                        || detalles.contains("CONFLICTO_REVISION"))) {
+                    throw ConflictoRevision("La base de datos cambió", respuestaStr);
+                }
+            }
+        }
         if (codigoEstado == 0) {
             throw ErrorConexion("Error de red o conexión: " + reply->errorString().toStdString());
         }

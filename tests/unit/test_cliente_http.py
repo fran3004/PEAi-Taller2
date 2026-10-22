@@ -150,6 +150,28 @@ def test_cliente_mapeo_errores_tipados(cliente: ClienteHTTPSupabase) -> None:
 
 
 @responses.activate
+def test_cliente_mapea_conflicto_postgresql_p0001_como_conflicto_revision(
+    cliente: ClienteHTTPSupabase,
+) -> None:
+    responses.add(
+        responses.POST,
+        "https://ejemplo.supabase.co/rest/v1/rpc/transaccion_crear_producto",
+        json={
+            "code": "P0001",
+            "message": "CONFLICTO_REVISION: La base de datos cambio (remota 2, esperada 1)",
+            "details": None,
+            "hint": None,
+        },
+        status=400,
+    )
+
+    with pytest.raises(ConflictoRevision) as exc_info:
+        cliente.rpc("transaccion_crear_producto", {"p_revision_esperada": 1})
+
+    assert exc_info.value.mensaje == "La base de datos cambió"
+
+
+@responses.activate
 def test_cliente_error_conexion(cliente: ClienteHTTPSupabase) -> None:
     responses.add(
         responses.GET,

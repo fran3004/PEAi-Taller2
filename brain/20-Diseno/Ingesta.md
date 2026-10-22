@@ -98,7 +98,10 @@ producto y sus relaciones en varias tablas. La importación directa por URL de
 ambas CLI procesa la cola de perfiles CvLAC asociada antes de finalizar; en la
 interfaz Python la acción **Procesar todas** realiza ese procesamiento
 secuencial respetando la pausa entre solicitudes. Si se detecta una edición
-externa, la cola se detiene para no marcar en error todas las tareas restantes;
+externa al crear productos, ambos clientes actualizan la revisión y reintentan la
+operación hasta tres veces con espera incremental. La revisión se bloquea dentro
+del RPC para serializar validación y escritura concurrentes. Si el conflicto
+persiste, la cola se detiene para no continuar con una revisión desactualizada;
 hay que recargar y volver a encolar la tarea interrumpida. Las consultas de C++
 mantienen los filtros al solicitar cada rango.
 

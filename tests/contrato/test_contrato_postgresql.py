@@ -120,6 +120,36 @@ def test_procedimientos_rpc_transaccionales(contenido_migracion: str):
     assert "conflicto_revision" in texto
 
 
+def test_rpc_bloquea_revision_remota_antes_de_escribir() -> None:
+    ruta_migracion = Path(
+        "supabase/migrations/20261022042342_009_revision_lock_during_rpc.sql"
+    )
+    sql = ruta_migracion.read_text(encoding="utf-8").lower()
+
+    assert "create or replace function public.fn_lock_meta_revision()" in sql
+    assert "for update" in sql
+    assert "revoke all on function public.fn_lock_meta_revision() from public" in sql
+    assert "grant execute on function public.fn_lock_meta_revision() to authenticated, service_role" in sql
+    for funcion in (
+        "transaccion_crear_producto",
+        "transaccion_desactivar_nodo",
+        "transaccion_eliminar_cascada",
+        "transaccion_actualizar_producto_grupo",
+    ):
+        inicio_funcion = sql.index(f"create or replace function public.{funcion}(")
+        siguiente_funcion = sql.find("create or replace function public.", inicio_funcion + 1)
+        cuerpo = sql[inicio_funcion:siguiente_funcion if siguiente_funcion >= 0 else len(sql)]
+        assert "fn_lock_meta_revision()" in cuerpo
+
+
+def test_revision_lock_no_es_invocable_por_anon() -> None:
+    ruta_migracion = Path(
+        "supabase/migrations/20261022042429_010_restrict_revision_lock.sql"
+    )
+    sql = ruta_migracion.read_text(encoding="utf-8").lower()
+    assert "revoke all on function public.fn_lock_meta_revision() from anon" in sql
+
+
 def test_seguridad_auth_y_rls(contenido_migracion: str):
     """Verifica que RLS esté activado, anon esté denegado y authenticated autorizado."""
     texto = contenido_migracion.lower()
