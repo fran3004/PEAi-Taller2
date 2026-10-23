@@ -153,8 +153,38 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
   - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
   - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
 
+## Corrección 4: Seguimiento seguro y validado de redirecciones HTTP en ExtractorURL
+
+- **Problema:** En `src/pea/ingesta/extractor_url.py`, `descargar_o_cargar_cache` utilizaba `requests.get(url, ...)` que seguía redirecciones de forma automática sin verificar si el destino final cambiaba de host o degradaba a protocolo no seguro (`http://`). Asimismo, el ciclo de reintentos envolvía toda la operación bajo `except Exception:`, provocando que cualquier fallo de validación (`ValueError`) se reintentara 3 veces con pausas exponenciales innecesarias. En C++ (`cpp/src/ingesta/extractor_url.cpp`), se rechazaba de plano cualquier código 301/302.
+- **Acciones realizadas:**
+  1. **TDD:**
+     - En Python (`tests/unit/test_extractor_redirecciones.py`), se añadieron 8 pruebas unitarias con simulación de peticiones (monkeypatch):
+       - (a) Redirección 302 hacia otro host rechazada de inmediato (`ValueError`) y sin reintentos (1 sola llamada de red).
+       - (b) Redirección hacia `http://` rechazada de inmediato (`ValueError`) sin reintentos.
+       - (c) Redirección relativa en el mismo host y con ruta válida (`/gruplac/...`) seguida correctamente, resolviendo URL absoluta y guardando `url_final` en metadatos, conservando la clave de caché original.
+       - (d) Límite de 3 saltos de redirección: falla con excepción tras superar el umbral.
+       - (e) Caso normal 200 sin redirección conserva comportamiento intacto (`url_final == url`).
+       - Redirección a ruta no reconocida como GrupLAC/CvLAC rechazada sin reintentos.
+       - Ausencia de cabecera `Location` en 302 lanza `RuntimeError` explicativo.
+       - Errores de red temporales (`ConnectionError`) y HTTP 5xx sí se reintentan hasta 3 veces con retroceso exponencial.
+     - En C++ (`cpp/tests/test_ingesta.cpp`), se añadieron pruebas doctest de `ExtractorURL::validar_redireccion` para los mismos escenarios: rechazo de host ajeno, rechazo de esquema HTTP, rechazo de rutas desconocidas y resolución correcta de rutas relativas y absolutas oficiales.
+  2. **Implementación de redirección manual y metadatos:**
+     - En Python (`src/pea/ingesta/extractor_url.py`): se configuró `allow_redirects=False`, seguimiento manual de `Location` resolviendo con `urljoin`, validación estricta de cada salto con `self.validar_url`, respeto de la pausa de cortesía entre saltos (`_esperar_pausa_cortesia`), escape inmediato de `ValueError` fuera del ciclo de reintentos, y almacenamiento de `url_final` en metadatos.
+     - En C++ (`cpp/include/pea/ingesta/extractor_url.hpp` y `cpp/src/ingesta/extractor_url.cpp`): se expuso la función pura `validar_redireccion(origen, location)`, se configuró `QNetworkRequest::ManualRedirectPolicy` y se implementó el bucle de seguimiento de hasta 3 saltos con validación por paso y registro de `url_final` en metadatos y en `MetadatosOrigen`.
+  3. **Prueba real de solo lectura contra Minciencias SCIENTI:**
+     - Se ejecutó consulta real contra los portales oficiales de GrupLAC (nro=00000000002099) y CvLAC (cod_rh=0000494917).
+     - Ambos respondieron HTTP 200 con éxito, confirmando que la descarga responsable mantiene total compatibilidad con las fuentes institucionales vigentes.
+- **Resultados de validación:**
+  - `ruff check .`: Limpio (0 errores).
+  - `pytest -m "not red"`: 383 aprobadas, 3 omitidas.
+  - C++ build y CTest: 100% aprobado (64 casos doctest, 1087 aserciones).
+  - `pea-cpp --autoprueba`: 0 hallazgos en 32 pantallas.
+  - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
+  - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
+
 ## Próximos pasos
 
 Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.
+
 
 

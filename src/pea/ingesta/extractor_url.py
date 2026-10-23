@@ -106,6 +106,12 @@ class ExtractorURL:
         else:
             raise ValueError(f"URL de SCIENTI no reconocida como GrupLAC ni CvLAC: {url}")
 
+    def _esperar_pausa_cortesia(self) -> None:
+        """Aplica rate limiting institucional respetando la pausa de cortesía entre peticiones."""
+        tiempo_desde_ultima = time.time() - self._ultima_peticion_tiempo
+        if tiempo_desde_ultima < self.pausa_segundos:
+            time.sleep(self.pausa_segundos - tiempo_desde_ultima)
+
     def descargar_o_cargar_cache(
         self,
         url: str,
@@ -124,11 +130,6 @@ class ExtractorURL:
             meta = json.loads(meta_cache.read_text(encoding="utf-8"))
             return content, meta
 
-        # Control de tasa (Rate Limiting institucional)
-        tiempo_desde_ultima = time.time() - self._ultima_peticion_tiempo
-        if tiempo_desde_ultima < self.pausa_segundos:
-            time.sleep(self.pausa_segundos - tiempo_desde_ultima)
-
         headers = {
             "User-Agent": USER_AGENT_UPC,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -136,45 +137,101 @@ class ExtractorURL:
         }
 
         max_reintentos = 3
+        max_saltos = 3
         ultimo_error: str | None = None
 
         for intento in range(max_reintentos):
+            url_actual = url
+            saltos = 0
             try:
-                self._ultima_peticion_tiempo = time.time()
-                resp = requests.get(url, headers=headers, timeout=(10, 30))
-                if resp.status_code == 200:
-                    raw_bytes = resp.content
-                    encoding = resp.encoding or resp.apparent_encoding or "latin1"
-                    if "iso-8859" in encoding.lower():
-                        encoding = "iso-8859-1"
+                while True:
+                    self._esperar_pausa_cortesia()
+                    self._ultima_peticion_tiempo = time.time()
+                    resp = requests.get(
+                        url_actual,
+                        headers=headers,
+                        timeout=(10, 30),
+                        allow_redirects=False,
+                    )
 
-                    sha256_content = hashlib.sha256(raw_bytes).hexdigest()
-                    meta = {
-                        "url": url,
-                        "alias": alias,
-                        "fecha_descarga": datetime.datetime.now(datetime.UTC).isoformat(),
-                        "codigo_http": resp.status_code,
-                        "encoding_cabeceras": resp.encoding,
-                        "encoding_aparente": resp.apparent_encoding,
-                        "encoding_utilizada": encoding,
-                        "longitud_bytes": len(raw_bytes),
-                        "sha256": sha256_content,
-                        "url_hash": url_hash,
-                    }
+                    # Detectar redirecciones (301, 302, 303, 307, 308)
+                    es_redireccion = resp.status_code in (
+                        301,
+                        302,
+                        303,
+                        307,
+                        308,
+                    ) or getattr(resp, "is_redirect", False)
 
-                    # Guardar en caché
-                    html_cache.write_bytes(raw_bytes)
-                    meta_cache.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+                    if es_redireccion:
+                        saltos += 1
+                        if saltos > max_saltos:
+                            raise RuntimeError(
+                                f"Se superó el límite de {max_saltos} redirecciones al descargar '{url}'."
+                            )
+                        cabeceras_resp = getattr(resp, "headers", {}) or {}
+                        location = cabeceras_resp.get("Location") or cabeceras_resp.get("location")
+                        if not location:
+                            raise RuntimeError(
+                                f"Redirección HTTP {resp.status_code} sin cabecera Location en '{url_actual}'."
+                            )
+                        url_destino = urljoin(url_actual, location)
+                        # Validación de seguridad: lanza ValueError de inmediato si no cumple HTTPS/host/ruta
+                        self.validar_url(url_destino)
+                        url_actual = url_destino
+                        continue
 
-                    if alias:
-                        alias_html = self.cache_dir / f"{alias}.html"
-                        alias_meta = self.cache_dir / f"{alias}.meta.json"
-                        alias_html.write_bytes(raw_bytes)
-                        alias_meta.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+                    if resp.status_code == 200:
+                        raw_bytes = resp.content
+                        encoding = resp.encoding or resp.apparent_encoding or "latin1"
+                        if "iso-8859" in encoding.lower():
+                            encoding = "iso-8859-1"
 
-                    return raw_bytes, meta
-                else:
-                    ultimo_error = f"Código HTTP {resp.status_code}"
+                        sha256_content = hashlib.sha256(raw_bytes).hexdigest()
+                        meta = {
+                            "url": url,
+                            "url_final": url_actual,
+                            "alias": alias,
+                            "fecha_descarga": datetime.datetime.now(datetime.UTC).isoformat(),
+                            "codigo_http": resp.status_code,
+                            "encoding_cabeceras": resp.encoding,
+                            "encoding_aparente": resp.apparent_encoding,
+                            "encoding_utilizada": encoding,
+                            "longitud_bytes": len(raw_bytes),
+                            "sha256": sha256_content,
+                            "url_hash": url_hash,
+                        }
+
+                        # Guardar en caché
+                        html_cache.write_bytes(raw_bytes)
+                        meta_cache.write_text(
+                            json.dumps(meta, indent=2, ensure_ascii=False),
+                            encoding="utf-8",
+                        )
+
+                        if alias:
+                            alias_html = self.cache_dir / f"{alias}.html"
+                            alias_meta = self.cache_dir / f"{alias}.meta.json"
+                            alias_html.write_bytes(raw_bytes)
+                            alias_meta.write_text(
+                                json.dumps(meta, indent=2, ensure_ascii=False),
+                                encoding="utf-8",
+                            )
+
+                        return raw_bytes, meta
+                    else:
+                        ultimo_error = f"Código HTTP {resp.status_code}"
+                        break
+            except ValueError:
+                # Los fallos de validación se lanzan de inmediato y no entran al ciclo de reintentos
+                raise
+            except RuntimeError as err:
+                # Errores no reintentables (p.ej. exceder límite de redirecciones o falta de Location)
+                if "redireccion" in str(err).lower() or "location" in str(err).lower():
+                    raise
+                ultimo_error = str(err)
+            except (requests.RequestException, TimeoutError) as err:
+                ultimo_error = str(err)
             except Exception as err:
                 ultimo_error = str(err)
 
@@ -197,7 +254,7 @@ class ExtractorURL:
 
         # Extraer código gruplac de la query si está disponible
         codigo_gruplac = ""
-        query_dict = parse_qs(urlparse(meta.get("url", "")).query)
+        query_dict = parse_qs(urlparse(meta.get("url_final") or meta.get("url", "")).query)
         if "nro" in query_dict and query_dict["nro"]:
             codigo_gruplac = query_dict["nro"][0]
         elif meta.get("alias"):
@@ -207,6 +264,7 @@ class ExtractorURL:
             codigo_gruplac=codigo_gruplac,
             origen=MetadatosOrigen(
                 url=meta.get("url", ""),
+                url_final=meta.get("url_final") or meta.get("url", ""),
                 fecha_descarga=meta.get("fecha_descarga", datetime.datetime.now(datetime.UTC).isoformat()),
                 sha256=meta.get("sha256", ""),
                 metodo="requests + bs4 + lxml",
@@ -555,7 +613,7 @@ class ExtractorURL:
         md_lines: list[str] = []
 
         codigo_rh = ""
-        query_dict = parse_qs(urlparse(meta.get("url", "")).query)
+        query_dict = parse_qs(urlparse(meta.get("url_final") or meta.get("url", "")).query)
         if "cod_rh" in query_dict and query_dict["cod_rh"]:
             codigo_rh = query_dict["cod_rh"][0]
         elif meta.get("alias"):
@@ -565,6 +623,7 @@ class ExtractorURL:
             codigo_rh=codigo_rh,
             origen=MetadatosOrigen(
                 url=meta.get("url", ""),
+                url_final=meta.get("url_final") or meta.get("url", ""),
                 fecha_descarga=meta.get("fecha_descarga", datetime.datetime.now(datetime.UTC).isoformat()),
                 sha256=meta.get("sha256", ""),
                 metodo="requests + bs4 + lxml",

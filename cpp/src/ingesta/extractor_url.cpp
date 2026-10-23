@@ -46,6 +46,18 @@ std::pair<QString, QString> ExtractorURL::validar_url(const QString& url_str) {
     }
 }
 
+QString ExtractorURL::validar_redireccion(const QString& origen, const QString& location) {
+    QString loc = location.trimmed();
+    if (loc.isEmpty()) {
+        throw std::runtime_error("Cabecera de redirección Location vacía o no encontrada.");
+    }
+    QUrl url_origen(origen);
+    QUrl url_destino = url_origen.resolved(QUrl(loc));
+    QString destino_str = url_destino.toString();
+    validar_url(destino_str);
+    return destino_str;
+}
+
 std::pair<QByteArray, QJsonObject> ExtractorURL::descargar_o_cargar_cache(
     const QString& url,
     const QString& alias,
@@ -69,92 +81,121 @@ std::pair<QByteArray, QJsonObject> ExtractorURL::descargar_o_cargar_cache(
         }
     }
 
-    // 2. Control de cortesía / pausa
-    qint64 ahora_ms = QDateTime::currentMSecsSinceEpoch();
-    qint64 pausa_ms = static_cast<qint64>(m_pausa_segundos * 1000.0);
-    qint64 transcurrido = ahora_ms - m_ultima_peticion_tiempo_ms;
-    if (transcurrido < pausa_ms) {
-        QThread::msleep(static_cast<unsigned long>(pausa_ms - transcurrido));
-    }
-
     QNetworkAccessManager nam;
     int max_reintentos = 3;
+    const int max_saltos = 3;
     QString ultimo_error;
 
     for (int intento = 0; intento < max_reintentos; ++intento) {
-        m_ultima_peticion_tiempo_ms = QDateTime::currentMSecsSinceEpoch();
+        QString url_actual = url;
+        int saltos = 0;
 
-        QNetworkRequest req(QUrl{url});
-        req.setHeader(QNetworkRequest::UserAgentHeader, USER_AGENT_UPC);
-        req.setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        req.setRawHeader("Accept-Language", "es-CO,es-ES;q=0.9,es;q=0.8");
-
-        QEventLoop loop;
-        QTimer timer;
-        timer.setSingleShot(true);
-
-        QNetworkReply* reply = nam.get(req);
-        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        QObject::connect(&timer, &QTimer::timeout, &loop, [&]() {
-            reply->abort();
-            loop.quit();
-        });
-
-        timer.start(15000); // 15s timeout
-        loop.exec();
-
-        if (reply->error() == QNetworkReply::NoError) {
-            int code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-            if (code == 200) {
-                QByteArray bytes = reply->readAll();
-                reply->deleteLater();
-
-                QString sha256_str = QString::fromUtf8(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
-
-                QJsonObject meta;
-                meta[QStringLiteral("url")] = url;
-                if (!alias.isEmpty()) meta[QStringLiteral("alias")] = alias;
-                meta[QStringLiteral("fecha_descarga")] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-                meta[QStringLiteral("codigo_http")] = code;
-                meta[QStringLiteral("encoding_utilizada")] = QStringLiteral("ISO-8859-1");
-                meta[QStringLiteral("longitud_bytes")] = static_cast<qint64>(bytes.size());
-                meta[QStringLiteral("sha256")] = sha256_str;
-                meta[QStringLiteral("url_hash")] = url_hash;
-
-                // Guardar en caché
-                QFile f_html(ruta_html);
-                if (f_html.open(QIODevice::WriteOnly)) {
-                    f_html.write(bytes);
-                    f_html.close();
-                }
-
-                QFile f_meta(ruta_meta);
-                if (f_meta.open(QIODevice::WriteOnly)) {
-                    f_meta.write(QJsonDocument(meta).toJson(QJsonDocument::Indented));
-                    f_meta.close();
-                }
-
-                if (!alias.isEmpty()) {
-                    QString alias_h = QDir(m_cache_dir).filePath(alias + QStringLiteral(".html"));
-                    QString alias_m = QDir(m_cache_dir).filePath(alias + QStringLiteral(".meta.json"));
-                    QFile fa_h(alias_h);
-                    if (fa_h.open(QIODevice::WriteOnly)) { fa_h.write(bytes); fa_h.close(); }
-                    QFile fa_m(alias_m);
-                    if (fa_m.open(QIODevice::WriteOnly)) {
-                        fa_m.write(QJsonDocument(meta).toJson(QJsonDocument::Indented));
-                        fa_m.close();
-                    }
-                }
-
-                return {bytes, meta};
-            } else {
-                ultimo_error = QStringLiteral("HTTP %1").arg(code);
+        while (true) {
+            // Control de cortesía / pausa
+            qint64 ahora_ms = QDateTime::currentMSecsSinceEpoch();
+            qint64 pausa_ms = static_cast<qint64>(m_pausa_segundos * 1000.0);
+            qint64 transcurrido = ahora_ms - m_ultima_peticion_tiempo_ms;
+            if (transcurrido < pausa_ms) {
+                QThread::msleep(static_cast<unsigned long>(pausa_ms - transcurrido));
             }
-        } else {
-            ultimo_error = reply->errorString();
+            m_ultima_peticion_tiempo_ms = QDateTime::currentMSecsSinceEpoch();
+
+            QNetworkRequest req(QUrl{url_actual});
+            req.setHeader(QNetworkRequest::UserAgentHeader, USER_AGENT_UPC);
+            req.setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            req.setRawHeader("Accept-Language", "es-CO,es-ES;q=0.9,es;q=0.8");
+            req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+
+            QEventLoop loop;
+            QTimer timer;
+            timer.setSingleShot(true);
+
+            QNetworkReply* reply = nam.get(req);
+            QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+            QObject::connect(&timer, &QTimer::timeout, &loop, [&]() {
+                reply->abort();
+                loop.quit();
+            });
+
+            timer.start(15000); // 15s timeout
+            loop.exec();
+
+            if (reply->error() == QNetworkReply::NoError) {
+                int code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+                if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
+                    saltos++;
+                    if (saltos > max_saltos) {
+                        reply->deleteLater();
+                        throw std::runtime_error("Se superó el límite de " + std::to_string(max_saltos) + " redirecciones para '" + url.toStdString() + "'.");
+                    }
+                    QVariant redirect_attr = reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+                    QString location = redirect_attr.isValid()
+                        ? redirect_attr.toUrl().toString()
+                        : QString::fromUtf8(reply->rawHeader("Location"));
+                    reply->deleteLater();
+
+                    // Valida inmediatamente: si falla, lanza std::runtime_error sin reintentar
+                    url_actual = validar_redireccion(url_actual, location);
+                    continue;
+                }
+
+                if (code == 200) {
+                    QByteArray bytes = reply->readAll();
+                    reply->deleteLater();
+
+                    QString sha256_str = QString::fromUtf8(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
+
+                    QJsonObject meta;
+                    meta[QStringLiteral("url")] = url;
+                    meta[QStringLiteral("url_final")] = url_actual;
+                    if (!alias.isEmpty()) meta[QStringLiteral("alias")] = alias;
+                    meta[QStringLiteral("fecha_descarga")] = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+                    meta[QStringLiteral("codigo_http")] = code;
+                    meta[QStringLiteral("encoding_utilizada")] = QStringLiteral("ISO-8859-1");
+                    meta[QStringLiteral("longitud_bytes")] = static_cast<qint64>(bytes.size());
+                    meta[QStringLiteral("sha256")] = sha256_str;
+                    meta[QStringLiteral("url_hash")] = url_hash;
+
+                    // Guardar en caché
+                    QFile f_html(ruta_html);
+                    if (f_html.open(QIODevice::WriteOnly)) {
+                        f_html.write(bytes);
+                        f_html.close();
+                    }
+
+                    QFile f_meta(ruta_meta);
+                    if (f_meta.open(QIODevice::WriteOnly)) {
+                        f_meta.write(QJsonDocument(meta).toJson(QJsonDocument::Indented));
+                        f_meta.close();
+                    }
+
+                    if (!alias.isEmpty()) {
+                        QString alias_h = QDir(m_cache_dir).filePath(alias + QStringLiteral(".html"));
+                        QString alias_m = QDir(m_cache_dir).filePath(alias + QStringLiteral(".meta.json"));
+                        QFile fa_h(alias_h);
+                        if (fa_h.open(QIODevice::WriteOnly)) { fa_h.write(bytes); fa_h.close(); }
+                        QFile fa_m(alias_m);
+                        if (fa_m.open(QIODevice::WriteOnly)) {
+                            fa_m.write(QJsonDocument(meta).toJson(QJsonDocument::Indented));
+                            fa_m.close();
+                        }
+                    }
+
+                    return {bytes, meta};
+                } else {
+                    ultimo_error = QStringLiteral("HTTP %1").arg(code);
+                    reply->deleteLater();
+                    break;
+                }
+            } else {
+                ultimo_error = reply->errorString();
+                reply->deleteLater();
+                break;
+            }
         }
 
-        reply->deleteLater();
+        qint64 pausa_ms = static_cast<qint64>(m_pausa_segundos * 1000.0);
         unsigned long espera_ms = static_cast<unsigned long>(pausa_ms * (1 << intento));
         QThread::msleep(espera_ms);
     }

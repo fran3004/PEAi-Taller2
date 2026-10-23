@@ -14,6 +14,7 @@ class MetadatosOrigen(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     url: str
+    url_final: str | None = None
     fecha_descarga: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     sha256: str
     metodo: str = "requests + bs4 + lxml"

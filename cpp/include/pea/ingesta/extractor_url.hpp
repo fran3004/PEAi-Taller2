@@ -13,6 +13,7 @@ public:
     explicit ExtractorURL(const QString& cache_dir = QStringLiteral("datos/cache"), double pausa_segundos = 1.0);
 
     static std::pair<QString, QString> validar_url(const QString& url);
+    static QString validar_redireccion(const QString& origen, const QString& location);
 
     std::pair<QByteArray, QJsonObject> descargar_o_cargar_cache(
         const QString& url,

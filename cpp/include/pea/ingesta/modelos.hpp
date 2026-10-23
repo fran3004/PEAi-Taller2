@@ -10,6 +10,7 @@ namespace pea::ingesta {
 
 struct MetadatosOrigen {
     QString url;
+    QString url_final;
     QString fecha_descarga;
     QString sha256;
     QString metodo{"requests + bs4 + lxml"};
@@ -17,6 +18,9 @@ struct MetadatosOrigen {
     [[nodiscard]] QJsonObject a_json() const {
         QJsonObject obj;
         obj["url"] = url;
+        if (!url_final.isEmpty()) {
+            obj["url_final"] = url_final;
+        }
         obj["fecha_descarga"] = fecha_descarga;
         obj["sha256"] = sha256;
         obj["metodo"] = metodo;

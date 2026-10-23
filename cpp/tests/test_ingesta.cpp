@@ -401,6 +401,54 @@ TEST_CASE("Ingesta C++ - ExtractorURL y Políticas de Seguridad") {
         CHECK(tipo_c == QStringLiteral("cvlac"));
         CHECK(query_c.contains(QStringLiteral("0000494917")));
     }
+
+    SUBCASE("Validación y resolución de redirecciones HTTP") {
+        const QString url_origen = QStringLiteral(
+            "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099"
+        );
+
+        // (a) Redirección hacia otro host debe rechazarse
+        CHECK_THROWS_WITH_AS(
+            ExtractorURL::validar_redireccion(url_origen, QStringLiteral("https://malicioso.com/gruplac/visualiza.jsp")),
+            "Host no permitido ('malicioso.com'). Solo se permite scienti.minciencias.gov.co.",
+            std::runtime_error
+        );
+
+        // (b) Redirección hacia http:// debe rechazarse
+        CHECK_THROWS_WITH_AS(
+            ExtractorURL::validar_redireccion(url_origen, QStringLiteral("http://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099")),
+            "Protocolo no permitido ('http'). Solo se permite HTTPS.",
+            std::runtime_error
+        );
+
+        // Redirección a ruta no reconocida debe rechazarse
+        CHECK_THROWS_WITH_AS(
+            ExtractorURL::validar_redireccion(url_origen, QStringLiteral("/otra_ruta_no_reconocida")),
+            "URL no reconocida como GrupLAC ni CvLAC: https://scienti.minciencias.gov.co/otra_ruta_no_reconocida",
+            std::runtime_error
+        );
+
+        // Location vacía debe rechazarse
+        CHECK_THROWS_WITH_AS(
+            ExtractorURL::validar_redireccion(url_origen, QStringLiteral("")),
+            "Cabecera de redirección Location vacía o no encontrada.",
+            std::runtime_error
+        );
+
+        // (c) Redirección relativa en el mismo host y con ruta válida debe resolverse y aceptarse
+        QString res_relativa = ExtractorURL::validar_redireccion(
+            url_origen,
+            QStringLiteral("/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099&lang=es")
+        );
+        CHECK(res_relativa == QStringLiteral("https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099&lang=es"));
+
+        // Redirección absoluta en el mismo host y con ruta válida debe aceptarse
+        QString res_absoluta = ExtractorURL::validar_redireccion(
+            url_origen,
+            QStringLiteral("https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917")
+        );
+        CHECK(res_absoluta == QStringLiteral("https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917"));
+    }
 }
 
 TEST_CASE("Ingesta C++ - LectorCSV Delimitadores, BOM y Tolerancia a Filas") {

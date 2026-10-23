@@ -222,6 +222,8 @@ GrupoIngesta ParserHTML::parsear_gruplac(
     }
 
     grupo.origen.url = url;
+    QString url_final = meta.value(QStringLiteral("url_final")).toString();
+    grupo.origen.url_final = url_final.isEmpty() ? url : url_final;
     grupo.origen.fecha_descarga = meta.value(QStringLiteral("fecha_descarga")).toString();
     grupo.origen.sha256 = meta.value(QStringLiteral("sha256")).toString();
     grupo.origen.metodo = QStringLiteral("requests + bs4 + lxml");
@@ -473,6 +475,8 @@ InvestigadorIngesta ParserHTML::parsear_cvlac(
     inv.codigo_rh = codigo_rh;
 
     inv.origen.url = url;
+    QString url_final = meta.value(QStringLiteral("url_final")).toString();
+    inv.origen.url_final = url_final.isEmpty() ? url : url_final;
     inv.origen.fecha_descarga = meta.value(QStringLiteral("fecha_descarga")).toString();
     inv.origen.sha256 = meta.value(QStringLiteral("sha256")).toString();
     inv.origen.metodo = QStringLiteral("requests + bs4 + lxml");
