@@ -1,10 +1,45 @@
 #pragma once
 
 #include <optional>
+#include <utility>
+#include <QCryptographicHash>
 #include <QJsonObject>
 #include <QString>
 
 namespace pea::dominio {
+
+inline QString normalizar_cita(const QString& cita) {
+    if (cita.isEmpty()) {
+        return QString();
+    }
+    return cita.simplified().normalized(QString::NormalizationForm_C).toLower();
+}
+
+inline QString calcular_hash_cita(const QString& cita) {
+    const QString norm = normalizar_cita(cita);
+    const QByteArray bytes = norm.toUtf8();
+    const QByteArray hash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha1).toHex();
+    return QString::fromLatin1(hash.left(12));
+}
+
+inline QString generar_codigo_producto_cvlac(
+    const QString& codigo_rh,
+    const QString& cita,
+    int ocurrencia = 1,
+    const QString& titulo = QString()
+) {
+    const QString rh_limpio = codigo_rh.trimmed();
+    QString texto = cita.trimmed();
+    if (texto.isEmpty()) {
+        texto = titulo.trimmed();
+    }
+    const QString h = calcular_hash_cita(texto);
+    QString base = QStringLiteral("PROD-CVLAC-%1-%2").arg(rh_limpio, h);
+    if (ocurrencia > 1) {
+        return QStringLiteral("%1-%2").arg(base, QString::number(ocurrencia));
+    }
+    return base;
+}
 
 class Producto {
 public:

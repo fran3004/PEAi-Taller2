@@ -207,6 +207,50 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
   - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
   - Artículos sin año en CvLAC fixture: 0 (todos los 26 artículos disponen de año válido en el rango 2008-2023).
 
+## Corrección 6: Identificadores estables para productos CvLAC y conciliación segura en Supabase
+
+- **Problema:** Los productos de CvLAC se identificaban originalmente mediante códigos posicionales volátiles (`PROD-CVLAC-{codigo_rh}-{posición de 4 dígitos}`). Al corregir el lector de HTML (eliminando 26 etiquetas espurias como artículos fantasma), las posiciones cambiaron: una re-importación crearía duplicados o asociaría artículos distintos bajo códigos viejos.
+- **Acciones realizadas:**
+  1. **TDD:**
+     - Pruebas unitarias en Python (`tests/unit/test_ingesta.py`):
+       - (a) `test_importar_dos_veces_cvlac_en_memoria_no_duplica_productos`: confirma idempotencia en memoria.
+       - (b) `test_importar_cvlac_reconoce_producto_existente_con_codigo_antiguo_posicional`: comprueba que productos existentes con códigos antiguos posicionales (`PROD-CVLAC-0000494917-0002` o similares) no se duplican y son reutilizados sin modificar su código.
+       - (c) `test_dos_citas_identicas_mismo_cv_reciben_codigos_distintos_y_estables`: verifica asignación determinista de sufijos `-2`, `-3` para citas repetidas dentro del mismo CV.
+       - `test_paridad_codigo_estable_cvlac_con_tildes`: pruebas de paridad con 3 citas de ejemplo con tildes y caracteres especiales, verificando hashes exactos `9d80335576e1`, `d4966c27ca0c`, `998b196deec0`.
+       - `test_normalizar_cita_y_generar_codigo_casos_borde`: casos borde de normalización Unicode (NFC vs NFD, espacios colapsados, mayúsculas, comillas tipográficas, fallback a título si la cita está vacía).
+     - Pruebas unitarias en C++ (`cpp/tests/test_ingesta.cpp`):
+       - Doctest `Paridad de hash y código estable de CvLAC con tildes`: 7 aserciones comprobando igualdad de caracteres hex contra Python.
+       - Doctest `Casos borde de normalización y código CvLAC en C++`: normalización de espacios múltiples y tabulaciones, fallback a título.
+  2. **Implementación de funciones puras de código estable:**
+     - En Python (`src/pea/dominio/producto.py`): `normalizar_cita(cita)`, `calcular_hash_cita(cita)`, `generar_codigo_producto_cvlac(codigo_rh, cita, ocurrencia, titulo)`.
+     - En C++ (`cpp/include/pea/dominio/producto.hpp`): funciones inline homólogas usando `QString::normalized(QString::NormalizationForm_C).toLower()` y `QCryptographicHash::Sha1`.
+  3. **Lógica de deduplicación en la ingesta:**
+     - En Python (`src/pea/ingesta/servicio_ingesta.py`) y C++ (`cpp/src/ingesta/servicio_ingesta.cpp`):
+       - Genera el código estable con conteo de ocurrencias por cita normalizada.
+       - Busca primero por el código estable en el catálogo.
+       - Si no existe, busca entre los productos asociados al investigador (`obtener_productos_investigador`): primero por coincidencia de título existente contenido en la cita, luego por coincidencia de cita normalizada (`referencia_original` o `texto_completo`).
+       - Si se encuentra un producto existente (antiguo), se reutiliza su código identificador para preservar su identidad, asociando el autor de forma idempotente tanto en memoria como en Supabase si `persistir=True`.
+  4. **Herramienta de conciliación segura de códigos en base de datos:**
+     - Creado `tools/db/reconciliar_codigos_cvlac.py` con pruebas en `tests/unit/test_reconciliacion_codigos_cvlac.py`.
+     - Identifica códigos antiguos `PROD-CVLAC-{rh}-\d{4}` y calcula el código estable a partir de `referencia_original`.
+     - Genera reporte CSV en `datos/respaldos/reconciliacion_codigos_cvlac_<timestamp>.csv` (`id,codigo_anterior,codigo_nuevo,estado`).
+     - Protocolo estricto de seguridad para `--aplicar`:
+       - Verifica existencia de respaldo JSON íntegro menor a 1 hora en `datos/respaldos/`.
+       - Solicita confirmación textual `RECONCILIAR`.
+       - Verifica conteos de `productos`, `producto_autores`, `producto_grupos` antes y después.
+       - Flujo de revisión con reintentos acotados.
+  5. **Ejecución y migración en base de datos real (Regla 5):**
+     - Generado respaldo fresco `respaldo_20261023_130307_074023.json` (6,458 filas verificadas).
+     - Simulación inicial en Supabase real: 1,293 productos antiguos encontrados, 1,293 listos para conciliar (`OK`), 0 `SIN_CITA`, 0 `COLISION`.
+     - Ejecución de reconciliación con `--aplicar --confirmacion RECONCILIAR`:
+       - 1,293 productos actualizados con éxito, 0 errores.
+       - Conteos antes y después idénticos: Productos: 2352, Autores: 2356, Grupos: 1059. Integridad referencial 100% verificada.
+  6. **Prueba de extremo a extremo:**
+     - Creada herramienta `tools/db/simular_ingesta_oraculo.py`.
+     - Carga el catálogo completo de la base real en memoria (2,352 productos, 291 investigadores, 4 grupos).
+     - Simula la ingesta del fixture `cvlac_0000494917.html` con `persistir=False`.
+     - Resultado: se reconocen los 26 artículos reales, 0 productos duplicados o creados (conteo en memoria: 2352 inicial == 2352 final), productos de otros tipos preservados intactos.
+
 ## Próximos pasos
 
 Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.

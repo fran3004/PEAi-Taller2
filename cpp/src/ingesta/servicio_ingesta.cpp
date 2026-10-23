@@ -2,7 +2,9 @@
 #include "pea/excepciones.hpp"
 #include <QDate>
 #include <QDateTime>
+#include <QMap>
 #include <QRegularExpression>
+#include <QSet>
 #include <QStringList>
 #include <chrono>
 #include <stdexcept>
@@ -384,6 +386,9 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
         todos_prods.append(inv_ing.trabajos_dirigidos);
         todos_prods.append(inv_ing.proyectos);
 
+        QMap<QString, int> ocurrencias_citas;
+        QSet<QString> productos_ya_emparejados;
+
         for (const auto& p_ing : todos_prods) {
             if (!p_ing.ano.has_value()) {
                 informe.advertencias.append(
@@ -392,8 +397,66 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 ++prod_idx;
                 continue;
             }
-            QString cod_prod = QStringLiteral("PROD-CVLAC-%1-%2").arg(inv_ing.codigo_rh).arg(prod_idx++, 4, 10, QLatin1Char('0'));
-            if (!m_catalogo->buscar_producto(cod_prod)) {
+            ++prod_idx;
+
+            QString cita = p_ing.detalles.value_or(QString());
+            QString titulo = p_ing.titulo;
+            QString texto_cita = !cita.trimmed().isEmpty() ? cita.trimmed() : titulo.trimmed();
+            QString norm = dominio::normalizar_cita(texto_cita);
+            int ocurrencia = ocurrencias_citas.value(norm, 0) + 1;
+            ocurrencias_citas[norm] = ocurrencia;
+
+            QString cod_prod = dominio::generar_codigo_producto_cvlac(
+                inv_ing.codigo_rh,
+                cita,
+                ocurrencia,
+                titulo
+            );
+
+            std::shared_ptr<dominio::Producto> producto_existente = m_catalogo->buscar_producto(cod_prod);
+            if (!producto_existente) {
+                auto prods_inv = m_catalogo->multilista_productos.obtener_productos_investigador(inv_ing.codigo_rh);
+
+                // Prioridad 1: Coincidencia por título existente contenido en la cita o idéntico
+                for (const auto& p : prods_inv) {
+                    if (!p) continue;
+                    if (productos_ya_emparejados.contains(p->codigo_identificador)) continue;
+
+                    QString norm_tit = dominio::normalizar_cita(p->titulo);
+                    if (!norm_tit.isEmpty() && norm_tit.length() > 10 && (norm_tit == norm || norm.contains(norm_tit))) {
+                        producto_existente = p;
+                        productos_ya_emparejados.insert(p->codigo_identificador);
+                        break;
+                    }
+                }
+
+                // Prioridad 2: Coincidencia por referencia_original o texto_completo
+                if (!producto_existente) {
+                    for (const auto& p : prods_inv) {
+                        if (!p) continue;
+                        if (productos_ya_emparejados.contains(p->codigo_identificador)) continue;
+
+                        QString cita_existente;
+                        if (p->detalles.contains(QStringLiteral("referencia_original"))) {
+                            cita_existente = p->detalles[QStringLiteral("referencia_original")].toString();
+                        } else if (p->detalles.contains(QStringLiteral("texto_completo"))) {
+                            cita_existente = p->detalles[QStringLiteral("texto_completo")].toString();
+                        } else {
+                            cita_existente = p->titulo;
+                        }
+                        QString norm_existente = dominio::normalizar_cita(cita_existente);
+                        if (norm == norm_existente ||
+                            (!norm.isEmpty() && norm_existente.contains(norm)) ||
+                            (!norm_existente.isEmpty() && norm.contains(norm_existente))) {
+                            producto_existente = p;
+                            productos_ya_emparejados.insert(p->codigo_identificador);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!producto_existente) {
                 dominio::Producto p;
                 p.codigo_identificador = cod_prod;
                 p.titulo = p_ing.titulo;
@@ -401,9 +464,11 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 p.subtipo = p_ing.tipo.left(100);
                 p.ano = *p_ing.ano;
                 p.estado_validacion = QStringLiteral("Avalado");
+                p.detalles[QStringLiteral("origen")] = QStringLiteral("CvLAC");
                 p.detalles[QStringLiteral("fuente")] = tarea.origen;
                 p.detalles[QStringLiteral("referencia_original")] = p_ing.detalles.value_or(QString());
                 if (p_ing.autores) p.detalles[QStringLiteral("autores")] = *p_ing.autores;
+                if (p_ing.doi_o_isbn) p.detalles[QStringLiteral("doi_o_isbn")] = *p_ing.doi_o_isbn;
                 ejecutar_con_reintento_revision(*m_catalogo, [&] {
                     return m_catalogo->crear_producto(
                         std::make_shared<dominio::Producto>(p),
@@ -411,6 +476,26 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                         {inv_ing.codigo_rh},
                         persistir);
                 });
+                productos_ya_emparejados.insert(cod_prod);
+            } else {
+                productos_ya_emparejados.insert(producto_existente->codigo_identificador);
+                auto inv = m_catalogo->buscar_investigador(inv_ing.codigo_rh);
+                if (inv) {
+                    auto* nodo = m_catalogo->multilista_productos.buscar_nodo(producto_existente->codigo_identificador);
+                    bool ya_es_autor = nodo && nodo->autores.buscar([&inv_ing](const std::shared_ptr<dominio::Investigador>& a) {
+                        return a && a->codigo_rh == inv_ing.codigo_rh;
+                    }) != nullptr;
+                    if (!ya_es_autor) {
+                        ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                            m_catalogo->asociar_autor_producto(
+                                producto_existente->codigo_identificador,
+                                inv_ing.codigo_rh,
+                                1,
+                                persistir);
+                            return true;
+                        });
+                    }
+                }
             }
         }
     }

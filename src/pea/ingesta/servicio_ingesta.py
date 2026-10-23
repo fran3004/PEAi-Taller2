@@ -12,7 +12,12 @@ from typing import TypeVar
 
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
-from pea.dominio.producto import Producto, validar_ano_producto
+from pea.dominio.producto import (
+    Producto,
+    generar_codigo_producto_cvlac,
+    normalizar_cita,
+    validar_ano_producto,
+)
 from pea.estructuras.cola import Cola, EstadoTarea, TareaIngesta
 from pea.excepciones import ConflictoRevision, ErrorConexion, ErrorPEA, ErrorValidacion, RecursoNoEncontrado
 from pea.ingesta.extractor_pdf import ExtractorPDF
@@ -274,14 +279,66 @@ class ServicioIngesta:
             + investigador_ing.trabajos_dirigidos
             + investigador_ing.proyectos
         )
+        ocurrencias_citas: dict[str, int] = {}
+        productos_ya_emparejados: set[str] = set()
+
         for indice, producto_ing in enumerate(productos, start=1):
             ano_producto = self._validar_ano_producto_url(
                 producto_ing.ano, "CvLAC", indice, informe
             )
             if ano_producto is None:
                 continue
-            codigo = f"PROD-CVLAC-{investigador_ing.codigo_rh}-{indice:04d}"
+
+            cita = producto_ing.detalles
+            titulo = producto_ing.titulo
+            texto_cita = (cita or "").strip() or (titulo or "").strip()
+            norm = normalizar_cita(texto_cita)
+            ocurrencia = ocurrencias_citas.get(norm, 0) + 1
+            ocurrencias_citas[norm] = ocurrencia
+
+            codigo = generar_codigo_producto_cvlac(
+                investigador_ing.codigo_rh,
+                cita=cita,
+                ocurrencia=ocurrencia,
+                titulo=titulo,
+            )
+
             producto_existente = self.catalogo.buscar_producto(codigo)
+            if producto_existente is None:
+                prods_inv = self.catalogo.multilista_productos.obtener_productos_investigador(
+                    investigador_ing.codigo_rh
+                )
+                # Prioridad 1: Coincidencia por título existente contenido en la cita o idéntico
+                for p in prods_inv:
+                    if p.codigo_identificador in productos_ya_emparejados:
+                        continue
+                    norm_tit = normalizar_cita(p.titulo)
+                    if norm_tit and len(norm_tit) > 10 and (norm_tit == norm or norm_tit in norm):
+                        producto_existente = p
+                        productos_ya_emparejados.add(p.codigo_identificador)
+                        break
+
+                # Prioridad 2: Coincidencia por referencia_original o texto_completo
+                if producto_existente is None:
+                    for p in prods_inv:
+                        if p.codigo_identificador in productos_ya_emparejados:
+                            continue
+                        cita_existente = (
+                            p.detalles.get("referencia_original")
+                            or p.detalles.get("texto_completo")
+                            or p.titulo
+                            or ""
+                        )
+                        norm_existente = normalizar_cita(cita_existente)
+                        if (
+                            norm == norm_existente
+                            or (norm and norm in norm_existente)
+                            or (norm_existente and norm_existente in norm)
+                        ):
+                            producto_existente = p
+                            productos_ya_emparejados.add(p.codigo_identificador)
+                            break
+
             if producto_existente is None:
                 producto = Producto(
                     codigo_identificador=codigo,
@@ -305,11 +362,34 @@ class ServicioIngesta:
                         persistir=persistir,
                     )
                 )
-            elif investigador_existente is not None:
-                self.catalogo.multilista_productos.agregar_autor_a_producto(
-                    codigo,
-                    investigador_existente,
+                productos_ya_emparejados.add(codigo)
+            else:
+                productos_ya_emparejados.add(producto_existente.codigo_identificador)
+                inv = investigador_existente or self.catalogo.buscar_investigador(
+                    investigador_ing.codigo_rh
                 )
+                if inv is not None:
+                    self.catalogo.multilista_productos.agregar_autor_a_producto(
+                        producto_existente.codigo_identificador,
+                        inv,
+                    )
+                    if (
+                        persistir
+                        and producto_existente.id
+                        and inv.id
+                        and self.catalogo.repo_productos is not None
+                    ):
+                        self._ejecutar_con_reintento_revision(
+                            lambda prod_id=producto_existente.id,
+                            inv_id=inv.id,
+                            es_ej=producto_existente.es_ejemplo: (
+                                self.catalogo.repo_productos.asociar_autor(
+                                    prod_id,
+                                    inv_id,
+                                    es_ejemplo=es_ej,
+                                )
+                            )
+                        )
     def _procesar_tarea_url(self, tarea: TareaIngesta) -> InformeIngesta:
         detalles = tarea.detalles or {}
         persistir = bool(detalles.get("persistir", False))

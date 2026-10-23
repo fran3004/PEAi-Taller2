@@ -978,3 +978,35 @@ TEST_CASE("Informe CSV completo conserva paridad entre Python y C++") {
     CHECK(informe_error.advertencias.front() == error_lectura);
     CHECK(informe_error.filas_erroneas.isEmpty());
 }
+
+TEST_CASE("Paridad de hash y código estable de CvLAC con tildes") {
+    const QString c1 = QString::fromUtf8("Pérez Orozco, Adith Bismarck. «Gestión de la innovación en servicios», 2016.");
+    const QString c2 = QString::fromUtf8("Álvarez, María & Núñez, José. «Inteligencia Artificial y Educación», vol. 5, 2021.");
+    const QString c3 = QString::fromUtf8("Investigación Aplicada en la Universidad Popular del Cesar (UPC): Guía Práctica, año 2023.");
+
+    CHECK(pea::dominio::calcular_hash_cita(c1) == QStringLiteral("9d80335576e1"));
+    CHECK(pea::dominio::calcular_hash_cita(c2) == QStringLiteral("d4966c27ca0c"));
+    CHECK(pea::dominio::calcular_hash_cita(c3) == QStringLiteral("998b196deec0"));
+
+    CHECK(pea::dominio::generar_codigo_producto_cvlac(QStringLiteral("0000494917"), c1) ==
+          QStringLiteral("PROD-CVLAC-0000494917-9d80335576e1"));
+    CHECK(pea::dominio::generar_codigo_producto_cvlac(QStringLiteral("0000494917"), c2) ==
+          QStringLiteral("PROD-CVLAC-0000494917-d4966c27ca0c"));
+    CHECK(pea::dominio::generar_codigo_producto_cvlac(QStringLiteral("0000494917"), c3) ==
+          QStringLiteral("PROD-CVLAC-0000494917-998b196deec0"));
+    CHECK(pea::dominio::generar_codigo_producto_cvlac(QStringLiteral("0000494917"), c1, 2) ==
+          QStringLiteral("PROD-CVLAC-0000494917-9d80335576e1-2"));
+}
+
+TEST_CASE("Casos borde de normalización y código CvLAC en C++") {
+    const QString c_espacios = QString::fromUtf8("   Pérez   \t  Orozco,   \n  Adith Bismarck.   «Gestión   de la innovación en servicios»,   2016. \n\n");
+    const QString c_normal = QString::fromUtf8("Pérez Orozco, Adith Bismarck. «Gestión de la innovación en servicios», 2016.");
+
+    CHECK(pea::dominio::normalizar_cita(c_espacios) == pea::dominio::normalizar_cita(c_normal));
+    CHECK(pea::dominio::calcular_hash_cita(c_espacios) == pea::dominio::calcular_hash_cita(c_normal));
+
+    const QString cod_desde_tit = pea::dominio::generar_codigo_producto_cvlac(
+        QStringLiteral("0000494917"), QString(), 1, QString::fromUtf8("Gestión de la innovación"));
+    const QString hash_tit = pea::dominio::calcular_hash_cita(QString::fromUtf8("Gestión de la innovación"));
+    CHECK(cod_desde_tit == QStringLiteral("PROD-CVLAC-0000494917-%1").arg(hash_tit));
+}

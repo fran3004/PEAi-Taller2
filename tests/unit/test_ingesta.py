@@ -11,6 +11,7 @@ from PIL import Image
 
 from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
+from pea.dominio.producto import Producto
 from pea.estructuras.cola import EstadoTarea
 from pea.excepciones import ConflictoRevision
 from pea.ingesta.extractor_pdf import ExtractorPDF
@@ -459,6 +460,178 @@ class TestServicioIngestaYCola:
             producto.codigo_identificador.startswith("PROD-CVLAC-0000494917-")
             for producto in catalogo.multilista_productos
         )
+
+    def test_importar_dos_veces_cvlac_en_memoria_no_duplica_productos(self, tmp_path: Path) -> None:
+        """(a) Importar dos veces el mismo CvLAC con repositorio en memoria no crea duplicados."""
+        ruta_fixture = Path("tests/fixtures/scienti/cvlac_0000494917.html")
+        html = ruta_fixture.read_bytes()
+        url = "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917"
+        extractor_real = ExtractorURL(cache_dir=tmp_path)
+
+        class ExtractorMock:
+            def validar_url(self, origen: str) -> tuple[str, str]:
+                return "cvlac", ""
+
+            def procesar_url(self, url: str, **_kwargs: object) -> InformeIngesta:
+                return InformeIngesta(origen=url, tipo_fuente="url_cvlac", exito=True)
+
+            def descargar_o_cargar_cache(self, url: str, alias: str | None = None) -> tuple[bytes, dict[str, str]]:
+                return html, {"url": url, "sha256": "fixture", "encoding_utilizada": "iso-8859-1"}
+
+            def parsear_cvlac(self, html_text: str, meta: dict[str, str]) -> tuple[InvestigadorIngesta, str, dict[str, int]]:
+                return extractor_real.parsear_cvlac(html_text, meta)
+
+        catalogo = CatalogoInvestigacion()
+        servicio = ServicioIngesta(catalogo, extractor_url=ExtractorMock())
+
+        # Primera importación
+        servicio.encolar_url(url, persistir=False, salida_dir=tmp_path)
+        info1 = servicio.procesar_siguiente()
+        assert info1 is not None and info1.exito
+        total_primera = catalogo.multilista_productos.tamano
+        assert total_primera > 0
+
+        # Segunda importación
+        servicio.encolar_url(url, persistir=False, salida_dir=tmp_path)
+        info2 = servicio.procesar_siguiente()
+        assert info2 is not None and info2.exito
+        total_segunda = catalogo.multilista_productos.tamano
+        assert total_segunda == total_primera, f"Se crearon duplicados: antes {total_primera}, después {total_segunda}"
+
+    def test_importar_cvlac_reconoce_producto_existente_con_codigo_antiguo_posicional(self, tmp_path: Path) -> None:
+        """(b) Si ya existe un producto con código antiguo de posición y misma cita, no crea otro."""
+        ruta_fixture = Path("tests/fixtures/scienti/cvlac_0000494917.html")
+        html = ruta_fixture.read_bytes()
+        url = "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917"
+        extractor_real = ExtractorURL(cache_dir=tmp_path)
+        inv_parsed, _, _ = extractor_real.parsear_cvlac(html.decode("iso-8859-1"), {"url": url, "sha256": "fixture"})
+
+        primer_art = inv_parsed.articulos[0]
+        cita_real = primer_art.detalles
+
+        catalogo = CatalogoInvestigacion()
+        # Pre-crear el investigador
+        inv_obj = Investigador(codigo_rh="0000494917", nombre_completo="Adith Bismarck Pérez Orozco")
+        catalogo.crear_investigador(inv_obj, persistir=False)
+
+        # Pre-crear el producto bajo código antiguo de posición (en el lector viejo era posición 0002)
+        codigo_antiguo = "PROD-CVLAC-0000494917-0002"
+        prod_antiguo = Producto(
+            codigo_identificador=codigo_antiguo,
+            titulo=primer_art.titulo,
+            tipo_mayor=primer_art.tipo_mayor,
+            subtipo=primer_art.subtipo,
+            ano=primer_art.ano or 2016,
+            detalles={"origen": "CvLAC", "fuente": url, "referencia_original": cita_real},
+        )
+        catalogo.crear_producto(prod_antiguo, codigos_rh_autores=["0000494917"], persistir=False)
+        assert catalogo.multilista_productos.tamano == 1
+
+        class ExtractorMock:
+            def validar_url(self, origen: str) -> tuple[str, str]:
+                return "cvlac", ""
+
+            def procesar_url(self, url: str, **_kwargs: object) -> InformeIngesta:
+                return InformeIngesta(origen=url, tipo_fuente="url_cvlac", exito=True)
+
+            def descargar_o_cargar_cache(self, url: str, alias: str | None = None) -> tuple[bytes, dict[str, str]]:
+                return html, {"url": url, "sha256": "fixture", "encoding_utilizada": "iso-8859-1"}
+
+            def parsear_cvlac(self, html_text: str, meta: dict[str, str]) -> tuple[InvestigadorIngesta, str, dict[str, int]]:
+                return extractor_real.parsear_cvlac(html_text, meta)
+
+        servicio = ServicioIngesta(catalogo, extractor_url=ExtractorMock())
+        servicio.encolar_url(url, persistir=False, salida_dir=tmp_path)
+        servicio.procesar_siguiente()
+
+        # El producto con la misma cita no debe duplicarse: el nodo antiguo se preservó
+        # y no existe un producto duplicado con el nuevo código para esa misma cita
+        prods_con_esa_cita = [
+            p for p in catalogo.multilista_productos
+            if (p.detalles.get("referencia_original") or "").strip() == cita_real.strip()
+        ]
+        assert len(prods_con_esa_cita) == 1
+        assert prods_con_esa_cita[0].codigo_identificador == codigo_antiguo
+
+    def test_dos_citas_identicas_mismo_cv_reciben_codigos_distintos_y_estables(self) -> None:
+        """(c) Dos citas idénticas dentro de un mismo CV reciben códigos distintos y estables."""
+        from pea.dominio.producto import generar_codigo_producto_cvlac
+
+        cita = "Pérez Orozco, Adith Bismarck. «Gestión de la innovación en servicios», 2016."
+        codigo_1a = generar_codigo_producto_cvlac("0000494917", cita, ocurrencia=1)
+        codigo_2a = generar_codigo_producto_cvlac("0000494917", cita, ocurrencia=2)
+        codigo_3a = generar_codigo_producto_cvlac("0000494917", cita, ocurrencia=3)
+
+        # Distintos entre sí
+        assert codigo_1a != codigo_2a
+        assert codigo_2a != codigo_3a
+        assert codigo_2a.endswith("-2")
+        assert codigo_3a.endswith("-3")
+
+        # Estabilidad: segundas llamadas generan los mismos códigos exactos
+        assert generar_codigo_producto_cvlac("0000494917", cita, ocurrencia=1) == codigo_1a
+        assert generar_codigo_producto_cvlac("0000494917", cita, ocurrencia=2) == codigo_2a
+
+    def test_paridad_codigo_estable_cvlac_con_tildes(self) -> None:
+        """Prueba de paridad con 3 citas de ejemplo con tildes."""
+        from pea.dominio.producto import calcular_hash_cita, generar_codigo_producto_cvlac
+
+        c1 = "Pérez Orozco, Adith Bismarck. «Gestión de la innovación en servicios», 2016."
+        c2 = "Álvarez, María & Núñez, José. «Inteligencia Artificial y Educación», vol. 5, 2021."
+        c3 = "Investigación Aplicada en la Universidad Popular del Cesar (UPC): Guía Práctica, año 2023."
+
+        # Verificación de hashes exactos
+        assert calcular_hash_cita(c1) == "9d80335576e1"
+        assert calcular_hash_cita(c2) == "d4966c27ca0c"
+        assert calcular_hash_cita(c3) == "998b196deec0"
+
+        assert generar_codigo_producto_cvlac("0000494917", c1) == "PROD-CVLAC-0000494917-9d80335576e1"
+        assert generar_codigo_producto_cvlac("0000494917", c2) == "PROD-CVLAC-0000494917-d4966c27ca0c"
+        assert generar_codigo_producto_cvlac("0000494917", c3) == "PROD-CVLAC-0000494917-998b196deec0"
+        assert generar_codigo_producto_cvlac("0000494917", c1, ocurrencia=2) == "PROD-CVLAC-0000494917-9d80335576e1-2"
+
+    def test_normalizar_cita_y_generar_codigo_casos_borde(self) -> None:
+        """Prueba casos borde: tildes (NFC vs NFD), espacios múltiples, saltos de línea, mayúsculas, comillas, citas vacías."""
+        import unicodedata
+
+        from pea.dominio.producto import calcular_hash_cita, generar_codigo_producto_cvlac, normalizar_cita
+
+        texto_base = "Pérez Orozco, Adith Bismarck. «Gestión de la innovación en servicios», 2016."
+        nfd_texto = unicodedata.normalize("NFD", texto_base)
+        nfc_texto = unicodedata.normalize("NFC", texto_base)
+
+        # NFC vs NFD producen la misma normalización y hash
+        assert normalizar_cita(nfd_texto) == normalizar_cita(nfc_texto)
+        assert calcular_hash_cita(nfd_texto) == calcular_hash_cita(nfc_texto)
+
+        # Espacios múltiples, tabulaciones y saltos de línea
+        con_espacios = "   Pérez   \t  Orozco,   \n  Adith Bismarck.   «Gestión   de la innovación en servicios»,   2016. \n\n"
+        assert normalizar_cita(con_espacios) == normalizar_cita(texto_base)
+        assert calcular_hash_cita(con_espacios) == calcular_hash_cita(texto_base)
+
+        # Mayúsculas vs minúsculas
+        mayusculas = texto_base.upper()
+        assert normalizar_cita(mayusculas) == normalizar_cita(texto_base)
+
+        # Cita vacía o None: recurre a título normalizado
+        cod_desde_titulo = generar_codigo_producto_cvlac(
+            "0000494917",
+            cita="",
+            titulo="Gestión de la innovación",
+        )
+        cod_desde_titulo_none = generar_codigo_producto_cvlac(
+            "0000494917",
+            cita=None,
+            titulo="Gestión de la innovación",
+        )
+        hash_titulo = calcular_hash_cita("Gestión de la innovación")
+        assert cod_desde_titulo == f"PROD-CVLAC-0000494917-{hash_titulo}"
+        assert cod_desde_titulo_none == cod_desde_titulo
+
+        # Cita vacía y título None
+        cod_vacio = generar_codigo_producto_cvlac("0000494917", cita="", titulo=None)
+        hash_vacio = calcular_hash_cita("")
+        assert cod_vacio == f"PROD-CVLAC-0000494917-{hash_vacio}"
 
     def test_url_gruplac_persiste_campos_obligatorios_integrantes_y_todas_las_secciones(
         self,
