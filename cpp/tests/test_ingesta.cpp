@@ -336,6 +336,14 @@ TEST_CASE("Ingesta C++ - Extracción y Parsing HTML contra Oráculo") {
         QJsonArray oraculo_art = oraculo[QStringLiteral("articulos")].toArray();
         QJsonArray res_art = res[QStringLiteral("articulos")].toArray();
         CHECK(res_art.size() == oraculo_art.size());
+        CHECK(res_art.size() == 26);
+        for (const auto& a_val : res_art) {
+            QString tit = a_val.toObject()[QStringLiteral("titulo")].toString();
+            CHECK(!tit.startsWith(QStringLiteral("Producción")));
+            CHECK(!tit.startsWith(QStringLiteral("Produccion")));
+            CHECK(!tit.startsWith(QStringLiteral("Produccin")));
+            CHECK(!tit.startsWith(QStringLiteral("Producci")));
+        }
         CHECK(res_art.size() >= 10);
 
         QJsonArray oraculo_soft = oraculo[QStringLiteral("softwares")].toArray();

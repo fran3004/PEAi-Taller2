@@ -79,6 +79,31 @@ def anonimizar_datos_personales(texto: str) -> str:
     return res
 
 
+def _es_etiqueta_tipo_cvlac(texto: str) -> bool:
+    """Detecta celdas que son sólo encabezados/etiquetas de tipo de producto en CvLAC."""
+    t = texto.strip()
+    if not t:
+        return False
+    lower = t.lower()
+    if (
+        lower.startswith(("producción", "produccion", "produccin", "producci\ufffdn", "producci"))
+        and " - " in t
+    ):
+        return True
+    if lower.startswith(
+        (
+            "producción bibliográfica",
+            "produccion bibliografica",
+            "producción técnica",
+            "produccion tecnica",
+            "produccin bibliogr",
+            "produccin tcnic",
+        )
+    ):
+        return True
+    return False
+
+
 class ExtractorURL:
     """Manejador de extracción web responsable para Minciencias SCIENTI."""
 
@@ -733,15 +758,20 @@ class ExtractorURL:
                             md_lines.append(f"| {txt} |")
                 md_lines.append("")
 
-            elif "Artículos" in sec_title:
+            elif "Artículos" in sec_title or "Articulos" in sec_title:
                 md_lines.append("| N° | Artículo Científico |")
                 md_lines.append("|:---:|---|")
                 num = 1
                 for tr in rows:
-                    tds = tr.find_all("td")
-                    for td in tds:
+                    for td in tr.find_all("td", recursive=False):
                         txt = normalizar_texto(td.get_text())
-                        if txt and "Artículos" not in txt and len(txt) > 20:
+                        if (
+                            txt
+                            and "Artículos" not in txt
+                            and "Articulos" not in txt
+                            and len(txt) > 20
+                            and not _es_etiqueta_tipo_cvlac(txt)
+                        ):
                             ano_val = _extraer_ano_producto(txt)
                             inv.articulos.append(
                                 ProductoIngesta(
@@ -759,14 +789,19 @@ class ExtractorURL:
                             num += 1
                 md_lines.append("")
 
-            elif "Libros" in sec_title and "Capítulos" not in sec_title:
+            elif "Libros" in sec_title and "Capítulos" not in sec_title and "Capitulos" not in sec_title:
                 md_lines.append("| N° | Libro |")
                 md_lines.append("|:---:|---|")
                 num = 1
                 for tr in rows:
                     for td in tr.find_all("td", recursive=False):
                         txt = normalizar_texto(td.get_text())
-                        if txt and "Libros" not in txt and len(txt) > 20:
+                        if (
+                            txt
+                            and "Libros" not in txt
+                            and len(txt) > 20
+                            and not _es_etiqueta_tipo_cvlac(txt)
+                        ):
                             inv.libros.append(
                                 ProductoIngesta(
                                     tipo="Libro",
@@ -783,15 +818,20 @@ class ExtractorURL:
                             num += 1
                 md_lines.append("")
 
-            elif "Capítulos de libro" in sec_title:
+            elif "Capítulos de libro" in sec_title or "Capitulos de libro" in sec_title:
                 md_lines.append("| N° | Capítulo de Libro |")
                 md_lines.append("|:---:|---|")
                 num = 1
                 for tr in rows:
-                    tds = tr.find_all("td")
-                    for td in tds:
+                    for td in tr.find_all("td", recursive=False):
                         txt = normalizar_texto(td.get_text())
-                        if txt and "Capítulos de libro" not in txt and len(txt) > 20:
+                        if (
+                            txt
+                            and "Capítulos de libro" not in txt
+                            and "Capitulos de libro" not in txt
+                            and len(txt) > 20
+                            and not _es_etiqueta_tipo_cvlac(txt)
+                        ):
                             ano_val = _extraer_ano_producto(txt)
                             inv.capitulos.append(
                                 ProductoIngesta(
@@ -816,7 +856,12 @@ class ExtractorURL:
                 for tr in rows:
                     for td in tr.find_all("td", recursive=False):
                         txt = normalizar_texto(td.get_text())
-                        if txt and "Trabajos dirigidos" not in txt and len(txt) > 20:
+                        if (
+                            txt
+                            and "Trabajos dirigidos" not in txt
+                            and len(txt) > 20
+                            and not _es_etiqueta_tipo_cvlac(txt)
+                        ):
                             inv.trabajos_dirigidos.append(
                                 ProductoIngesta(
                                     tipo="TrabajoDirigido",
@@ -862,10 +907,14 @@ class ExtractorURL:
                 md_lines.append("|:---:|---|")
                 num = 1
                 for tr in rows:
-                    tds = tr.find_all("td")
-                    for td in tds:
+                    for td in tr.find_all("td", recursive=False):
                         txt = normalizar_texto(td.get_text())
-                        if txt and "Softwares" not in txt and len(txt) > 20:
+                        if (
+                            txt
+                            and "Softwares" not in txt
+                            and len(txt) > 20
+                            and not _es_etiqueta_tipo_cvlac(txt)
+                        ):
                             ano_val = _extraer_ano_producto(txt)
                             inv.softwares.append(
                                 ProductoIngesta(

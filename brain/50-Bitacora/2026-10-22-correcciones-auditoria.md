@@ -182,6 +182,31 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
   - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
   - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
 
+## Corrección 5: Filtrado de celdas de tipo/etiqueta en extracción HTML de CvLAC y paridad Python/C++
+
+- **Problema:** En el fixture `tests/fixtures/scienti/cvlac_0000494917.html`, `parsear_cvlac` devolvía 52 artículos: 26 artículos reales y 26 registros espurios generados a partir de las filas que indican la categoría (`Producción bibliográfica - Artículo - Publicado en revista especializada`). Esto ocurría porque la tabla alterna filas de etiqueta con filas de cita y el filtro comprobaba únicamente si la cadena contenía `"Artículos"` (en plural con tilde), mientras que la etiqueta contiene la palabra en singular (`"Artículo"`). El mismo patrón se presentaba en C++ (`cpp/src/ingesta/parser_html.cpp`).
+- **Acciones realizadas:**
+  1. **TDD:**
+     - En Python (`tests/unit/test_ingesta.py`), se escribió primero la prueba `test_parsear_cvlac_articulos_descarta_etiquetas_y_extrae_26_reales` verificando:
+       - Extracción de exactamente 26 artículos reales.
+       - Ningún artículo con título que inicie por `"Producción"`.
+       - Cada artículo con su año extraído.
+     - Se confirmó el fallo inicial (52 != 26) antes de modificar el código de producción.
+     - En C++ (`cpp/tests/test_ingesta.cpp`), se añadió en el subcaso de CvLAC la verificación explícita de `CHECK(res_art.size() == 26)` y la comprobación de que ningún artículo comienza con `"Producción"`.
+  2. **Implementación de filtrado:**
+     - En Python (`src/pea/ingesta/extractor_url.py`): se implementó `_es_etiqueta_tipo_cvlac` para descartar celdas de encabezado/categoría (`Producción bibliográfica...`, `Producción técnica...`), se cambió la iteración de filas a `recursive=False` en celdas directas, y se aseguró la preservación de citas completas sin filtrar por `ano is not None`. Se verificó que las demás secciones de CvLAC y GrupLAC mantienen su estructura y que los conteos de `gruplac_00000000002099.html` se mantienen exactamente intactos: 85 integrantes, 93 artículos, 14 libros, 23 capítulos, 90 softwares, 151 trabajos dirigidos, 32 proyectos.
+     - En C++ (`cpp/src/ingesta/parser_html.cpp`): se incorporó la función equivalente `es_etiqueta_tipo_cvlac` aplicada a las secciones de productos de CvLAC y GrupLAC.
+  3. **Actualización de oráculo bajo Regla Común 4:**
+     - Con autorización explícita del usuario, se actualizó `tests/fixtures/scienti/cvlac_0000494917.esperado.json` eliminando las 26 etiquetas espurias y conservando los 26 artículos reales.
+- **Resultados de validación:**
+  - `ruff check .`: Limpio (0 errores).
+  - `pytest -m "not red"`: 384 aprobadas, 3 omitidas.
+  - C++ build y CTest: 100% aprobado (64 casos doctest, 1087 aserciones).
+  - `pea-cpp --autoprueba`: 0 hallazgos en 32 pantallas.
+  - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
+  - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
+  - Artículos sin año en CvLAC fixture: 0 (todos los 26 artículos disponen de año válido en el rango 2008-2023).
+
 ## Próximos pasos
 
 Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.

@@ -188,6 +188,28 @@ static QString extraer_primer_td_texto(const QString& tabla_html) {
     return ParserHTML::limpiar_texto(tabla_html.mid(start, end - start));
 }
 
+static bool es_etiqueta_tipo_cvlac(const QString& texto) {
+    const QString t = texto.trimmed();
+    if (t.isEmpty()) return false;
+    const QString lower = t.toLower();
+    if ((lower.startsWith(QStringLiteral("producción")) ||
+         lower.startsWith(QStringLiteral("produccion")) ||
+         lower.startsWith(QStringLiteral("produccin")) ||
+         lower.startsWith(QStringLiteral("producci"))) &&
+        t.contains(QStringLiteral(" - "))) {
+        return true;
+    }
+    if (lower.startsWith(QStringLiteral("producción bibliográfica")) ||
+        lower.startsWith(QStringLiteral("produccion bibliografica")) ||
+        lower.startsWith(QStringLiteral("producción técnica")) ||
+        lower.startsWith(QStringLiteral("produccion tecnica")) ||
+        lower.startsWith(QStringLiteral("produccin bibliogr")) ||
+        lower.startsWith(QStringLiteral("produccin tcnic"))) {
+        return true;
+    }
+    return false;
+}
+
 GrupoIngesta ParserHTML::parsear_gruplac(
     const QString& html,
     const QJsonObject& meta,
@@ -348,7 +370,7 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Artículos publicados")) && !txt.contains(QStringLiteral("Artculos publicados"))) {
+                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Artículos publicados")) && !txt.contains(QStringLiteral("Artculos publicados")) && !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -366,7 +388,7 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Libros publicados"))) {
+                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Libros publicados")) && !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -384,7 +406,7 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Capítulos de libro")) && !txt.contains(QStringLiteral("Captulos de libro"))) {
+                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Capítulos de libro")) && !txt.contains(QStringLiteral("Captulos de libro")) && !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -402,7 +424,7 @@ GrupoIngesta ParserHTML::parsear_gruplac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Softwares"))) {
+                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Softwares")) && !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -582,7 +604,11 @@ InvestigadorIngesta ParserHTML::parsear_cvlac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Artículos")) && !txt.contains(QStringLiteral("Artculos")) && txt.size() > 20) {
+                    if (!txt.isEmpty() &&
+                        !txt.contains(QStringLiteral("Artículos")) &&
+                        !txt.contains(QStringLiteral("Artculos")) &&
+                        txt.size() > 20 &&
+                        !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -600,7 +626,11 @@ InvestigadorIngesta ParserHTML::parsear_cvlac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Capitulos de libro")) && !txt.contains(QStringLiteral("Captulos de libro")) && txt.size() > 20) {
+                    if (!txt.isEmpty() &&
+                        !txt.contains(QStringLiteral("Capitulos de libro")) &&
+                        !txt.contains(QStringLiteral("Captulos de libro")) &&
+                        txt.size() > 20 &&
+                        !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -618,7 +648,10 @@ InvestigadorIngesta ParserHTML::parsear_cvlac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Softwares")) && txt.size() > 20) {
+                    if (!txt.isEmpty() &&
+                        !txt.contains(QStringLiteral("Softwares")) &&
+                        txt.size() > 20 &&
+                        !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 
@@ -636,7 +669,10 @@ InvestigadorIngesta ParserHTML::parsear_cvlac(
                 auto tds = extraer_celdas(tr);
                 for (const auto& td : tds) {
                     QString txt = limpiar_texto(td);
-                    if (!txt.isEmpty() && !txt.contains(QStringLiteral("Trabajos dirigidos")) && txt.size() > 20) {
+                    if (!txt.isEmpty() &&
+                        !txt.contains(QStringLiteral("Trabajos dirigidos")) &&
+                        txt.size() > 20 &&
+                        !es_etiqueta_tipo_cvlac(txt)) {
                         auto m_ano = ano_re.match(txt);
                         std::optional<int> ano_val = m_ano.hasMatch() ? std::make_optional(m_ano.captured(1).toInt()) : std::nullopt;
 

@@ -192,6 +192,33 @@ class TestExtractorURL:
         csv_archivos = extractor.exportar_a_csv_canonico(tmp_path / "csv", investigador=inv)
         assert Path(csv_archivos["investigadores_csv"]).exists()
 
+    def test_parsear_cvlac_articulos_descarta_etiquetas_y_extrae_26_reales(self, tmp_path: Path):
+        fixture_html = Path("tests/fixtures/scienti/cvlac_0000494917.html")
+        assert fixture_html.exists(), "El fixture HTML de CvLAC debe existir"
+
+        html_text = fixture_html.read_text(encoding="iso-8859-1")
+        extractor = ExtractorURL(cache_dir=tmp_path)
+        meta = {
+            "url": "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917",
+            "alias": "cvlac_0000494917",
+            "sha256": "dummy_sha_cvlac",
+        }
+
+        inv, _, _ = extractor.parsear_cvlac(html_text, meta)
+
+        # 1. El resultado esperado es exactamente 26 artículos reales
+        assert len(inv.articulos) == 26
+
+        # 2. Ninguno cuyo título empiece por "Producción bibliográfica"
+        for a in inv.articulos:
+            assert not a.titulo.startswith("Producción bibliográfica")
+            assert not a.titulo.startswith("Produccion bibliografica")
+            assert not a.titulo.startswith("Producci")
+
+        # 3. Cada uno con su año o listado aparte
+        sin_ano = [a for a in inv.articulos if a.ano is None]
+        assert len(sin_ano) == 0, f"Artículos sin año: {[a.titulo for a in sin_ano]}"
+
     def test_csv_canonico_relaciona_autores_con_productos_emitidos(self, tmp_path: Path):
         """Los vínculos de autoría deben apuntar a los códigos reales de productos."""
         investigador = InvestigadorIngesta(
