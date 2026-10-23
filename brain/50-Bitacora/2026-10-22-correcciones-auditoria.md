@@ -116,7 +116,45 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
   - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
   - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
 
+## Corrección 3: Persistencia, idempotencia y reporte de autorías CSV
+
+- **Problema:**
+  - En Python (`src/pea/ingesta/servicio_ingesta.py`), en la rama `tipo == "autores"` de `_procesar_tarea_csv`, ante un fallo en `asociar_autor` se capturaba genéricamente con `except Exception: pass` e incrementaba erróneamente `informe.autores_procesados`, mostrando al usuario autorías procesadas cuando nada se persistía en Supabase.
+  - En C++ (`cpp/src/ingesta/servicio_ingesta.cpp`), la rama `"autores"` solo agregaba la arista en el grafo en memoria y nunca llamaba a `RepositorioProductos::asociar_autor` ni persistía en base aunque `persistir=true`.
+- **Acciones realizadas:**
+  1. **TDD:**
+     - En Python (`tests/unit/test_ingesta_autores.py`), se crearon 13 pruebas unitarias exhaustivas:
+       - Falla en repositorio no suma autores procesados y añade error a `filas_erroneas` y advertencias.
+       - Persistencia remota previa a la adición al grafo en memoria.
+       - Manejo con reintento acotado de `ConflictoRevision` vía `_ejecutar_con_reintento_revision`.
+       - Captura estricta de jerarquía `ErrorPEA` (no genérica `Exception`).
+       - Idempotencia ante violaciones de unicidad (PostgREST código `23505`).
+       - Detección y advertencia clara ("sin identificador remoto") si `prod.id` o `inv.id` están ausentes en modo persistente.
+       - Estados de tarea: `ConError` si fallan todas las relaciones; `Terminada` con advertencias si fallan algunas, con mensaje `"N de M relaciones guardadas"`.
+     - En C++ (`cpp/tests/test_ingesta.cpp`), se añadió el caso de prueba `"Autorias CSV persisten antes de contar y conservan errores por fila"` con 202 aserciones validando persistencia, idempotencia (23505), preservación de errores por número de fila y estados finales de tarea.
+  2. **Persistencia e idempotencia:**
+     - En Python: `RepositorioProductos.asociar_autor` en `src/pea/datos/repositorios.py` captura `ConflictoRevision` e ignora código `23505` para soportar ejecuciones idempotentes. `servicio_ingesta.py` persiste antes de enlazar en `multilista_productos`.
+     - En C++: `RepositorioProductos::asociar_autor` en `cpp/src/datos/repositorios.cpp` ignora código `23505`. `CatalogoInvestigacion` expone `asociar_autor_producto` y `cpp/src/ingesta/servicio_ingesta.cpp` replica el flujo llamando a `asociar_autor` con `ejecutar_con_reintento_revision`.
+  3. **Rastreo de número de fila:**
+     - Se añadió el campo `fila` a `FilaAutorCSV` en `src/pea/ingesta/modelos.py` y `cpp/include/pea/ingesta/modelos.hpp`.
+     - `src/pea/ingesta/lector_csv.py` y `cpp/src/ingesta/lector_csv.cpp` asignan el número de fila (base 1) para reportar errores y advertencias contextualizados al usuario.
+  4. **Presentación en interfaces:**
+     - En PySide6 (`src/pea/gui/pantallas/importar.py`) y TUI FTXUI (`cpp/src/tui/aplicacion_tui.cpp`), se visualizan los mensajes detallados de avance y advertencias de filas con fallos.
+  5. **Prueba sintética en Supabase real y verificación de invariantes:**
+     - Se limpió el registro huérfano preliminar id=302 y se verificaron los conteos base (4 grupos, 291 investigadores, 2352 productos, 2356 producto_autores).
+     - Se insertaron sintéticos `Investigador` (`PRUEBA-INV-CSV-01`) y `Producto` (`PRUEBA-PROD-CSV-01`) con `es_ejemplo=true`.
+     - Se ejecutó la ingesta CSV de autoría comprobando `autores_procesados == 1`, persistencia efectiva en `producto_autores`, e idempotencia en segunda ejecución sin duplicados.
+     - Se eliminaron todos los registros sintéticos y se certificaron los conteos idénticos al punto de partida (4, 291, 2352, 2356).
+- **Resultados de validación:**
+  - `ruff check .`: Limpio (0 errores).
+  - `pytest -m "not red"`: 375 aprobadas, 3 omitidas.
+  - C++ build y CTest: 100% aprobado (64 casos doctest, 1081 aserciones).
+  - `pea-cpp --autoprueba`: 0 hallazgos en 32 pantallas.
+  - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
+  - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
+
 ## Próximos pasos
 
 Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.
+
 

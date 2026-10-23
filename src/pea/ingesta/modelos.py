@@ -205,6 +205,7 @@ class FilaAutorCSV(BaseModel):
     producto_codigo: str
     investigador_codigo: str
     orden_autoria: int = 1
+    fila: int = Field(default=0, exclude=True)
 
 
 # =============================================================================

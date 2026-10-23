@@ -31,6 +31,24 @@ void validar_ano_producto(double ano) {
 
 } // namespace
 
+void CatalogoInvestigacion::asociar_autor_producto(
+    const QString& codigo_producto, const QString& codigo_rh, int orden, bool persistir) {
+    auto* nodo = multilista_productos.buscar_nodo(codigo_producto);
+    auto investigador = buscar_investigador(codigo_rh);
+    if (!nodo || !investigador) {
+        throw RecursoNoEncontrado("Producto o investigador no encontrado");
+    }
+    if (persistir) {
+        if (!nodo->producto->id.value_or(0) || !investigador->id.value_or(0)) {
+            throw ErrorValidacion("Producto o investigador sin identificador remoto");
+        }
+        verificar_autenticacion_si_aplica(true);
+        m_repo_productos->asociar_autor(*nodo->producto->id, *investigador->id,
+                                      orden, nodo->producto->es_ejemplo);
+    }
+    nodo->agregar_autor(investigador);
+}
+
 CatalogoInvestigacion::CatalogoInvestigacion(ClienteHTTPSupabase* cliente,
                                             std::shared_ptr<datos::Sesion> s)
     : sesion(s ? std::move(s) : std::make_shared<datos::Sesion>()),

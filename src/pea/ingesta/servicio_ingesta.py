@@ -14,7 +14,7 @@ from pea.dominio.grupo import Grupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto, validar_ano_producto
 from pea.estructuras.cola import Cola, EstadoTarea, TareaIngesta
-from pea.excepciones import ConflictoRevision
+from pea.excepciones import ConflictoRevision, ErrorConexion, ErrorPEA, ErrorValidacion, RecursoNoEncontrado
 from pea.ingesta.extractor_pdf import ExtractorPDF
 from pea.ingesta.extractor_url import ExtractorURL
 from pea.ingesta.lector_csv import LectorCSV
@@ -138,11 +138,14 @@ class ServicioIngesta:
             else:
                 raise ValueError(f"Tipo de tarea no reconocido: {tarea.tipo_fuente}")
 
-            tarea.estado = EstadoTarea.TERMINADA
+            tarea.estado = EstadoTarea.TERMINADA if informe.exito else EstadoTarea.CON_ERROR
+            if not informe.exito:
+                tarea.mensaje_error = informe.mensaje
             tarea.elementos_procesados = (
                 informe.grupos_procesados
                 + informe.investigadores_procesados
                 + informe.productos_procesados
+                + informe.autores_procesados
             )
             return informe
 
@@ -576,23 +579,41 @@ class ServicioIngesta:
 
         elif tipo == "autores":
             relaciones, errs = LectorCSV.leer_autores(tarea.origen)
+            informe.filas_erroneas.extend(errs)
             for rel in relaciones:
                 inv = self.catalogo.buscar_investigador(rel.investigador_codigo)
                 prod = self.catalogo.buscar_producto(rel.producto_codigo)
-                if inv and prod:
-                    self.catalogo.multilista_productos.agregar_autor_a_producto(rel.producto_codigo, inv)
-                    if persistir and self.catalogo.repo_productos and prod.id and inv.id:
-                        try:
-                            self.catalogo.repo_productos.asociar_autor(
-                                prod.id,
-                                inv.id,
-                                orden=rel.orden_autoria,
-                                es_ejemplo=prod.es_ejemplo,
+                try:
+                    if inv is None or prod is None:
+                        if not persistir:
+                            continue
+                        raise RecursoNoEncontrado("Producto o investigador no encontrado")
+                    if persistir:
+                        if not prod.id or not inv.id:
+                            raise ErrorValidacion("Producto o investigador sin identificador remoto")
+                        if self.catalogo.repo_productos is None:
+                            raise ErrorConexion("No hay conexión a Supabase; la escritura fue bloqueada.")
+                        self._ejecutar_con_reintento_revision(
+                            lambda producto=prod, investigador=inv, relacion=rel: self.catalogo.repo_productos.asociar_autor(
+                                producto.id,
+                                investigador.id,
+                                orden=relacion.orden_autoria,
+                                es_ejemplo=producto.es_ejemplo,
                             )
-                        except Exception:
-                            pass
+                        )
+                    self.catalogo.multilista_productos.agregar_autor_a_producto(rel.producto_codigo, inv)
                     informe.autores_procesados += 1
-            informe.filas_erroneas.extend(errs)
+                except ErrorPEA as err:
+                    informe.filas_erroneas.append({"fila": rel.fila, "datos": rel.model_dump(), "error": str(err)})
+                    if isinstance(err, ConflictoRevision) and err.mensaje == "La base de datos cambió":
+                        informe.requiere_recarga = True
+            if persistir:
+                total = len(relaciones) + len(errs)
+                informe.exito = informe.autores_procesados > 0 or total == 0
+                informe.mensaje = f"{informe.autores_procesados} de {total} relaciones guardadas"
+                informe.advertencias.extend(
+                    f"Fila {error['fila']}: {error['error']}" for error in informe.filas_erroneas
+                )
 
         return informe
 

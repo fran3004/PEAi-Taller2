@@ -15,11 +15,144 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
+#include <QCoreApplication>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include "pea/cliente_http.hpp"
 #include <iostream>
 #include <stdexcept>
 
 using namespace pea;
 using namespace pea::ingesta;
+
+TEST_CASE("Autorias CSV persisten antes de contar y conservan errores por fila") {
+    int argc = 1;
+    char nombre[] = "pruebas_autores";
+    char* argv[] = {nombre, nullptr};
+    QCoreApplication app(argc, argv);
+    QTcpServer servidor;
+    REQUIRE(servidor.listen(QHostAddress::LocalHost, 0));
+    int llamadas = 0;
+    int revisiones = 0;
+    QString modo = "conexion";
+    bool persistir = true;
+    int esperadas = 0;
+    int intentos = 1;
+    int total = 1;
+    bool sin_producto_id = false;
+    bool sin_investigador_id = false;
+    bool sin_cliente = false;
+    SUBCASE("conexion interrumpida") {}
+    SUBCASE("guardado correcto") { modo = "exito"; esperadas = 1; }
+    SUBCASE("duplicado remoto") { modo = "duplicado"; esperadas = 1; }
+    SUBCASE("otro conflicto no es duplicado") { modo = "otro"; }
+    SUBCASE("revision recuperable") { modo = "revision"; esperadas = 1; intentos = 2; }
+    SUBCASE("revision agotada") { modo = "agotada"; intentos = 5; }
+    SUBCASE("sin id de producto") { sin_producto_id = true; intentos = 0; }
+    SUBCASE("sin id de investigador") { sin_investigador_id = true; intentos = 0; }
+    SUBCASE("sin repositorio") { sin_cliente = true; intentos = 0; }
+    SUBCASE("demo sin ids ni red") {
+        sin_producto_id = sin_investigador_id = sin_cliente = true;
+        persistir = false; esperadas = 1; intentos = 0;
+    }
+    SUBCASE("parcial con fila invalida y entidad ausente") {
+        modo = "parcial"; esperadas = 1; intentos = 2; total = 4;
+    }
+    ClienteHTTPSupabase cliente(QString("http://127.0.0.1:%1").arg(servidor.serverPort()), "prueba", 1000);
+    cliente.establecerTokenAcceso("sesion-sintetica");
+    auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>(sin_cliente ? nullptr : &cliente);
+    auto producto = std::make_shared<dominio::Producto>();
+    producto->codigo_identificador = "PRUEBA-P";
+    producto->titulo = "Prueba";
+    producto->tipo_mayor = "GNC";
+    producto->ano = 2024;
+    producto->es_ejemplo = true;
+    if (!sin_producto_id) producto->id = 11;
+    auto investigador = std::make_shared<dominio::Investigador>();
+    investigador->codigo_rh = "PRUEBA-I";
+    investigador->nombre_completo = "Prueba";
+    investigador->es_ejemplo = true;
+    if (!sin_investigador_id) investigador->id = 21;
+    catalogo->crear_producto(producto, {}, {}, false);
+    catalogo->crear_investigador(investigador, false);
+    QObject::connect(&servidor, &QTcpServer::newConnection, &servidor, [&] {
+        while (servidor.hasPendingConnections()) {
+            auto* socket = servidor.nextPendingConnection();
+            auto solicitud = std::make_shared<QByteArray>();
+            QObject::connect(socket, &QTcpSocket::readyRead, socket, [&, socket, solicitud] {
+                *solicitud += socket->readAll();
+                const auto fin = solicitud->indexOf("\r\n\r\n");
+                if (fin < 0) return;
+                qsizetype longitud = 0;
+                for (const auto& linea : solicitud->left(fin).split('\n')) {
+                    if (linea.toLower().startsWith("content-length:"))
+                        longitud = linea.mid(linea.indexOf(':') + 1).trimmed().toLongLong();
+                }
+                if (solicitud->size() < fin + 4 + longitud) return;
+                QByteArray estado = "200 OK";
+                QByteArray cuerpo = "{\"revision\":7}";
+                if (solicitud->startsWith("POST /rest/v1/producto_autores ")) {
+                    ++llamadas;
+                    CHECK(catalogo->multilista_productos.buscar_nodo("PRUEBA-P")->autores.esta_vacia());
+                    const auto datos = QJsonDocument::fromJson(solicitud->mid(fin + 4)).object();
+                    CHECK(datos.value("producto_id").toInt() == 11);
+                    CHECK(datos.value("investigador_id").toInt() == 21);
+                    CHECK(datos.value("orden_autoria").toInt() == 2);
+                    CHECK(datos.value("es_ejemplo").toBool());
+                    if (modo == "conexion" || (modo == "parcial" && llamadas == 1)) {
+                        socket->abort(); return;
+                    }
+                    cuerpo = "[]";
+                    if (modo == "duplicado" || modo == "otro") {
+                        estado = "409 Conflict";
+                        cuerpo = modo == "duplicado" ? "{\"code\":\"23505\"}" : "{\"code\":\"23503\"}";
+                    } else if (modo == "agotada" || (modo == "revision" && llamadas == 1)) {
+                        estado = "400 Bad Request";
+                        cuerpo = "{\"code\":\"P0001\",\"message\":\"CONFLICTO_REVISION: La base de datos cambio\"}";
+                    }
+                } else {
+                    ++revisiones;
+                }
+                socket->write("HTTP/1.1 " + estado + "\r\nContent-Type: application/json\r\nContent-Length: " +
+                              QByteArray::number(cuerpo.size()) + "\r\nConnection: close\r\n\r\n" + cuerpo);
+                socket->disconnectFromHost();
+            });
+            QObject::connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+        }
+    });
+    QTemporaryDir temporal;
+    REQUIRE(temporal.isValid());
+    QFile csv(temporal.filePath("autores.csv"));
+    REQUIRE(csv.open(QIODevice::WriteOnly));
+    csv.write("producto_codigo,investigador_codigo,orden_autoria\n");
+    if (modo == "parcial") csv.write("PRUEBA-P,PRUEBA-I,x\nPRUEBA-P,PRUEBA-I,2\n");
+    csv.write("PRUEBA-P,PRUEBA-I,2\n");
+    if (modo == "parcial") csv.write("PRUEBA-AUSENTE,PRUEBA-I,2\n");
+    csv.close();
+    ServicioIngesta servicio(catalogo);
+    servicio.encolar_csv(csv.fileName(), "autores", persistir);
+    const auto resultado = servicio.procesar_siguiente();
+    REQUIRE(resultado.has_value());
+    CHECK(resultado->autores_procesados == esperadas);
+    CHECK(resultado->exito == (esperadas > 0));
+    CHECK(llamadas == intentos);
+    CHECK(catalogo->multilista_productos.buscar_nodo("PRUEBA-P")->autores.tamano() == esperadas);
+    if (persistir) CHECK(resultado->mensaje == QString("%1 de %2 relaciones guardadas").arg(esperadas).arg(total));
+    if (esperadas < total) {
+        CHECK_FALSE(resultado->advertencias.isEmpty());
+        REQUIRE_FALSE(resultado->filas_erroneas.isEmpty());
+        CHECK(resultado->filas_erroneas.front().startsWith("Fila 2:"));
+    }
+    if ((sin_producto_id || sin_investigador_id) && persistir)
+        CHECK(resultado->advertencias.join(" ").contains("sin identificador remoto"));
+    if (modo == "parcial") {
+        CHECK(resultado->filas_erroneas.size() == 3);
+        CHECK(resultado->filas_erroneas[1].startsWith("Fila 3:"));
+        CHECK(resultado->filas_erroneas[2].startsWith("Fila 5:"));
+    }
+    if (modo == "revision" || modo == "agotada") CHECK(revisiones == (modo == "agotada" ? 4 : 1));
+    CHECK(resultado->requiere_recarga == (modo == "agotada"));
+}
 
 TEST_CASE("Ingesta CSV rechaza tipos de entidad desconocidos") {
     auto catalogo = std::make_shared<servicios::CatalogoInvestigacion>();

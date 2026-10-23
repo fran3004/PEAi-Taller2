@@ -427,6 +427,7 @@ class LectorCSV:
                         datos_fila[k_limpio] = val
 
                 fila_validada = FilaAutorCSV.model_validate(datos_fila)
+                fila_validada.fila = num_fila
                 autores_validos.append(fila_validada)
             except Exception as err:
                 errores.append({

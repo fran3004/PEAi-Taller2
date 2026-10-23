@@ -1125,6 +1125,13 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                 if (con_advertencias) {
                     mensaje_estado += " Revise las advertencias del informe.";
                 }
+                for (const auto& informe : informes) {
+                    if (informe.tipo_fuente == QStringLiteral("csv_autores")) {
+                        mensaje_estado += " " + informe.mensaje.toStdString() + ".";
+                        for (const auto& aviso : informe.advertencias)
+                            mensaje_estado += " " + aviso.toStdString();
+                    }
+                }
                 if (errores > 0) {
                     mensaje_estado = "Importación parcial. " + mensaje_estado;
                 }

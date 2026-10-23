@@ -304,6 +304,7 @@ struct FilaAutorCSV {
     QString producto_codigo;
     QString investigador_codigo;
     int orden_autoria{1};
+    int fila{0};
 };
 
 struct InformeIngesta {

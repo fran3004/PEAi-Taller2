@@ -97,6 +97,8 @@ public:
         const std::vector<QString>& codigos_rh_autores = {},
         bool persistir = true);
     [[nodiscard]] std::shared_ptr<dominio::Producto> buscar_producto(const QString& codigo_identificador) const;
+    void asociar_autor_producto(const QString& codigo_producto, const QString& codigo_rh,
+                               int orden = 1, bool persistir = true);
     std::shared_ptr<dominio::Producto> actualizar_producto(
         const QString& codigo_identificador,
         const QJsonObject& datos,

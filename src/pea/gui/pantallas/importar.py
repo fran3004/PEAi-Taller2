@@ -592,10 +592,16 @@ class PantallaImportar(QWidget):
                         f"Autores: {res.get('autores', 0)}\n"
                         f"Filas con errores: {res.get('filas_erroneas', 0)}"
                     )
+                    if res.get("mensaje"):
+                        msg += f"\n{res['mensaje']}"
+                    if res.get("advertencias"):
+                        msg += "\n" + "\n".join(res["advertencias"])
                     self._notificar_aviso(msg, titulo="Tarea Completada", exito=True)
                 else:
                     err_msg = str(res.get("mensaje") or "Fallo al procesar la tarea")
                     err_msg += f"\nFilas con errores: {res.get('filas_erroneas', 0)}"
+                    if res.get("advertencias"):
+                        err_msg += "\n" + "\n".join(res["advertencias"])
                     self._notificar_aviso(err_msg, titulo="Fallo en Tarea", exito=False)
 
         def al_fallar(err: Exception, detalle: str) -> None:
@@ -621,7 +627,7 @@ class PantallaImportar(QWidget):
 
         self._establecer_estado_procesando(True)
 
-        def trabajo() -> tuple[int, int, int, int, int, int, bool]:
+        def trabajo() -> tuple[int, int, int, int, int, int, bool, list[str]]:
             procesadas = 0
             grupos = 0
             investigadores = 0
@@ -629,6 +635,7 @@ class PantallaImportar(QWidget):
             autores = 0
             filas_erroneas = 0
             requiere_recarga = False
+            mensajes: list[str] = []
             while self.servicio.tareas_pendientes() > 0:
                 res = self.servicio.procesar_siguiente_tarea()
                 procesadas += 1
@@ -638,22 +645,27 @@ class PantallaImportar(QWidget):
                     productos += int(res.get("productos", 0))
                     autores += int(res.get("autores", 0))
                     filas_erroneas += int(res.get("filas_erroneas", 0))
+                    if res.get("mensaje"):
+                        mensajes.append(str(res["mensaje"]))
+                    mensajes.extend(res.get("advertencias", ()))
                     if res.get("requiere_recarga"):
                         requiere_recarga = True
                         break
-            return procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga
+            return procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga, mensajes
 
-        def al_terminar(datos: tuple[int, int, int, int, int, int, bool]) -> None:
+        def al_terminar(datos: tuple[int, int, int, int, int, int, bool, list[str]]) -> None:
             self._establecer_estado_procesando(False)
             self.refrescar()
             self.datos_modificados.emit()
-            procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga = datos
+            procesadas, grupos, investigadores, productos, autores, filas_erroneas, requiere_recarga, mensajes = datos
             msg = (
                 f"Se procesaron {procesadas} tareas.\n"
                 f"Grupos: {grupos} · Investigadores: {investigadores} · "
                 f"Productos: {productos} · Autores: {autores}\n"
                 f"Filas con errores: {filas_erroneas}"
             )
+            if mensajes:
+                msg += "\n" + "\n".join(mensajes)
             if requiere_recarga:
                 msg += (
                     "\nLa cola se detuvo para proteger la base de datos. "

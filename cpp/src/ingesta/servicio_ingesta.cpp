@@ -42,8 +42,8 @@ auto ejecutar_con_reintento_revision(
     for (int intento = 0; intento < max_intentos; ++intento) {
         try {
             return operacion();
-        } catch (const ConflictoRevision&) {
-            if (intento == max_intentos - 1) {
+        } catch (const ConflictoRevision& error) {
+            if (error.mensaje() != "La base de datos cambió" || intento == max_intentos - 1) {
                 throw;
             }
             catalogo.sincronizar_revision();
@@ -134,8 +134,10 @@ std::optional<InformeIngesta> ServicioIngesta::procesar_siguiente() {
             throw std::runtime_error("Tipo de tarea no reconocido: " + tarea.tipo_fuente.toStdString());
         }
 
-        tarea.estado = estructuras::EstadoTarea::Terminada;
-        tarea.elementos_procesados = informe.grupos_procesados + informe.investigadores_procesados + informe.productos_procesados;
+        tarea.estado = informe.exito ? estructuras::EstadoTarea::Terminada : estructuras::EstadoTarea::ConError;
+        if (!informe.exito) tarea.mensaje_error = informe.mensaje;
+        tarea.elementos_procesados = informe.grupos_procesados + informe.investigadores_procesados +
+                                    informe.productos_procesados + informe.autores_procesados;
         return informe;
     } catch (const std::exception& e) {
         tarea.estado = estructuras::EstadoTarea::ConError;
@@ -469,17 +471,28 @@ InformeIngesta ServicioIngesta::procesar_tarea_csv(estructuras::TareaIngesta& ta
         informe.filas_erroneas.append(errs);
     } else if (tipo == QStringLiteral("autores")) {
         auto [autores, errs] = LectorCSV::leer_autores(tarea.origen);
+        informe.filas_erroneas.append(errs);
         for (const auto& a : autores) {
-            auto inv = m_catalogo->buscar_investigador(a.investigador_codigo);
-            if (inv && m_catalogo->buscar_producto(a.producto_codigo)) {
-                auto* n = m_catalogo->multilista_productos.buscar_nodo(a.producto_codigo);
-                if (n) {
-                    n->agregar_autor(inv);
-                    informe.autores_procesados++;
-                }
+            if (!persistir && (!m_catalogo->buscar_investigador(a.investigador_codigo) ||
+                              !m_catalogo->buscar_producto(a.producto_codigo))) continue;
+            try {
+                ejecutar_con_reintento_revision(*m_catalogo, [&] {
+                    m_catalogo->asociar_autor_producto(a.producto_codigo, a.investigador_codigo,
+                                                     a.orden_autoria, persistir);
+                });
+                ++informe.autores_procesados;
+            } catch (const ErrorPEA& error) {
+                informe.filas_erroneas.append(QStringLiteral("Fila %1: %2").arg(a.fila).arg(error.what()));
+                if (dynamic_cast<const ConflictoRevision*>(&error) && error.mensaje() == "La base de datos cambió")
+                    informe.requiere_recarga = true;
             }
         }
-        informe.filas_erroneas.append(errs);
+        if (persistir) {
+            const auto total = autores.size() + errs.size();
+            informe.exito = informe.autores_procesados > 0 || total == 0;
+            informe.mensaje = QStringLiteral("%1 de %2 relaciones guardadas").arg(informe.autores_procesados).arg(total);
+            informe.advertencias.append(informe.filas_erroneas);
+        }
     }
 
     return informe;

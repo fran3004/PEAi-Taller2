@@ -555,6 +555,7 @@ std::pair<QList<FilaAutorCSV>, QList<QString>> LectorCSV::leer_autores(
             fa.producto_codigo = f[idx_prod].trimmed();
             fa.investigador_codigo = f[idx_inv].trimmed();
             fa.orden_autoria = orden;
+            fa.fila = num + 1;
             autores.append(fa);
         } catch (const std::exception& e) {
             errores.append(QStringLiteral("Fila %1: Error de análisis: %2").arg(num + 1).arg(e.what()));

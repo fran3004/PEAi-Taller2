@@ -359,7 +359,13 @@ void RepositorioProductos::asociar_autor(qint64 producto_id, qint64 investigador
     obj["orden_autoria"] = orden;
     obj["activo"] = true;
     obj["es_ejemplo"] = es_ejemplo;
-    m_cliente.post("producto_autores", QJsonDocument(obj));
+    try {
+        m_cliente.post("producto_autores", QJsonDocument(obj));
+    } catch (const ConflictoRevision& error) {
+        // La clave única de esta tabla es (producto_id, investigador_id).
+        const auto detalle = QJsonDocument::fromJson(QByteArray::fromStdString(error.detalle())).object();
+        if (detalle.value("code").toString() != "23505") throw;
+    }
 }
 
 QJsonArray RepositorioProductos::listar_relaciones_grupos() {

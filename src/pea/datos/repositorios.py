@@ -8,6 +8,7 @@ from pea.dominio.integrante import IntegranteGrupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.dominio.proyecto import Proyecto
+from pea.excepciones import ConflictoRevision
 
 
 class RepositorioGrupos:
@@ -220,16 +221,21 @@ class RepositorioProductos:
         orden: int = 1,
         es_ejemplo: bool = False,
     ) -> None:
-        self.cliente.post(
-            "producto_autores",
-            {
-                "producto_id": producto_id,
-                "investigador_id": investigador_id,
-                "orden_autoria": orden,
-                "activo": True,
-                "es_ejemplo": es_ejemplo,
-            },
-        )
+        try:
+            self.cliente.post(
+                "producto_autores",
+                {
+                    "producto_id": producto_id,
+                    "investigador_id": investigador_id,
+                    "orden_autoria": orden,
+                    "activo": True,
+                    "es_ejemplo": es_ejemplo,
+                },
+            )
+        except ConflictoRevision as err:
+            # La clave única de esta tabla es (producto_id, investigador_id).
+            if not isinstance(err.detalle, dict) or err.detalle.get("code") != "23505":
+                raise
 
     def listar_relaciones_grupos(self) -> list[dict[str, Any]]:
         return self.cliente.get_paginado("producto_grupos", params={"select": "*"})
