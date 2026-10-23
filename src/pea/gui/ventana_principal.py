@@ -1218,6 +1218,8 @@ class VentanaPrincipal(QMainWindow):
             if self._cerrando:
                 return
             self._banner_revision.setVisible(getattr(est_nuevo, "cambio_remoto", False))
+            # Refleja también la franja «Sin conexión» y el pie cuando la revisión no pudo comprobarse.
+            self.actualizar_estado_global()
 
         self._ejecutor.ejecutar(tarea, al_terminar=exito)
 

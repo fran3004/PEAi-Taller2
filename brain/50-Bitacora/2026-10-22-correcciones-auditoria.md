@@ -99,6 +99,23 @@ Se ejecutó y validó la totalidad de herramientas diagnósticas antes de introd
   - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
   - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
 
+## Corrección 2: Control de revisión remota estricto y detección de pérdida de conexión
+
+- **Problema:** En `src/pea/datos/revision.py`, `ControladorRevision.consultar_remota` devolvía `self._revision_local` cuando tanto la RPC rápida como la consulta REST a `meta` fallaban o devolvían valores inválidos (por ejemplo, lista vacía o `.get("revision", 1)`). Esto causaba un falso éxito en `verificar_consistencia` simulando sincronización cuando no había conectividad.
+- **Acciones realizadas:**
+  1. **TDD:** Se crearon pruebas unitarias en `tests/unit/test_revision_remota.py` con un cliente falso para los 4 casos: (a) RPC exitosa devuelve valor; (b) RPC fallida pero meta exitosa devuelve meta; (c) RPC y meta fallidas lanza `ErrorConexion` detallando ambos fallos; (d) meta vacía, nula o revisión no positiva lanza `ErrorConexion`.
+  2. **Paridad Python/C++:** Se implementó `_revision_valida` y se refactorizó `consultar_remota` para exigir enteros mayores que cero y lanzar `ErrorConexion` con la misma estructura diagnóstica de C++ (`cpp/src/datos/revision.cpp`). Se añadió caso de prueba idéntico en C++ (`cpp/tests/test_resiliencia.cpp`).
+  3. **Manejo en GUI y CLI:** Se añadieron pruebas en `tests/unit/test_revision_sin_conexion.py` verificando el comportamiento sin red de los llamadores (`cli.py`, `servicio_aplicacion.py`, `servicio_dominio.py`). En `ventana_principal.py`, se conectó `actualizar_estado_global()` en el callback de la verificación periódica para desplegar la franja roja de sin conexión y bloquear escrituras sin congelar la ventana.
+  4. **Modo demostración y resiliencia:** Se verificó que el modo demo utiliza `_revision_demo_remota` sin consultar la red y que `test_resiliencia_persistencia.py` mantiene el 100% de aprobación.
+  5. **Prueba manual con Supabase real y corte simulado:** Se comprobó conexión real obteniendo la revisión remota vigente (revisión 4368) y se simuló caída de red validando la captura inmediata de `ErrorConexion`, activación de `sin_conexion = True` y motivo de bloqueo de mutaciones.
+- **Resultados de validación:**
+  - `ruff check .`: Limpio (0 errores).
+  - `pytest -m "not red"`: 362 aprobadas, 3 omitidas.
+  - C++ build y CTest: 100% aprobado (63 casos doctest, 879 aserciones).
+  - `pea-cpp --autoprueba`: 0 hallazgos en 32 pantallas.
+  - `pea-cli --autoprueba-gui`: 0 hallazgos en 24 combinaciones de pantalla.
+  - `pea-cli --verificar-cruzada`: 3 de 3 comprobaciones coincidentes.
+
 ## Próximos pasos
 
 Continuar con la resolución progresiva de los siguientes hallazgos de auditoría en la rama `fix/auditoria-2026-10-22` siguiendo estrictamente la metodología TDD.

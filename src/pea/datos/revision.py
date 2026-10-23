@@ -3,7 +3,25 @@
 from typing import Any
 
 from pea.cliente_http import ClienteHTTPSupabase
-from pea.excepciones import ConflictoRevision
+from pea.excepciones import ConflictoRevision, ErrorConexion
+
+
+def _revision_valida(valor: Any) -> int | None:
+    """Devuelve la revisión si es un entero mayor que cero; en otro caso None (igual que C++)."""
+    if isinstance(valor, bool):
+        return None
+    if isinstance(valor, float):
+        if not valor.is_integer():
+            return None
+        valor = int(valor)
+    if isinstance(valor, str):
+        try:
+            valor = int(valor.strip())
+        except ValueError:
+            return None
+    if isinstance(valor, int) and valor > 0:
+        return valor
+    return None
 
 
 class ControladorRevision:
@@ -21,23 +39,37 @@ class ControladorRevision:
         self._revision_local = nueva_revision
 
     def consultar_remota(self, cliente: ClienteHTTPSupabase) -> int:
-        """Consulta el número de revisión vigente en Supabase."""
+        """Consulta el número de revisión vigente en Supabase.
+
+        Solo acepta revisiones mayores que cero. Si ni la RPC ni la tabla meta entregan una
+        válida, lanza ErrorConexion: nunca se da por sincronizado lo que no se pudo comprobar.
+        """
+        # 1. Intentar por RPC rápida
+        error_rpc = "La RPC no devolvió una revisión válida."
         try:
-            # 1. Intentar por RPC rápida
-            resultado = cliente.rpc("obtener_revision_actual")
-            if isinstance(resultado, int):
-                return resultado
-            if isinstance(resultado, dict) and "revision" in resultado:
-                return int(resultado["revision"])
-        except Exception:
-            pass
+            resultado: Any = cliente.rpc("obtener_revision_actual")
+            if isinstance(resultado, dict):
+                resultado = resultado.get("revision")
+            revision = _revision_valida(resultado)
+            if revision is not None:
+                return revision
+        except Exception as err:
+            error_rpc = str(err) or type(err).__name__
 
         # 2. Respaldo por consulta REST a tabla meta
-        filas: Any = cliente.get("meta", params={"select": "revision", "id": "eq.1"})
-        if isinstance(filas, list) and len(filas) > 0:
-            return int(filas[0].get("revision", 1))
+        error_meta = "La tabla meta no devolvió una revisión válida."
+        try:
+            filas: Any = cliente.get("meta", params={"select": "revision", "id": "eq.1"})
+            if isinstance(filas, list) and filas and isinstance(filas[0], dict):
+                revision = _revision_valida(filas[0].get("revision"))
+                if revision is not None:
+                    return revision
+        except Exception as err:
+            error_meta = str(err) or type(err).__name__
 
-        return self._revision_local
+        raise ErrorConexion(
+            f"No fue posible verificar la revisión remota. RPC: {error_rpc} Consulta meta: {error_meta}"
+        )
 
     def verificar_consistencia(self, cliente: ClienteHTTPSupabase) -> None:
         """Verifica que la revisión remota sea idéntica a la esperada localmente.
