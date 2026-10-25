@@ -18,6 +18,8 @@ actualiza Python y C++ a la versión 0.1.7.
 - ZIP portable con las dos aplicaciones, bibliotecas, conexión pública existente,
   licencias, documentación académica y evidencia remota. `VERSION-ENTREGA.json`
   identifica su versión y commit.
+- Entorno de empaquetado aislado para que PyInstaller no incorpore DLL ICU/Qt de
+  otras herramientas instaladas en la máquina de construcción.
 
 ## Archivos de la Release
 

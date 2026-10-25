@@ -2,6 +2,7 @@ param([string]$Msys2 = "C:\msys64", [string]$DirectorioCpp = "cpp/build")
 
 $ErrorActionPreference = "Stop"
 $raiz = Split-Path -Parent $PSScriptRoot
+$pathAnterior = $env:PATH
 Push-Location $raiz
 try {
     $python = Join-Path $raiz ".venv\Scripts\python.exe"
@@ -9,7 +10,11 @@ try {
     if (-not (Test-Path $python)) { throw "Ejecute scripts\preparar.ps1 -Empaquetado primero." }
     $ejecutableCpp = Join-Path $DirectorioCpp "pea-cpp.exe"
     if (-not (Test-Path $ejecutableCpp)) { throw "Falta compilar C++ en modo Release." }
-    $env:PATH = "$bin;$env:PATH"
+    # PyInstaller debe resolver DLL contra el toolchain y Windows, sin heredar
+    # ICU/Qt de otras herramientas instaladas en el equipo que crea la entrega.
+    $gitExe = (Get-Command git -CommandType Application -ErrorAction Stop).Source
+    $gitBin = Split-Path -Parent $gitExe
+    $env:PATH = "$bin;$gitBin;$env:SystemRoot\System32;$env:SystemRoot"
     $salida = Join-Path $raiz "dist\PEAi-Windows-x64"
     if (Test-Path $salida) { throw "Ya existe $salida. Conserve o mueva la salida anterior antes de regenerar." }
     & $python -m PyInstaller tools/empaquetado/pea.spec --distpath $salida --workpath build/empaquetado --clean --noconfirm
@@ -36,7 +41,7 @@ try {
     Copy-Item docs/evidencias/autorias-csv-20261025-*.json "$salida\docs\evidencias"
     New-Item -ItemType Directory -Path "$salida\entrega" | Out-Null
     Copy-Item entrega/Especificacion_Tecnica_PEAi.docx,entrega/integrantes.txt,entrega/Taller2_FF_SM.py,entrega/Taller2_FF_SM.cpp "$salida\entrega"
-    $commit = (git rev-parse HEAD).Trim()
+    $commit = (& $gitExe rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar el commit de la entrega." }
     $version = (& $python -c "from pea.version import APP_VERSION; print(APP_VERSION)").Trim()
     if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar la version Python." }
@@ -76,4 +81,7 @@ try {
     $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText((Join-Path $raiz "dist\SHA256SUMS.txt"), "$hash  PEAi-Windows-x64.zip`n", [Text.UTF8Encoding]::new($false))
     Write-Host "Paquete validado: $zip"
-} finally { Pop-Location }
+} finally {
+    $env:PATH = $pathAnterior
+    Pop-Location
+}
