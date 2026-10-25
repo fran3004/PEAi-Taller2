@@ -1,0 +1,186 @@
+{
+  "inicio_utc": "2026-10-25T17:40:47.795916+00:00",
+  "prefijo": "PRUEBA-ACSV-e100a13d5b1a",
+  "escenarios": [
+    {
+      "lenguaje": "python",
+      "codigo_p": "PRUEBA-ACSV-e100a13d5b1a-PY-P",
+      "codigo_i": "PRUEBA-ACSV-e100a13d5b1a-PY-I",
+      "producto": {
+        "id": 2376,
+        "codigo_identificador": "PRUEBA-ACSV-e100a13d5b1a-PY-P",
+        "titulo": "PRUEBA-ACSV-e100a13d5b1a-PY-P",
+        "tipo_mayor": "GNC",
+        "subtipo": "Artículo de investigación",
+        "ano": 2024,
+        "mes": null,
+        "pais": null,
+        "estado_validacion": "No avalado",
+        "detalles": {},
+        "activo": true,
+        "es_ejemplo": true,
+        "creado_en": "2026-10-25T17:41:04.479854+00:00",
+        "actualizado_en": "2026-10-25T17:41:04.479854+00:00"
+      },
+      "investigador": {
+        "id": 309,
+        "codigo_rh": "PRUEBA-ACSV-e100a13d5b1a-PY-I",
+        "nombre_completo": "PRUEBA-ACSV-e100a13d5b1a-PY-I",
+        "nombre_en_citas": null,
+        "nacionalidad": "Colombia",
+        "sexo": "No especificado",
+        "categoria": "Sin categoría / Vinculado",
+        "formacion_academica": "Pregrado",
+        "activo": true,
+        "es_ejemplo": true,
+        "creado_en": "2026-10-25T17:41:04.75491+00:00",
+        "actualizado_en": "2026-10-25T17:41:04.75491+00:00",
+        "documento_identidad": null,
+        "par_evaluador": false,
+        "detalles": {}
+      },
+      "escritura_iniciada": true,
+      "resultado": {
+        "guardado": true,
+        "duplicado_idempotente": true,
+        "codigo_duplicado": "23505",
+        "importaciones_csv": 2
+      },
+      "limpieza": true
+    },
+    {
+      "lenguaje": "cpp",
+      "codigo_p": "PRUEBA-ACSV-e100a13d5b1a-CPP-P",
+      "codigo_i": "PRUEBA-ACSV-e100a13d5b1a-CPP-I",
+      "producto": {
+        "id": 2377,
+        "codigo_identificador": "PRUEBA-ACSV-e100a13d5b1a-CPP-P",
+        "titulo": "PRUEBA-ACSV-e100a13d5b1a-CPP-P",
+        "tipo_mayor": "GNC",
+        "subtipo": "Artículo de investigación",
+        "ano": 2024,
+        "mes": null,
+        "pais": null,
+        "estado_validacion": "No avalado",
+        "detalles": {},
+        "activo": true,
+        "es_ejemplo": true,
+        "creado_en": "2026-10-25T17:41:07.32746+00:00",
+        "actualizado_en": "2026-10-25T17:41:07.32746+00:00"
+      },
+      "investigador": {
+        "id": 310,
+        "codigo_rh": "PRUEBA-ACSV-e100a13d5b1a-CPP-I",
+        "nombre_completo": "PRUEBA-ACSV-e100a13d5b1a-CPP-I",
+        "nombre_en_citas": null,
+        "nacionalidad": "Colombia",
+        "sexo": "No especificado",
+        "categoria": "Sin categoría / Vinculado",
+        "formacion_academica": "Pregrado",
+        "activo": true,
+        "es_ejemplo": true,
+        "creado_en": "2026-10-25T17:41:07.687416+00:00",
+        "actualizado_en": "2026-10-25T17:41:07.687416+00:00",
+        "documento_identidad": null,
+        "par_evaluador": false,
+        "detalles": {}
+      },
+      "escritura_iniciada": true,
+      "resultado": {
+        "guardado": true,
+        "duplicado_idempotente": true,
+        "codigo_duplicado": "23505",
+        "importaciones_csv": 2
+      },
+      "limpieza": true
+    }
+  ],
+  "errores": [],
+  "completa": true,
+  "proyecto": "wdmchsncexayqbjueamb",
+  "antes": {
+    "meta": 1,
+    "grupos": 4,
+    "grupo_instituciones": 2,
+    "grupo_plan_estrategico": 1,
+    "lineas_investigacion": 13,
+    "investigadores": 291,
+    "integrantes_grupo": 291,
+    "productos": 2352,
+    "producto_autores": 2356,
+    "producto_grupos": 1059,
+    "proyectos": 42,
+    "semilleros": 2,
+    "investigador_formacion": 11,
+    "investigador_experiencia": 14,
+    "investigador_areas_actuacion": 2,
+    "investigador_idiomas": 3,
+    "investigador_reconocimientos": 4,
+    "investigador_redes_identificadores": 9,
+    "auditoria_cambios": 0,
+    "usuarios_autorizados": 1
+  },
+  "reales_antes": {
+    "grupos": {
+      "filas": 4,
+      "sha256": "e217a4900ab41818efd57ce024513bd5f68dbd24fab61f422b3aa3a89630d546"
+    },
+    "investigadores": {
+      "filas": 291,
+      "sha256": "1f2074c1df6577c9f204ffac8be6e954ca1ca6d95ad05627ae8d8bd48d5ef2d0"
+    },
+    "productos": {
+      "filas": 2352,
+      "sha256": "9e2070451c9513190fd69cad87e7e316e924696375e829f18093357ed61d8dd4"
+    },
+    "producto_autores": {
+      "filas": 2356,
+      "sha256": "668b648aaaacbcf4af375e4f8665ba6894ca47507e908c4a443c8d4162194f08"
+    }
+  },
+  "revision_antes": 5690,
+  "despues": {
+    "meta": 1,
+    "grupos": 4,
+    "grupo_instituciones": 2,
+    "grupo_plan_estrategico": 1,
+    "lineas_investigacion": 13,
+    "investigadores": 291,
+    "integrantes_grupo": 291,
+    "productos": 2352,
+    "producto_autores": 2356,
+    "producto_grupos": 1059,
+    "proyectos": 42,
+    "semilleros": 2,
+    "investigador_formacion": 11,
+    "investigador_experiencia": 14,
+    "investigador_areas_actuacion": 2,
+    "investigador_idiomas": 3,
+    "investigador_reconocimientos": 4,
+    "investigador_redes_identificadores": 9,
+    "auditoria_cambios": 0,
+    "usuarios_autorizados": 1
+  },
+  "reales_despues": {
+    "grupos": {
+      "filas": 4,
+      "sha256": "e217a4900ab41818efd57ce024513bd5f68dbd24fab61f422b3aa3a89630d546"
+    },
+    "investigadores": {
+      "filas": 291,
+      "sha256": "1f2074c1df6577c9f204ffac8be6e954ca1ca6d95ad05627ae8d8bd48d5ef2d0"
+    },
+    "productos": {
+      "filas": 2352,
+      "sha256": "9e2070451c9513190fd69cad87e7e316e924696375e829f18093357ed61d8dd4"
+    },
+    "producto_autores": {
+      "filas": 2356,
+      "sha256": "668b648aaaacbcf4af375e4f8665ba6894ca47507e908c4a443c8d4162194f08"
+    }
+  },
+  "revision_despues": 5702,
+  "conteos_iguales": true,
+  "reales_sin_cambios": true,
+  "fin_utc": "2026-10-25T17:41:31.093121+00:00"
+}

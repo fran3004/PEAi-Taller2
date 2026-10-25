@@ -1,0 +1,129 @@
+{
+  "inicio_utc": "2026-10-25T17:38:38.379187+00:00",
+  "prefijo": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16",
+  "escenarios": [
+    {
+      "lenguaje": "python",
+      "codigo_p": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-python-P",
+      "codigo_i": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-python-I",
+      "producto": {
+        "id": 2374,
+        "codigo_identificador": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-python-P",
+        "titulo": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-python-P",
+        "tipo_mayor": "GNC",
+        "subtipo": "Artículo de investigación",
+        "ano": 2024,
+        "mes": null,
+        "pais": null,
+        "estado_validacion": "No avalado",
+        "detalles": {},
+        "activo": true,
+        "es_ejemplo": true,
+        "creado_en": "2026-10-25T17:38:58.941308+00:00",
+        "actualizado_en": "2026-10-25T17:38:58.941308+00:00"
+      },
+      "investigador": null,
+      "escritura_iniciada": true,
+      "limpieza": true
+    },
+    {
+      "lenguaje": "cpp",
+      "codigo_p": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-cpp-P",
+      "codigo_i": "PRUEBA-AUTORES-5810535ee4eb49bda37b207cbe8f9b16-cpp-I"
+    }
+  ],
+  "errores": [
+    {
+      "etapa": "fixture_python",
+      "tipo": "ErrorPEA",
+      "codigo_postgres": "22001"
+    }
+  ],
+  "completa": false,
+  "proyecto": "wdmchsncexayqbjueamb",
+  "antes": {
+    "meta": 1,
+    "grupos": 4,
+    "grupo_instituciones": 2,
+    "grupo_plan_estrategico": 1,
+    "lineas_investigacion": 13,
+    "investigadores": 291,
+    "integrantes_grupo": 291,
+    "productos": 2352,
+    "producto_autores": 2356,
+    "producto_grupos": 1059,
+    "proyectos": 42,
+    "semilleros": 2,
+    "investigador_formacion": 11,
+    "investigador_experiencia": 14,
+    "investigador_areas_actuacion": 2,
+    "investigador_idiomas": 3,
+    "investigador_reconocimientos": 4,
+    "investigador_redes_identificadores": 9,
+    "auditoria_cambios": 0,
+    "usuarios_autorizados": 1
+  },
+  "reales_antes": {
+    "grupos": {
+      "filas": 4,
+      "sha256": "e217a4900ab41818efd57ce024513bd5f68dbd24fab61f422b3aa3a89630d546"
+    },
+    "investigadores": {
+      "filas": 291,
+      "sha256": "1f2074c1df6577c9f204ffac8be6e954ca1ca6d95ad05627ae8d8bd48d5ef2d0"
+    },
+    "productos": {
+      "filas": 2352,
+      "sha256": "9e2070451c9513190fd69cad87e7e316e924696375e829f18093357ed61d8dd4"
+    },
+    "producto_autores": {
+      "filas": 2356,
+      "sha256": "668b648aaaacbcf4af375e4f8665ba6894ca47507e908c4a443c8d4162194f08"
+    }
+  },
+  "revision_antes": 5686,
+  "despues": {
+    "meta": 1,
+    "grupos": 4,
+    "grupo_instituciones": 2,
+    "grupo_plan_estrategico": 1,
+    "lineas_investigacion": 13,
+    "investigadores": 291,
+    "integrantes_grupo": 291,
+    "productos": 2352,
+    "producto_autores": 2356,
+    "producto_grupos": 1059,
+    "proyectos": 42,
+    "semilleros": 2,
+    "investigador_formacion": 11,
+    "investigador_experiencia": 14,
+    "investigador_areas_actuacion": 2,
+    "investigador_idiomas": 3,
+    "investigador_reconocimientos": 4,
+    "investigador_redes_identificadores": 9,
+    "auditoria_cambios": 0,
+    "usuarios_autorizados": 1
+  },
+  "reales_despues": {
+    "grupos": {
+      "filas": 4,
+      "sha256": "e217a4900ab41818efd57ce024513bd5f68dbd24fab61f422b3aa3a89630d546"
+    },
+    "investigadores": {
+      "filas": 291,
+      "sha256": "1f2074c1df6577c9f204ffac8be6e954ca1ca6d95ad05627ae8d8bd48d5ef2d0"
+    },
+    "productos": {
+      "filas": 2352,
+      "sha256": "9e2070451c9513190fd69cad87e7e316e924696375e829f18093357ed61d8dd4"
+    },
+    "producto_autores": {
+      "filas": 2356,
+      "sha256": "668b648aaaacbcf4af375e4f8665ba6894ca47507e908c4a443c8d4162194f08"
+    }
+  },
+  "revision_despues": 5688,
+  "conteos_iguales": true,
+  "reales_sin_cambios": true,
+  "fin_utc": "2026-10-25T17:39:17.504016+00:00"
+}

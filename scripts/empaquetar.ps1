@@ -30,6 +30,24 @@ try {
     & $python tools/empaquetado/copiar_dependencias.py $cpp $bin
     if ($LASTEXITCODE -ne 0) { throw "Quedan dependencias C++ sin resolver." }
     Copy-Item README.md $salida
+    # Evidencia remota y documentos académicos de la misma versión del programa.
+    New-Item -ItemType Directory -Path "$salida\docs\evidencias" -Force | Out-Null
+    Copy-Item docs/verificacion-autorias-csv.md,docs/entrega-0.1.7.md "$salida\docs"
+    Copy-Item docs/evidencias/autorias-csv-20261025-*.json "$salida\docs\evidencias"
+    New-Item -ItemType Directory -Path "$salida\entrega" | Out-Null
+    Copy-Item entrega/Especificacion_Tecnica_PEAi.docx,entrega/integrantes.txt,entrega/Taller2_FF_SM.py,entrega/Taller2_FF_SM.cpp "$salida\entrega"
+    $commit = (git rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar el commit de la entrega." }
+    $version = (& $python -c "from pea.version import APP_VERSION; print(APP_VERSION)").Trim()
+    if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar la version Python." }
+    $manifiesto = [ordered]@{
+        programa = "PEA-i"
+        version = $version
+        commit = $commit
+        plataforma = "Windows x64"
+        generado_utc = [DateTime]::UtcNow.ToString("o")
+    } | ConvertTo-Json
+    [IO.File]::WriteAllText((Join-Path $salida "VERSION-ENTREGA.json"), "$manifiesto`n", [Text.UTF8Encoding]::new($false))
     foreach ($nota in @("brain/20-Diseno/Despliegue.md", "brain/60-Pruebas/Paridad-Python-Cpp.md", "brain/30-Decisiones/ADR-0025-Acceso-academico-completo.md", "brain/50-Bitacora/2026-10-21-codex-entrega-reproducible.md")) {
         $destinoNota = Join-Path $salida $nota
         New-Item -ItemType Directory -Path (Split-Path -Parent $destinoNota) -Force | Out-Null

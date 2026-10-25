@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pea"
-version = "0.1.0"
+version = "0.1.7"
 description = "Programa Estadístico de Análisis de Investigación - Universidad Popular del Cesar"
 readme = "README.md"
 requires-python = ">=3.12"

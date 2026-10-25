@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(pea-cpp VERSION 0.1.0 LANGUAGES CXX)
+project(pea-cpp VERSION 0.1.7 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -127,3 +127,9 @@ target_compile_definitions(pruebas_cpp PRIVATE
 )
 
 add_test(NAME pruebas_cpp COMMAND pruebas_cpp)
+
+# Comprobación remota voluntaria; nunca se ejecuta mediante CTest.
+add_executable(verificar_autores_remoto EXCLUDE_FROM_ALL
+    ../tools/db/verificar_autores_remoto.cpp
+)
+target_link_libraries(verificar_autores_remoto PRIVATE pea_core)

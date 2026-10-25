@@ -10,6 +10,12 @@ La entrega portable se conecta automáticamente a **pea-prod**, la base comparti
 de Supabase. No hay que escribir claves, crear cuentas, configurar variables ni
 instalar herramientas de desarrollo. Solo necesita Windows x64 e Internet.
 
+La entrega **0.1.7 (25 de octubre de 2026)** incorpora las correcciones de auditoría,
+persistencia idempotente de autorías CSV y códigos estables para productos CvLAC.
+La [verificación remota de autorías](docs/verificacion-autorias-csv.md) incluye
+guardado Python/C++, duplicado, limpieza y conteos remotos antes/después iguales.
+El [detalle de la entrega 0.1.7](docs/entrega-0.1.7.md) describe sus archivos y alcance.
+
 ## 1. Para el profesor: descargar, extraer y abrir
 
 Entorno de entrega: **Windows 10/11 de 64 bits (x64)**. Se recomienda Windows
@@ -238,6 +244,9 @@ Salida: `dist/PEAi-Windows-x64.zip` y `dist/SHA256SUMS.txt`. Se comprueban CLI, 
 interoperabilidad y ambas interfaces con un `PATH` sin Python ni MSYS2 y desde
 un directorio temporal. Para regenerar, mueva primero la salida anterior.
 Los binarios se publican en **Releases**, no se versionan en Git.
+`VERSION-ENTREGA.json`, dentro del paquete, identifica la versión y el commit exacto.
+La Release también incluye `PEAi-Codigo-fuente.zip`, el wheel Python y los informes
+de dependencias para conservar juntos los ejecutables y su código fuente.
 
 ## 7. Contenido de la entrega
 
