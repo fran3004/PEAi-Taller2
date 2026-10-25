@@ -12,7 +12,7 @@ try {
     if (-not (Test-Path $ejecutableCpp)) { throw "Falta compilar C++ en modo Release." }
     # PyInstaller debe resolver DLL contra el toolchain y Windows, sin heredar
     # ICU/Qt de otras herramientas instaladas en el equipo que crea la entrega.
-    $gitExe = (Get-Command git -CommandType Application -ErrorAction Stop).Source
+    $gitExe = @(Get-Command git -CommandType Application -ErrorAction Stop)[0].Source
     $gitBin = Split-Path -Parent $gitExe
     $env:PATH = "$bin;$gitBin;$env:SystemRoot\System32;$env:SystemRoot"
     $salida = Join-Path $raiz "dist\PEAi-Windows-x64"
