@@ -28,6 +28,7 @@
 #include <QDate>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonParseError>
 #include <QMap>
 #include <QSet>
 #include <QStringList>
@@ -42,27 +43,35 @@
 #include "pea/servicios/catalogo_investigacion.hpp"
 #include "pea/tui/trabajador_periodico.hpp"
 #include "pea/version.hpp"
+#include "pea/datos/archivo_local.hpp"
+#include "pea/servicios/indicadores.hpp"
+#include "pea/ingesta/extractor_pdf.hpp"
 
 namespace pea::tui {
 namespace {
 
 using namespace ftxui;
 
-constexpr std::array<const char*, 8> PESTANAS{
+constexpr std::array<const char*, 9> PESTANAS{
     "Inicio", "Investigadores", "Grupos", "Productos",
-    "Análisis de redes", "Importar", "Configuración", "Acerca de"
+    "Análisis de redes", "Importar", "Configuración", "Acerca de", "Indicadores"
 };
-constexpr std::array<const char*, 8> ARCHIVOS_PANTALLA{
+constexpr std::array<const char*, 9> ARCHIVOS_PANTALLA{
     "inicio", "investigadores", "grupos", "productos",
-    "analisis-redes", "importar", "configuracion", "acerca-de"
+    "analisis-redes", "importar", "configuracion", "acerca-de", "indicadores"
 };
-constexpr std::array<const char*, 9> ACCIONES_FORMULARIO{
+constexpr std::array<const char*, 14> ACCIONES_FORMULARIO{
     "", "Crear", "Editar", "Activar / desactivar", "Eliminar", "Ver ficha",
-    "Importar CSV", "Importar URL SCIENTI", "Configurar rango anual"
+    "Importar CSV", "Importar URL SCIENTI", "Configurar rango anual", "Calcular indicador",
+    "Editar campos adicionales", "Guardar archivo local", "Abrir archivo local", "Procesar PDF"
 };
 constexpr int FILAS_POR_PAGINA = 12;
 
 std::vector<std::string> campos_formulario(int entidad, int accion) {
+    if (accion == 9) return {"Ámbito: grupo/investigador", "Código GrupLAC o CvLAC", "Año de corte (vacío: 2023)", "Desde (opcional)"};
+    if (accion == 10) return {"Código de la entidad", "Campos a actualizar como objeto JSON"};
+    if (accion == 11 || accion == 12) return {"Ruta al catálogo JSON"};
+    if (accion == 13) return {"Ruta al PDF", "Ruta de salida JSON"};
     if (accion == 6) return {"Ruta al archivo CSV", "Tipo: auto/grupos/investigadores/productos/autores"};
     if (accion == 7) return {"URL SCIENTI (HTTPS)", "Anonimizar datos personales (si/no)"};
     if (accion == 8) return {"Año desde (opcional)", "Año hasta (opcional)"};
@@ -296,7 +305,7 @@ Element panel_contenido(
     int ancho,
     const servicios::FiltroAnios& filtro_anios,
     int pagina_actual) {
-    const std::string origen = datos_demostracion
+    const std::string origen = mensaje_conexion.rfind("Archivo local", 0) == 0 ? "Archivo local (guardar para conservar cambios)" : datos_demostracion
                                    ? "Datos de demostración (solo memoria)"
                                    : (conectado ? "Datos de Supabase" : "Sin datos");
     const auto estadisticas = catalogo.estadisticas.obtenerVistaInstitucional();
@@ -603,8 +612,8 @@ Element panel_contenido(
             return vbox({
                        color_si(text("Importación") | bold, Color::Cyan, color_activo),
                        separador(ascii),
-                       text("Formatos disponibles: CSV y URL SCIENTI."),
-                       text("La importación desde PDF debe realizarse desde la versión Python."),
+                       text("Formatos disponibles: CSV, PDF y URL SCIENTI."),
+                       text("p: extraer PDF por páginas (texto alineado, sin OCR)."),
                        text(conectado
                                 ? "Presione i para CSV o w para URL; solo se importa con conexión autenticada."
                                 : "La importación requiere sesión remota autenticada; demo y modo sin conexión están bloqueados."),
@@ -625,6 +634,13 @@ Element panel_contenido(
                             filtro_anios.descripcion(QDate::currentDate().year()).toStdString()),
                    }) |
                    flex;
+        case 8:
+            return vbox({text("Producción científica · Parcial 2") | bold, separador(ascii),
+                         text("c: calcular para grupo o investigador"),
+                         text("s: guardar catálogo JSON · o: abrir archivo local"),
+                         text("a: editar campos JSON desde un directorio"),
+                         paragraph("Los nueve componentes se normalizan contra el catálogo cargado. Use el comando indicador --referencia para máximos externos."),
+                         paragraph("Categoría exacta en subtipo o detalles.categoria_minciencias; los productos sin calidad verificable se muestran como excluidos.")}) | flex;
         default:
             return vbox({
                        color_si(text("Acerca de PEA-i") | bold, Color::Cyan, color_activo),
@@ -682,7 +698,7 @@ Element renderizar_pantalla(
     const std::string nombre_programa = ancho < 100
                                             ? "  Terminal de análisis de investigación"
                                             : "  Programa Estadístico de Análisis de Investigación";
-    auto estado = text(datos_demostracion
+    auto estado = text(mensaje_conexion.rfind("Archivo local", 0) == 0 ? "[ ARCHIVO LOCAL ]" : datos_demostracion
                            ? "[ DEMOSTRACIÓN ]"
                            : (conectado ? "[ SUPABASE ]" : "[ SIN DATOS ]"));
     if (color_activo) {
@@ -700,8 +716,8 @@ Element renderizar_pantalla(
                           : (indice == 5
                                  ? "i: importar CSV  w: importar URL SCIENTI  q: salir"
                                  : (ancho < 100
-                                        ? "1–8 pestañas · n/e/t/x gestión · v ficha · u deshacer · q salir"
-                                        : "1–8 pestañas  n/e/t/x gestión  v ficha  u deshacer  q salir"))));
+                                        ? "1–9 pestañas · n/e/t/x gestión · v ficha · u deshacer · q salir"
+                                        : "1–9 pestañas  n/e/t/x gestión  v ficha  u deshacer  q salir"))));
     auto pie = text(texto_pie);
     if (color_activo) {
         pie = pie | color(Color::GrayLight);
@@ -753,10 +769,10 @@ int autoprueba() {
     const std::array<std::pair<int, int>, 4> tamanos{{
         {80, 24}, {100, 28}, {120, 35}, {160, 50},
     }};
-    const std::array<const char*, 8> titulos_vista{
+    const std::array<const char*, 9> titulos_vista{
         "Resumen institucional", "Directorio de investigadores", "Directorio de grupos",
         "Catálogo de productos", "Análisis de redes", "Importación", "Configuración",
-        "Acerca de PEA-i"
+        "Acerca de PEA-i", "Producción científica"
     };
     int hallazgos = 0;
     std::cout << "Pantalla             Tamaño   Hallazgos\n";
@@ -938,7 +954,8 @@ int autoprueba() {
 
 } // namespace
 
-int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, bool ascii) {
+int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, bool ascii,
+             const QString& archivo_local, bool vacio) {
     if (ejecutar_autoprueba) {
         return autoprueba();
     }
@@ -962,7 +979,11 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         cargar_datos_demostracion(catalogo);
     } else {
         try {
-            cliente = datos::crear_cliente_configurado(nullptr, &sesion);
+            if (vacio || !archivo_local.isEmpty()) {
+                if (!archivo_local.isEmpty()) catalogo = datos::cargar_archivo(archivo_local);
+                datos_demostracion = true;
+                mensaje_conexion = "Archivo local: use s para guardar los cambios.";
+            } else cliente = datos::crear_cliente_configurado(nullptr, &sesion);
             if (cliente) {
                 catalogo = servicios::CatalogoInvestigacion(cliente.get(), sesion);
                 catalogo.recargar_todo();
@@ -971,6 +992,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         } catch (const std::exception& error) {
             mensaje_conexion = std::string("No se pudo conectar a Supabase: ") + error.what();
             std::cerr << mensaje_conexion << '\n';
+            if (!archivo_local.isEmpty()) return 1;
         }
     }
 
@@ -992,12 +1014,23 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
     }
 
     const auto abrir_formulario = [&](int accion) {
+        if (accion >= 9) {
+            if ((accion == 9 && seleccion != 8) || (accion == 10 && (seleccion < 1 || seleccion > 3))) {
+                mensaje_estado = "Abra Indicadores para calcular o un directorio para editar campos.";
+                return;
+            }
+            accion_formulario = accion;
+            std::fill(valores_formulario.begin(), valores_formulario.end(), std::string());
+            campo_activo = 0;
+            ficha_detalle.clear();
+            return;
+        }
         if (accion == 6 || accion == 7) {
             if (seleccion != 5) {
                 mensaje_estado = "Abra Importación para iniciar una tarea.";
                 return;
             }
-            if (datos_demostracion || !conectado) {
+            if (!datos_demostracion && !conectado) {
                 mensaje_estado = "Importación bloqueada: requiere un catálogo remoto autenticado.";
                 return;
             }
@@ -1022,6 +1055,61 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
         filtro_activo = false;
     };
     const auto guardar_formulario = [&] {
+        if (accion_formulario >= 9) {
+            try {
+                const auto campo = [&](int i) { return campo_qstring(valores_formulario, static_cast<std::size_t>(i)).trimmed(); };
+                if (accion_formulario == 9) {
+                    bool ok = true;
+                    int corte = campo(2).isEmpty() ? 2023 : campo(2).toInt(&ok);
+                    if (!ok) throw std::invalid_argument("Año de corte inválido.");
+                    std::optional<int> desde;
+                    if (!campo(3).isEmpty()) {
+                        desde = campo(3).toInt(&ok);
+                        if (!ok) throw std::invalid_argument("Año inicial inválido.");
+                    }
+                    auto r = servicios::calcular_indicador(datos::serializar_catalogo(catalogo), campo(0), campo(1), corte, desde);
+                    QStringList lineas;
+                    lineas << QString("%1 · Indicador %2").arg(r["nombre"].toString()).arg(r["indicador"].toDouble(), 0, 'f', 6)
+                           << r["referencia"].toString();
+                    for (const auto& v : r["componentes"].toArray()) {
+                        auto c = v.toObject();
+                        lineas << QString("%1: bruto %2 / máximo %3 × %4 = %5")
+                            .arg(c["componente"].toString()).arg(c["bruto"].toDouble()).arg(c["maximo"].toDouble())
+                            .arg(c["coeficiente"].toDouble()).arg(c["aporte"].toDouble());
+                    }
+                    for (const auto& v : r["avisos"].toArray()) lineas << v.toString();
+                    ficha_detalle = lineas.join('\n').toStdString();
+                    mensaje_estado = "Cálculo completo; para exportar use indicador --salida.";
+                } else if (accion_formulario == 10) {
+                    if (!datos_demostracion && !conectado) throw std::runtime_error("No hay catálogo disponible para editar.");
+                    QJsonParseError error;
+                    const auto doc = QJsonDocument::fromJson(campo(1).toUtf8(), &error);
+                    if (error.error != QJsonParseError::NoError || !doc.isObject() || doc.object().isEmpty())
+                        throw std::invalid_argument("Indique un objeto JSON con campos actualizables.");
+                    if (seleccion == 1) catalogo.actualizar_investigador(campo(0), doc.object(), conectado);
+                    else if (seleccion == 2) catalogo.actualizar_grupo(campo(0), doc.object(), conectado);
+                    else catalogo.actualizar_producto(campo(0), doc.object(), conectado);
+                    mensaje_estado = "Campos actualizados. Use s para conservar cambios en archivo local.";
+                } else if (accion_formulario == 11) {
+                    datos::guardar_archivo(campo(0), datos::serializar_catalogo(catalogo));
+                    mensaje_estado = "Catálogo local guardado.";
+                } else if (accion_formulario == 13) {
+                    auto doc = ingesta::procesar_pdf(campo(0));
+                    datos::guardar_archivo(campo(1), doc);
+                    mensaje_estado = "PDF procesado: " + std::to_string(doc["total_paginas"].toInt()) + " páginas; salida JSON guardada.";
+                } else {
+                    if (conectado) throw std::runtime_error("Para abrir otro origen, reinicie con --archivo <ruta>.");
+                    catalogo = datos::cargar_archivo(campo(0));
+                    datos_demostracion = true;
+                    mensaje_conexion = "Archivo local: use s para guardar los cambios.";
+                    mensaje_estado = "Archivo local cargado.";
+                }
+                accion_formulario = 0;
+            } catch (const std::exception& error) {
+                mensaje_estado = std::string("No se completó la operación: ") + error.what();
+            }
+            return;
+        }
         if (accion_formulario == 8) {
             const auto parsear_anio = [&valores_formulario](std::size_t indice,
                                                             const char* etiqueta)
@@ -1059,7 +1147,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                 return campo_qstring(valores_formulario, indice).trimmed();
             };
             try {
-                if (datos_demostracion || !conectado || !cliente) {
+                if (!datos_demostracion && (!conectado || !cliente)) {
                     throw std::runtime_error("La importación requiere sesión remota autenticada.");
                 }
                 auto catalogo_compartido = std::shared_ptr<servicios::CatalogoInvestigacion>(
@@ -1078,7 +1166,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                         throw std::invalid_argument(
                             "El tipo debe ser auto, grupos, investigadores, productos o autores.");
                     }
-                    servicio.encolar_csv(ruta, tipo, true);
+                    servicio.encolar_csv(ruta, tipo, conectado);
                     const auto informe = servicio.procesar_siguiente();
                     if (informe) informes.push_back(*informe);
                 } else {
@@ -1091,7 +1179,7 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                         anonimizar_texto != "no") {
                         throw std::invalid_argument("Indique si o no para anonimizar datos personales.");
                     }
-                    servicio.encolar_url(url, true, anonimizar_texto != "no");
+                    servicio.encolar_url(url, conectado, anonimizar_texto != "no");
                     informes = servicio.procesar_todas();
                 }
                 if (informes.isEmpty()) {
@@ -1491,6 +1579,11 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                                 : std::min(ultima, pagina_actual + 1);
             return true;
         }
+        if (evento == Event::Character("c") && seleccion == 8) { abrir_formulario(9); return true; }
+        if (evento == Event::Character("p") && seleccion == 5) { abrir_formulario(13); return true; }
+        if (evento == Event::Character("a")) { abrir_formulario(10); return true; }
+        if (evento == Event::Character("s")) { abrir_formulario(11); return true; }
+        if (evento == Event::Character("o")) { abrir_formulario(12); return true; }
         if (evento == Event::Character("n")) {
             abrir_formulario(1);
             return true;

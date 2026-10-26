@@ -1,0 +1,1538 @@
+{
+  "version": "M601PR04G01-v02-2024",
+  "fuente": "Modelo-2024.original.pdf, secciones 3.5-3.10 y tablas del Anexo 1",
+  "coeficientes": {
+    "Nc.Top": 3.7,
+    "Nc.A": 2.3,
+    "Nc.B": 0.4,
+    "AP": 1.5,
+    "DPC": 0.5,
+    "Fr.A": 1.0,
+    "Fr.B": 0.2,
+    "Cohe": 0.1,
+    "Coop": 0.3
+  },
+  "categorias": [
+    {
+      "codigo": "ART_OPEN_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 131
+    },
+    {
+      "codigo": "ART_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 9.5,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 131
+    },
+    {
+      "codigo": "ART_OPEN_A2",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 131
+    },
+    {
+      "codigo": "ART_A2",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.5,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 131
+    },
+    {
+      "codigo": "LIB_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 300,
+      "ventana": 7,
+      "pagina": 135
+    },
+    {
+      "codigo": "LIB_A",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 9.0,
+      "peso_base": 300,
+      "ventana": 7,
+      "pagina": 136
+    },
+    {
+      "codigo": "CAP_LIB_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 60,
+      "ventana": 5,
+      "pagina": 139
+    },
+    {
+      "codigo": "CAP_LIB_A",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 9.0,
+      "peso_base": 60,
+      "ventana": 5,
+      "pagina": 140
+    },
+    {
+      "codigo": "PA1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "PA2",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 7,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "MA1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 6,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "MA2",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 4.2,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "VV_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 144
+    },
+    {
+      "codigo": "VV_A2",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 8.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 144
+    },
+    {
+      "codigo": "VA_A",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "AAD_A1",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 10,
+      "pagina": 146
+    },
+    {
+      "codigo": "AAD_A",
+      "clase": "Nc.Top",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 10,
+      "pagina": 146
+    },
+    {
+      "codigo": "RNL_A",
+      "clase": "Nc.Top",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "ART_OPEN_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3.5,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 132
+    },
+    {
+      "codigo": "ART_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 132
+    },
+    {
+      "codigo": "ART_OPEN_C",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.0,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 132
+    },
+    {
+      "codigo": "ART_C",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.5,
+      "peso_base": 100,
+      "ventana": 7,
+      "pagina": 133
+    },
+    {
+      "codigo": "LIB_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 8.0,
+      "peso_base": 300,
+      "ventana": 7,
+      "pagina": 137
+    },
+    {
+      "codigo": "CAP_LIB_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 8.0,
+      "peso_base": 60,
+      "ventana": 5,
+      "pagina": 140
+    },
+    {
+      "codigo": "PA3",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 6,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "PA4",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.5,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "MA3",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3.6,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "MA4",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3.33,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 142
+    },
+    {
+      "codigo": "VV_A3",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 144
+    },
+    {
+      "codigo": "VV_A4",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.5,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 144
+    },
+    {
+      "codigo": "VA_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "AAD_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 10,
+      "pagina": 146
+    },
+    {
+      "codigo": "DI_A",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 147
+    },
+    {
+      "codigo": "ECI",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 4.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 147
+    },
+    {
+      "codigo": "PP",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 4.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "PI",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 4.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "SD",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 4.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "SE",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "EBT_A",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "ICC_A",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "IG_A1",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "IG_A2",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "RNL_B",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "RNR",
+      "clase": "Nc.A",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "ART_OPEN_D",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 5,
+      "ventana": 5,
+      "pagina": 133
+    },
+    {
+      "codigo": "ART_D",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 9.0,
+      "peso_base": 5,
+      "ventana": 5,
+      "pagina": 133
+    },
+    {
+      "codigo": "N_A1",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 4,
+      "ventana": 5,
+      "pagina": 133
+    },
+    {
+      "codigo": "N_A2",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 8.5,
+      "peso_base": 4,
+      "ventana": 5,
+      "pagina": 133
+    },
+    {
+      "codigo": "N_B",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 7.0,
+      "peso_base": 4,
+      "ventana": 5,
+      "pagina": 134
+    },
+    {
+      "codigo": "N_C",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.5,
+      "peso_base": 4,
+      "ventana": 5,
+      "pagina": 134
+    },
+    {
+      "codigo": "N_D",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.0,
+      "peso_base": 4,
+      "ventana": 5,
+      "pagina": 134
+    },
+    {
+      "codigo": "LIB_C",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 15,
+      "ventana": 7,
+      "pagina": 138
+    },
+    {
+      "codigo": "CAP_LIB_C",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 3,
+      "ventana": 5,
+      "pagina": 141
+    },
+    {
+      "codigo": "LIB_FOR1",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 10.0,
+      "peso_base": 60,
+      "ventana": 5,
+      "pagina": 142
+    },
+    {
+      "codigo": "PB1",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "PB2",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3.5,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "PB3",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "PB4",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.6,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "PB5",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.5,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "PC",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.8,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MB1",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 3,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MB2",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.1,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MB3",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.8,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MB4",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.7,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MB5",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.5,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "MC",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.1,
+      "peso_base": 500,
+      "ventana": 10,
+      "pagina": 143
+    },
+    {
+      "codigo": "VV_B1",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 5.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "VV_B2",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 4.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "VV_B3",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 2.5,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "VV_B4",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 1.0,
+      "peso_base": 300,
+      "ventana": 10,
+      "pagina": 145
+    },
+    {
+      "codigo": "AAD_C",
+      "clase": "Nc.B",
+      "tipo_mayor": "GNC",
+      "peso_relativo": 4.0,
+      "peso_base": 100,
+      "ventana": 10,
+      "pagina": 146
+    },
+    {
+      "codigo": "DI_B",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 5.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 147
+    },
+    {
+      "codigo": "SF",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 147
+    },
+    {
+      "codigo": "PN",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 6.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "CC",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "NRC_A",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 148
+    },
+    {
+      "codigo": "NRC_B",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 5.0,
+      "peso_base": 35,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "EBT_B",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "ICC_B",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 4.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 149
+    },
+    {
+      "codigo": "IG_B1",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "IG_B2",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "IPP",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "RNT",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "RNPC",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 150
+    },
+    {
+      "codigo": "GMCF",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "MADV",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "PAU",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "PVE",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "AL",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "RNPL",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 151
+    },
+    {
+      "codigo": "CT",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 15,
+      "ventana": 5,
+      "pagina": 152
+    },
+    {
+      "codigo": "MR",
+      "clase": "Nc.B",
+      "tipo_mayor": "DTI",
+      "peso_relativo": 10.0,
+      "peso_base": 14,
+      "ventana": 5,
+      "pagina": 152
+    },
+    {
+      "codigo": "FIS",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 152
+    },
+    {
+      "codigo": "GPP_A",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 153
+    },
+    {
+      "codigo": "GPP_B",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 153
+    },
+    {
+      "codigo": "GPP_C",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 153
+    },
+    {
+      "codigo": "FCP_A",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 154
+    },
+    {
+      "codigo": "FCP_B",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 154
+    },
+    {
+      "codigo": "FCP_C",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 154
+    },
+    {
+      "codigo": "TCCG_A",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 155
+    },
+    {
+      "codigo": "TCCG_B",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 155
+    },
+    {
+      "codigo": "TCCG_C",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 4.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 155
+    },
+    {
+      "codigo": "TCCG_D",
+      "clase": "AP",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 1.0,
+      "peso_base": 200,
+      "ventana": 5,
+      "pagina": 155
+    },
+    {
+      "codigo": "EC_A",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 156
+    },
+    {
+      "codigo": "EC_B",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 156
+    },
+    {
+      "codigo": "RC_A",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 156
+    },
+    {
+      "codigo": "RC_B",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "TC_A",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "TC_B",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "TC_C",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "ECA_A",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "ECA_B",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 157
+    },
+    {
+      "codigo": "WP",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "NSG",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "ERL",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 6.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "IFI",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 2.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "INF",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "CON_CT",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.5,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "CON_AAD",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.5,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 158
+    },
+    {
+      "codigo": "PEE_A1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PEE_A2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PEE_B1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PEE_B2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PEE_C1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PEE_C2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 159
+    },
+    {
+      "codigo": "PCD_A1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "PCD_A2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "PCD_B1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "PCD_B2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "PCD_C1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "PCD_C2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "TRM_A1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 160
+    },
+    {
+      "codigo": "TRM_A2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 161
+    },
+    {
+      "codigo": "TRM_B1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 161
+    },
+    {
+      "codigo": "TRM_B2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 161
+    },
+    {
+      "codigo": "TRM_C1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 161
+    },
+    {
+      "codigo": "TRM_C2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 161
+    },
+    {
+      "codigo": "DW_A1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "DW_A2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "DW_B1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 7.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "DW_B2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "DW_C1",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "DW_C2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 162
+    },
+    {
+      "codigo": "LIB_FOR2",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 164
+    },
+    {
+      "codigo": "LIB_FOR3",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 164
+    },
+    {
+      "codigo": "BOL",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 165
+    },
+    {
+      "codigo": "LIB_DIV",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 10.0,
+      "peso_base": 300,
+      "ventana": 5,
+      "pagina": 165
+    },
+    {
+      "codigo": "GC",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 4.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 166
+    },
+    {
+      "codigo": "MAN_GUI",
+      "clase": "DPC",
+      "tipo_mayor": "ASC",
+      "peso_relativo": 2.0,
+      "peso_base": 500,
+      "ventana": 5,
+      "pagina": 166
+    },
+    {
+      "codigo": "TD_A",
+      "clase": "Fr.A",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 160,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "TD_B",
+      "clase": "Fr.A",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 5.0,
+      "peso_base": 160,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "AP_A",
+      "clase": "Fr.A",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 169
+    },
+    {
+      "codigo": "AP_C",
+      "clase": "Fr.A",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 5.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 169
+    },
+    {
+      "codigo": "TM_A",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 70,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "TM_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 5.0,
+      "peso_base": 70,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "TP_A",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 20,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "TP_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 5.0,
+      "peso_base": 20,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PID_A",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PID_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 6.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PID_C",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 2.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PIC_A",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PIC_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 6.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PIC_C",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 2.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PF_A",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PF_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 8.0,
+      "peso_base": 50,
+      "ventana": 5,
+      "pagina": 168
+    },
+    {
+      "codigo": "PE",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 169
+    },
+    {
+      "codigo": "AP_B",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 8.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 169
+    },
+    {
+      "codigo": "AP_D",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 3.0,
+      "peso_base": 100,
+      "ventana": 5,
+      "pagina": 169
+    },
+    {
+      "codigo": "APO",
+      "clase": "Fr.B",
+      "tipo_mayor": "FRH",
+      "peso_relativo": 10.0,
+      "peso_base": 30,
+      "ventana": 5,
+      "pagina": 169
+    }
+  ]
+}

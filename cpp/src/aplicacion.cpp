@@ -26,9 +26,18 @@ int ejecutar_aplicacion(int argc, char* argv[]) {
     const bool ascii = argumentos.removeAll("--ascii") > 0;
     argumentos.removeAll("--sin-animacion");
     const bool autoprueba = argumentos.removeAll("--autoprueba") > 0;
+    bool vacio = false;
+    QString archivo_local;
+    if (!argumentos.isEmpty() && argumentos[0] == "--vacio") {
+        vacio = true;
+        argumentos.removeFirst();
+    } else if (argumentos.size() == 2 && argumentos[0] == "--archivo") {
+        archivo_local = argumentos[1];
+        argumentos.clear();
+    }
 
     if (argumentos.isEmpty() || demo || autoprueba) {
-        return pea::tui::ejecutar(demo, autoprueba, sin_color, ascii);
+        return pea::tui::ejecutar(demo, autoprueba, sin_color, ascii, archivo_local, vacio);
     }
 
     return pea::cli::ejecutar(argumentos);

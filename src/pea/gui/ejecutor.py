@@ -48,6 +48,9 @@ class EjecutorAsincrono(QObject):
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.pool = QThreadPool.globalInstance()
+        # ServicioAplicacion comparte un catálogo mutable entre todas las
+        # pantallas. Las tareas de red/ingesta deben ejecutarse en orden.
+        self.pool.setMaxThreadCount(1)
         self._tareas_activas: set[TareaSegundoPlano] = set()
 
     _instancia_unica: EjecutorAsincrono | None = None

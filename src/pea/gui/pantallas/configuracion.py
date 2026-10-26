@@ -640,6 +640,9 @@ class PantallaConfiguracion(QWidget):
         if est.modo == ModoConexion.SUPABASE:
             self.pildora_modo.establecer_texto("Supabase")
             self.pildora_modo.establecer_variante("exito")
+        elif est.modo == ModoConexion.LOCAL:
+            self.pildora_modo.establecer_texto("Archivo local")
+            self.pildora_modo.establecer_variante("aviso")
         elif est.modo == ModoConexion.DEMOSTRACION:
             self.pildora_modo.establecer_texto("Demostración")
             self.pildora_modo.establecer_variante("aviso")

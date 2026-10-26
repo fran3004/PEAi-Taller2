@@ -1,0 +1,19 @@
+{
+  "alcance": "Comprobaciones locales del Parcial 2 y descargas públicas SCIENTI; la compilación final de Release se comprueba por separado en GitHub Actions",
+  "version": "0.2.0",
+  "python": {"aprobadas": 415, "excluidas_por_marcador_red": 3},
+  "cpp": {"ctest": "aprobado", "regresion_ano_bibliografico_y_libros": "falló antes y pasó después de la corrección"},
+  "persistencia_cvlac_python": "La regresión reprodujo la mutación prematura de memoria y pasó tras guardar primero",
+  "gui": {"pantallas": 9, "resoluciones": 3, "combinaciones": 27, "hallazgos": 0},
+  "tui": {"pantallas": 9, "tamanos": 4, "combinaciones": 36, "hallazgos": 0},
+  "paridad_cli": {"casos": 6, "lecturas_cruzadas": 12, "resultado": "JSON equivalente con tolerancia numérica 1e-11"},
+  "pdf": {"fixture_local": "aprobado", "documento_del_usuario": {"paginas_cpp": 3}},
+  "cvlac_publico": {
+    "url": "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917",
+    "python": {"incluidos": 0, "excluidos": 97, "completo": false},
+    "cpp": {"incluidos": 0, "excluidos": 97, "completo": false},
+    "interpretacion": "La fuente pública no publica las categorías de calidad necesarias; no se asignan puntajes supuestos"
+  },
+  "secretos": {"archivos_versionables_comprobados": 533, "hallazgos": 0},
+  "migraciones_nuevas": 0
+}

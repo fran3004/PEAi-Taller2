@@ -20,6 +20,7 @@ class ModoConexion(StrEnum):
     DESCONECTADO = "desconectado"
     SUPABASE = "supabase"
     DEMOSTRACION = "demostracion"
+    LOCAL = "local"
 
 
 class ModoFiltroAnios(StrEnum):
@@ -115,6 +116,8 @@ class EstadoAplicacion:
 
     @property
     def descripcion_modo(self) -> str:
+        if self.modo == ModoConexion.LOCAL:
+            return "Archivo local (guardar para conservar cambios)"
         if self.modo == ModoConexion.SUPABASE:
             return "Sin conexión" if self.sin_conexion else "Conectado"
         if self.modo == ModoConexion.DEMOSTRACION:

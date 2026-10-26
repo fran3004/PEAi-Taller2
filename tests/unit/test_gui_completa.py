@@ -2,8 +2,8 @@
 
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md.
 Cubre la suite completa de verificación para:
-1. Siete pestañas y textos institucionales.
-2. Navegación entre las 8 pantallas oficiales y navegación cruzada.
+1. Ocho pestañas y textos institucionales.
+2. Navegación entre las 9 pantallas oficiales y navegación cruzada.
 3. Filtros globales de años y filtros reactivos de directorios.
 4. Fichas laterales y paneles de detalle interactivos.
 5. Creación, edición y pila de deshacer con popover.
@@ -51,7 +51,7 @@ def ventana(qapp: QApplication, qtbot: Any) -> VentanaPrincipal:
 
 
 def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) -> None:
-    """Verifica que la ventana principal contenga las cuatro zonas y 7 pestañas oficiales."""
+    """Verifica que la ventana principal contenga las cuatro zonas y 8 pestañas oficiales."""
     # 1. Barra superior
     assert ventana._barra_superior is not None
     assert ventana._barra_superior.height() == 88
@@ -71,22 +71,23 @@ def test_ventana_principal_estructura_siete_pestanas(ventana: VentanaPrincipal) 
     assert not ventana._banner_revision.isVisible()
     assert not ventana._franja_sin_conexion.isVisible()
 
-    # 2. Siete pestañas principales con sus textos oficiales exactos
-    assert len(ventana._botones_pestanas) == 7
+    # 2. Ocho pestañas principales con sus textos oficiales exactos
+    assert len(ventana._botones_pestanas) == 8
     nombres_esperados = [
         "Inicio",
         "Investigadores",
         "Grupos",
         "Productos",
         "Análisis de redes",
+        "Indicadores",
         "Importar",
         "Configuración",
     ]
     for btn, nombre_esperado in zip(ventana._botones_pestanas, nombres_esperados, strict=True):
         assert btn._texto == nombre_esperado
 
-    # 3. Zona central apiladora con las 8 pantallas oficiales
-    assert ventana._apilador.count() == 8
+    # 3. Zona central apiladora con las 9 pantallas oficiales
+    assert ventana._apilador.count() == 9
     assert ventana._apilador.currentIndex() == int(Pantalla.INICIO)
 
     # 4. Pie institucional
@@ -169,7 +170,7 @@ def test_resoluciones_oficiales_son_logicas_y_no_dependen_del_monitor(
 
 
 def test_navegacion_entre_todas_las_pantallas(ventana: VentanaPrincipal) -> None:
-    """Verifica la navegación secuencial por las 8 pantallas oficiales (Pantalla enum)."""
+    """Verifica la navegación secuencial por las 9 pantallas oficiales (Pantalla enum)."""
     for pantalla_enum in Pantalla:
         ventana.seleccionar_pantalla(pantalla_enum)
         QApplication.processEvents()
@@ -181,7 +182,7 @@ def test_navegacion_entre_todas_las_pantallas(ventana: VentanaPrincipal) -> None
         assert widget_actual.isVisible()
 
         # Verificar sincronización de pestañas de barra superior
-        if idx <= 6:
+        if pantalla_enum != Pantalla.ACERCA:
             btn_activo = ventana._pestanas.button(idx)
             assert btn_activo is not None
             assert btn_activo.isChecked()

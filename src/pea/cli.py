@@ -14,6 +14,7 @@ from pea.dominio.producto import Producto
 from pea.excepciones import ErrorPEA
 from pea.ingesta.lector_csv import LectorCSV
 from pea.ingesta.servicio_ingesta import ServicioIngesta
+from pea.servicios.parcial_cli import agregar_comandos, ejecutar_comando
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
 from pea.version import APP_NAME, APP_VERSION, INSTITUCION, obtener_version
 
@@ -40,13 +41,10 @@ def _obtener_cliente_desde_entorno() -> ClienteHTTPSupabase | None:
         clave = os.environ.get("PEA_USUARIO_CLAVE", "").strip()
         if correo and clave:
             try:
-                from pea.datos.auth import ClienteAuth
-                from pea.datos.sesion import Sesion
-
-                sesion = Sesion()
-                ClienteAuth(cliente, sesion).iniciar_sesion(correo, clave)
-            except Exception:
-                pass
+                cliente.autenticar(correo, clave)
+            except ErrorPEA:
+                cliente.cerrar_sesion()
+                raise
         elif not correo and not clave and publica.get("acceso_evaluacion"):
             cliente.autenticar_evaluacion()
         return cliente
@@ -96,6 +94,8 @@ def crear_parser() -> argparse.ArgumentParser:
     parser_url.add_argument("--anonimizar", action="store_true", help="Anonimiza correos y nombres personales en notas públicas")
     parser_url.add_argument("--privado", action="store_true", help="Guarda la transcripción en carpeta privada")
     parser_url.add_argument("--salida", "-s", default="datos/fuentes/extraccion", help="Directorio destino para Markdown, JSON y CSV")
+
+    agregar_comandos(subparsers)
 
     # Comando importar-pdf
     parser_pdf = subparsers.add_parser("importar-pdf", help="Extrae texto y tablas desde documentos oficiales PDF")
@@ -578,9 +578,13 @@ def comando_aplicar_escenario() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = crear_parser()
     args = parser.parse_args(argv)
 
+    if args.comando in ("indicador", "guardar-local"):
+        return ejecutar_comando(args, _obtener_cliente_desde_entorno)
     if args.comando == "info":
         comando_info()
         return 0

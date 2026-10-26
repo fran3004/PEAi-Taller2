@@ -40,7 +40,8 @@ def test_cli_info(capsys: pytest.CaptureFixture[str]) -> None:
     assert APP_VERSION in captura.out
 
 
-def test_cli_ping_sin_credenciales(capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_ping_sin_credenciales(capsys: pytest.CaptureFixture[str], monkeypatch) -> None:
+    monkeypatch.setattr("pea.cli._obtener_cliente_desde_entorno", lambda: None)
     codigo = cli_main(["ping"])
     assert codigo == 0
     captura = capsys.readouterr()
@@ -59,7 +60,7 @@ def test_gui_autoprueba(capsys: pytest.CaptureFixture[str]) -> None:
     codigo = gui_main(["--autoprueba"])
     assert codigo == 0
     captura = capsys.readouterr()
-    assert "Cero hallazgos en las 24 combinaciones" in captura.out
+    assert "Cero hallazgos en las 27 combinaciones" in captura.out
     assert "Autoprueba de GUI Python completada exitosamente." in captura.out
     assert "FALLA" not in captura.out
 

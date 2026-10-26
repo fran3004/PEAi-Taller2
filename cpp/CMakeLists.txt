@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(pea-cpp VERSION 0.1.7 LANGUAGES CXX)
+project(pea-cpp VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 find_package(doctest REQUIRED)
@@ -30,6 +31,11 @@ else()
 endif()
 
 add_library(pea_core STATIC
+    recursos/modelo.qrc
+    src/servicios/indicadores.cpp
+    src/servicios/parcial_cli.cpp
+    src/ingesta/extractor_pdf.cpp
+    src/datos/archivo_local.cpp
     include/pea/version.hpp
     include/pea/excepciones.hpp
     include/pea/cliente_http.hpp
@@ -102,6 +108,7 @@ target_link_libraries(pea-cpp PRIVATE
 enable_testing()
 
 add_executable(pruebas_cpp
+    tests/test_indicadores_parcial.cpp
     tests/test_version.cpp
     tests/test_cliente_http.cpp
     tests/test_estructuras.cpp

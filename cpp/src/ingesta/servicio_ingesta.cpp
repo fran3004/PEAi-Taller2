@@ -305,7 +305,7 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
         todos_prods.append(grupo_ing.proyectos);
 
         for (const auto& p_ing : todos_prods) {
-            if (!p_ing.ano.has_value()) {
+            if (!p_ing.ano.has_value() || *p_ing.ano < 1970 || *p_ing.ano > QDate::currentDate().year()) {
                 informe.advertencias.append(
                     QStringLiteral("Se omitió el producto GrupLAC #%1: la fuente no informa el año.")
                         .arg(prod_idx));
@@ -317,7 +317,8 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 dominio::Producto p;
                 p.codigo_identificador = cod_prod;
                 p.titulo = p_ing.titulo;
-                p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") : QStringLiteral("GNC");
+                p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") :
+                    (p_ing.tipo == QStringLiteral("TrabajoDirigido") || p_ing.tipo_trabajo.has_value()) ? QStringLiteral("FRH") : QStringLiteral("GNC");
                 p.subtipo = p_ing.tipo.isEmpty() ? QStringLiteral("Producto GrupLAC") : p_ing.tipo.left(100);
                 p.ano = *p_ing.ano;
                 p.estado_validacion = QStringLiteral("Avalado");
@@ -390,7 +391,7 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
         QSet<QString> productos_ya_emparejados;
 
         for (const auto& p_ing : todos_prods) {
-            if (!p_ing.ano.has_value()) {
+            if (!p_ing.ano.has_value() || *p_ing.ano < 1970 || *p_ing.ano > QDate::currentDate().year()) {
                 informe.advertencias.append(
                     QStringLiteral("Se omitió el producto CvLAC #%1: la fuente no informa el año.")
                         .arg(prod_idx));
@@ -460,7 +461,8 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 dominio::Producto p;
                 p.codigo_identificador = cod_prod;
                 p.titulo = p_ing.titulo;
-                p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") : QStringLiteral("GNC");
+                p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") :
+                    (p_ing.tipo == QStringLiteral("TrabajoDirigido") || p_ing.tipo_trabajo.has_value()) ? QStringLiteral("FRH") : QStringLiteral("GNC");
                 p.subtipo = p_ing.tipo.left(100);
                 p.ano = *p_ing.ano;
                 p.estado_validacion = QStringLiteral("Avalado");

@@ -1,0 +1,192 @@
+{
+  "formato": "pea-catalogo",
+  "version": 1,
+  "grupos": [
+    {
+      "codigo_gruplac": "PRUEBA-G1",
+      "nombre": "Grupo de ejemplo 1",
+      "fecha_creacion": "2000-01-01",
+      "gran_area_ocde": "Ingeniería y Tecnología",
+      "es_ejemplo": true
+    },
+    {
+      "codigo_gruplac": "PRUEBA-G2",
+      "nombre": "Grupo de ejemplo 2",
+      "fecha_creacion": "2000-01-01",
+      "gran_area_ocde": "Ingeniería y Tecnología",
+      "es_ejemplo": true
+    }
+  ],
+  "investigadores": [
+    {
+      "codigo_rh": "PRUEBA-I1",
+      "nombre_completo": "Investigador de ejemplo 1",
+      "es_ejemplo": true
+    },
+    {
+      "codigo_rh": "PRUEBA-I2",
+      "nombre_completo": "Investigador de ejemplo 2",
+      "es_ejemplo": true
+    },
+    {
+      "codigo_rh": "PRUEBA-I3",
+      "nombre_completo": "Investigador de ejemplo 3",
+      "es_ejemplo": true
+    }
+  ],
+  "integrantes": [
+    {
+      "codigo_gruplac": "PRUEBA-G1",
+      "codigo_rh": "PRUEBA-I1",
+      "rol": "Investigador",
+      "fecha_inicio": "2000-01-01",
+      "es_ejemplo": true
+    },
+    {
+      "codigo_gruplac": "PRUEBA-G1",
+      "codigo_rh": "PRUEBA-I2",
+      "rol": "Investigador",
+      "fecha_inicio": "2000-01-01",
+      "es_ejemplo": true
+    },
+    {
+      "codigo_gruplac": "PRUEBA-G2",
+      "codigo_rh": "PRUEBA-I3",
+      "rol": "Investigador",
+      "fecha_inicio": "2000-01-01",
+      "es_ejemplo": true
+    }
+  ],
+  "productos": [
+    {
+      "codigo_identificador": "PRUEBA-P1",
+      "titulo": "Producto sintético 1",
+      "tipo_mayor": "GNC",
+      "subtipo": "ART_A2",
+      "ano": 2023,
+      "estado_validacion": "Avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P2",
+      "titulo": "Producto sintético 2",
+      "tipo_mayor": "GNC",
+      "subtipo": "ART_A2",
+      "ano": 2022,
+      "estado_validacion": "Avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P3",
+      "titulo": "Producto sintético 3",
+      "tipo_mayor": "DTI",
+      "subtipo": "SF",
+      "ano": 2023,
+      "estado_validacion": "Avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P4",
+      "titulo": "Producto sintético 4",
+      "tipo_mayor": "GNC",
+      "subtipo": "Artículo",
+      "ano": 2023,
+      "estado_validacion": "Avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P5",
+      "titulo": "Producto sintético 5",
+      "tipo_mayor": "GNC",
+      "subtipo": "ART_A1",
+      "ano": 2023,
+      "estado_validacion": "No avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P6",
+      "titulo": "Producto sintético 6",
+      "tipo_mayor": "GNC",
+      "subtipo": "ART_A1",
+      "ano": 2000,
+      "estado_validacion": "Avalado",
+      "activo": true,
+      "es_ejemplo": true,
+      "detalles": {}
+    },
+    {
+      "codigo_identificador": "PRUEBA-P7",
+      "titulo": "Producto sintético 7",
+      "tipo_mayor": "GNC",
+      "subtipo": "ART_A1",
+      "ano": 2023,
+      "estado_validacion": "Avalado",
+      "activo": false,
+      "es_ejemplo": true,
+      "detalles": {}
+    }
+  ],
+  "relaciones": [
+    {
+      "codigo_identificador": "PRUEBA-P1",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1",
+        "PRUEBA-I2"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P2",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1",
+        "PRUEBA-I3"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P3",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P4",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P5",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P6",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1"
+      ]
+    },
+    {
+      "codigo_identificador": "PRUEBA-P7",
+      "grupo": "PRUEBA-G1",
+      "autores": [
+        "PRUEBA-I1"
+      ]
+    }
+  ]
+}

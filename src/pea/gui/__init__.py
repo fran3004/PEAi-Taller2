@@ -7,7 +7,7 @@ import sys
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from pea.gui.recursos.cargador import cargar_fuentes
 from pea.gui.ventana_principal import Pantalla, VentanaPrincipal, ejecutar_autoprueba
@@ -45,5 +45,41 @@ def main(argv: list[str] | None = None) -> int:
         return codigo
 
     ventana.show()
-    QTimer.singleShot(0, ventana.iniciar_conexion_automatica)
+    def elegir_inicio():
+        if "--archivo" in args:
+            try:
+                ruta = args[args.index("--archivo") + 1]
+                ventana._servicio.iniciar_local(ruta)
+                ventana.actualizar_estado_global()
+            except (IndexError, OSError, ValueError) as error:
+                QMessageBox.critical(ventana, "Archivo local", str(error))
+            return
+        if "--vacio" in args:
+            ventana._servicio.iniciar_local()
+            ventana.actualizar_estado_global()
+            return
+        if "--auto-conectar" in args:
+            ventana.iniciar_conexion_automatica()
+            return
+        dialogo = QMessageBox(ventana)
+        dialogo.setWindowTitle("PEA-i · Elegir datos de trabajo")
+        dialogo.setText("Elija cómo iniciar el catálogo de investigación.")
+        remoto = dialogo.addButton("Supabase", QMessageBox.ButtonRole.AcceptRole)
+        archivo = dialogo.addButton("Abrir archivo local", QMessageBox.ButtonRole.ActionRole)
+        dialogo.addButton("Sin datos", QMessageBox.ButtonRole.RejectRole)
+        dialogo.exec()
+        if dialogo.clickedButton() is remoto:
+            ventana.iniciar_conexion_automatica()
+        elif dialogo.clickedButton() is archivo:
+            ruta, _ = QFileDialog.getOpenFileName(ventana, "Abrir catálogo", "", "JSON (*.json)")
+            if ruta:
+                try:
+                    ventana._servicio.iniciar_local(ruta)
+                except (OSError, ValueError) as error:
+                    QMessageBox.critical(ventana, "Archivo local", str(error))
+        else:
+            ventana._servicio.iniciar_local()
+        ventana.actualizar_estado_global()
+        ventana._pantalla_inicio.refrescar()
+    QTimer.singleShot(0, elegir_inicio)
     return app.exec()

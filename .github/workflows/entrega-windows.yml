@@ -36,6 +36,7 @@ jobs:
             mingw-w64-ucrt-x86_64-qt6-base
             mingw-w64-ucrt-x86_64-doctest
             mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-poppler
             git
       - name: Instalar y compilar desde cero
         run: |

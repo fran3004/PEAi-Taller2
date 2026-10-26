@@ -3,10 +3,10 @@
 Fuente de verdad: brain/20-Diseno/GUI-Diseno-Python.md (Sección 5).
 Estructura de cuatro zonas:
 1. Barra superior de 88 px con degradado horizontal, átomo, eslogan,
-   7 pestañas institucionales, botón Deshacer con popover de historial,
+   8 pestañas institucionales, botón Deshacer con popover de historial,
    avatar con iniciales, Cerrar sesión, enlace Acerca de y filete UPC de 3 px.
 2. Franjas reactivas de aviso de revisión remota y modo sin conexión.
-3. Zona central con QStackedWidget y 8 pantallas (enum Pantalla).
+3. Zona central con QStackedWidget y 9 pantallas (enum Pantalla).
 4. Pie institucional con logo de la UPC en pastilla blanca, texto institucional
    y estado vivo (conexión, revisión, deshacer y cola).
 """
@@ -97,6 +97,7 @@ from pea.gui.pantallas.acerca import PantallaAcerca
 from pea.gui.pantallas.configuracion import PantallaConfiguracion
 from pea.gui.pantallas.grupos import PantallaGrupos
 from pea.gui.pantallas.importar import PantallaImportar
+from pea.gui.pantallas.indicadores import PantallaIndicadores
 from pea.gui.pantallas.inicio import PantallaInicio
 from pea.gui.pantallas.investigadores import PantallaInvestigadores
 from pea.gui.pantallas.productos import PantallaProductos
@@ -118,6 +119,7 @@ class Pantalla(IntEnum):
     IMPORTAR = 5
     CONFIGURACION = 6
     ACERCA = 7
+    INDICADORES = 8
 
 
 # ---------------------------------------------------------------------------
@@ -606,6 +608,7 @@ class VentanaPrincipal(QMainWindow):
             ("Grupos", "grupos.svg", Pantalla.GRUPOS),
             ("Productos", "productos.svg", Pantalla.PRODUCTOS),
             ("Análisis de redes", "redes.svg", Pantalla.REDES),
+            ("Indicadores", "indicadores.svg", Pantalla.INDICADORES),
             ("Importar", "importar.svg", Pantalla.IMPORTAR),
             ("Configuración", "configuracion.svg", Pantalla.CONFIGURACION),
         ]
@@ -868,6 +871,9 @@ class VentanaPrincipal(QMainWindow):
         self._pantalla_acerca.volver_solicitado.connect(lambda: self.seleccionar_pantalla(Pantalla.INICIO))
         self._pantalla_acerca.solicitar_navegacion.connect(self.seleccionar_pantalla)
 
+        self._pantalla_indicadores = PantallaIndicadores(self._servicio, self._ejecutor, self._apilador)
+        self._pantalla_indicadores.datos_modificados.connect(self.actualizar_estado_global)
+
         self._pantallas_apiladas: list[QWidget] = [
             self._pantalla_inicio,  # 0: INICIO
             self._pantalla_investigadores_modulo,  # 1: INVESTIGADORES
@@ -877,6 +883,7 @@ class VentanaPrincipal(QMainWindow):
             self._pantalla_importar,  # 5: IMPORTAR
             self._pantalla_configuracion_modulo,  # 6: CONFIGURACION
             self._pantalla_acerca,  # 7: ACERCA
+            self._pantalla_indicadores,  # 8: INDICADORES
         ]
 
         for p in self._pantallas_apiladas:
@@ -1065,8 +1072,8 @@ class VentanaPrincipal(QMainWindow):
         if not (0 <= indice < self._apilador.count()):
             return
 
-        # Actualizar botón de la barra si es una de las 7 pestañas
-        if indice <= 6:
+        # Actualizar botón de la barra si es una de las 8 pestañas
+        if self._pestanas.button(indice) is not None:
             self._pestanas.setExclusive(True)
             btn = self._pestanas.button(indice)
             if btn and not btn.isChecked():
@@ -1248,6 +1255,9 @@ class VentanaPrincipal(QMainWindow):
         elif es_supabase:
             self._pildora_datos.establecer_texto("Datos de Supabase", variante="exito")
             self._pildora_datos.setVisible(True)
+        elif estado.modo == ModoConexion.LOCAL:
+            self._pildora_datos.establecer_texto("Archivo local", variante="aviso")
+            self._pildora_datos.setVisible(True)
         else:
             self._pildora_datos.setVisible(False)
 
@@ -1277,6 +1287,8 @@ class VentanaPrincipal(QMainWindow):
                 rev = estado.revision_local or 0
                 self._lbl_estado_conexion.setText(f"● Conectado a Supabase · Revisión {rev}")
                 self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {EXITO};")
+        elif estado.modo == ModoConexion.LOCAL:
+            self._lbl_estado_conexion.setText("● Archivo local · guardar para conservar cambios")
         elif es_demo:
             self._lbl_estado_conexion.setText("● Datos de demostración")
             self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {AVISO};")
@@ -1564,6 +1576,7 @@ def ejecutar_autoprueba(app: QApplication, ventana: VentanaPrincipal) -> int:
         (Pantalla.IMPORTAR, "05_importar"),
         (Pantalla.CONFIGURACION, "06_configuracion"),
         (Pantalla.ACERCA, "07_acerca"),
+        (Pantalla.INDICADORES, "08_indicadores"),
     ]
 
     resumen: list[tuple[str, str, int, int, int, str]] = []

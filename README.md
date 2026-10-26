@@ -6,15 +6,16 @@ PEA-i gestiona grupos, investigadores y productos de investigación. Incluye dos
 aplicaciones: **Python con interfaz gráfica PySide6** y **C++17 con terminal
 interactiva FTXUI**. Comparten PostgreSQL en Supabase mediante HTTPS, Auth y RLS.
 
-La entrega portable se conecta automáticamente a **pea-prod**, la base compartida
-de Supabase. No hay que escribir claves, crear cuentas, configurar variables ni
-instalar herramientas de desarrollo. Solo necesita Windows x64 e Internet.
+La entrega portable permite elegir **pea-prod**, un archivo de trabajo local o un
+catálogo sin datos. No hay que escribir claves, crear cuentas, configurar variables ni
+instalar herramientas de desarrollo. Necesita Windows x64; la conexión y las descargas requieren Internet.
 
-La entrega **0.1.7 (25 de octubre de 2026)** incorpora las correcciones de auditoría,
-persistencia idempotente de autorías CSV y códigos estables para productos CvLAC.
-La [verificación remota de autorías](docs/verificacion-autorias-csv.md) incluye
-guardado Python/C++, duplicado, limpieza y conteos remotos antes/después iguales.
-El [detalle de la entrega 0.1.7](docs/entrega-0.1.7.md) describe sus archivos y alcance.
+La entrega **0.2.0 · Parcial 2** añade el indicador de producción científica por
+grupo e investigador, 169 categorías del Modelo original, desglose de puntajes,
+archivos locales interoperables y procesamiento PDF en C++.
+Consulte [la guía del parcial](docs/parcial-2.md) y [las notas de entrega](docs/entrega-0.2.0.md).
+La [verificación remota de autorías](docs/verificacion-autorias-csv.md) conserva la
+evidencia de la versión 0.1.7; no representa una nueva ejecución contra datos reales.
 
 ## 1. Para el profesor: descargar, extraer y abrir
 
@@ -26,9 +27,10 @@ Terminal para C++ y una pantalla de al menos 1100 × 700 píxeles lógicos para 
    descarga código fuente, no los ejecutables.
 3. Use **Extraer todo** y abra la carpeta `PEAi-Windows-x64`. No ejecute dentro del
    ZIP ni separe los `.exe` de sus carpetas `_internal`, DLL y complementos.
-4. Abra `Iniciar-Python.cmd`. La ventana inicia la conexión automáticamente;
-   espere a que termine de cargar los datos de Supabase.
-5. Abra `Iniciar-Cpp.cmd` para la versión de terminal, conectada a la misma base.
+4. Abra `Iniciar-Python.cmd` y elija Supabase, un archivo JSON o iniciar sin datos.
+5. Abra `Iniciar-Cpp.cmd` y elija el origen. Para practicar sin red, abra
+   `datos/ejemplo-parcial.json`. La pestaña **Indicadores** contiene el cálculo
+   científico y las acciones de guardar/abrir archivos locales.
 
 El paquete incluye Python, PySide6, fuentes, iconos y las DLL de Qt Core/Network,
 OpenSSL y MinGW. No necesita instalar Python, CMake, Qt, PostgreSQL, Node.js,
@@ -128,10 +130,10 @@ use el iniciador de desarrollo. Esto no afecta al paquete descargable.
    cruzada. El paquete localiza C++ en la carpeta hermana `PEAi-Cpp` y compara
    escenarios sin red mediante ambas CLI.
 
-No todos los flujos tienen la misma cobertura en ambas interfaces. La ingesta PDF
-C++ y otras diferencias están en la [matriz de paridad](brain/60-Pruebas/Paridad-Python-Cpp.md).
-La compilación correcta no implica que todos los requisitos funcionales pendientes
-estén cerrados.
+El [alcance del parcial](docs/parcial-2.md) detalla la referencia de normalización,
+las exclusiones por datos insuficientes y las diferencias del procesamiento PDF.
+Un perfil público sin calidad declarada requiere completar esa categoría con
+soportes; el programa no deduce cuartiles ni resultados nacionales inexistentes.
 
 ## 4. Instalar desde el código fuente
 
@@ -159,7 +161,7 @@ En la consola **MSYS2 UCRT64**:
 ```bash
 pacman -Syu
 # Si pide cerrar, cierre la consola, abra UCRT64 y repita pacman -Syu.
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-doctest mingw-w64-ucrt-x86_64-openssl git
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-doctest mingw-w64-ucrt-x86_64-openssl mingw-w64-ucrt-x86_64-poppler git
 ```
 
 C++ usa Qt6 **Core + Network**. FTXUI `v5.0.0` se descarga en la primera configuración
@@ -257,20 +259,20 @@ de dependencias para conservar juntos los ejecutables y su código fuente.
 | `tests/` | Pruebas Python y fixtures ficticios |
 | `supabase/migrations/` | Esquema SQL histórico; no aplicarlo para conectarse al proyecto existente |
 | `scripts/`, `tools/empaquetado/`, `requirements/` | Instalación, conexión, verificación y empaquetado |
-| `entrega/Taller2_FF_SM.py`, `entrega/Taller2_FF_SM.cpp` | Entradas académicas e índice; necesitan el proyecto modular completo |
-| `entrega/Especificacion_Tecnica_PEAi.docx` | Especificación técnica en Word |
+| `entrega/Parcial2_FF_SM.py`, `entrega/Parcial2_FF_SM.cpp` | Entradas académicas e índice; necesitan el proyecto modular completo |
+| `datos/ejemplo-parcial.json` | Persistencia sintética para practicar sin conexión |
 | `entrega/integrantes.txt` | Identificación de autores |
 | `docs/entrada/` | Enunciado y Modelo Minciencias 2024 |
 | `brain/` | Requisitos, diseño, decisiones, manuales y evidencia |
 
 Listas dobles, multilistas, pila, cola e hipercubo están implementados a mano.
-Las estadísticas salen del hipercubo; la presentación llama a servicios y los
-repositorios usan REST/RPC. No hay base SQLite local.
+Las estadísticas descriptivas salen del hipercubo; los indicadores científicos
+se calculan en memoria sobre productos únicos y vínculos de la multilista.
+La presentación llama a servicios y los repositorios usan REST/RPC. No hay base SQLite local.
 
 Agentes, preferencias del editor, entornos virtuales, cachés, capturas,
-exportaciones y secretos quedan fuera de Git. La documentación académica se
-conserva. El video exigido por el enunciado debe entregarse mediante su enlace
-real; el repositorio no inventa una URL ni sustituye esa entrega.
+exportaciones y secretos quedan fuera de Git. El Word, UML y video quedan fuera
+del alcance de esta entrega por indicación del propietario.
 
 ## 8. Solución de problemas
 

@@ -68,6 +68,8 @@ _ETIQUETA_ESTADO_TAREA: dict[str, str] = {
 }
 
 _CAMPOS_EDITABLES_GRUPO = (
+    "pais",
+    "detalles",
     "nombre",
     "categoria",
     "lider",
@@ -78,6 +80,9 @@ _CAMPOS_EDITABLES_GRUPO = (
     "fecha_creacion",
 )
 _CAMPOS_EDITABLES_INVESTIGADOR = (
+    "documento_identidad",
+    "par_evaluador",
+    "detalles",
     "nombre_completo",
     "nombre_en_citas",
     "categoria",
@@ -86,6 +91,7 @@ _CAMPOS_EDITABLES_INVESTIGADOR = (
     "sexo",
 )
 _CAMPOS_EDITABLES_PRODUCTO = (
+    "detalles",
     "titulo",
     "tipo_mayor",
     "subtipo",
@@ -317,6 +323,75 @@ class ServicioAplicacion:
         self._revision_remota = self._revision_demo_remota
         self._mensaje = "Datos de demostración cargados (ficticios, no se guardan en la base)."
         return self.estado()
+
+    def iniciar_local(self, ruta: str | None = None) -> EstadoAplicacion:
+        """Abre un catálogo independiente de Supabase; valida antes de sustituirlo."""
+        from pea.datos.archivo_local import cargar_archivo
+        nuevo = cargar_archivo(ruta) if ruta else CatalogoInvestigacion()
+        if self._cliente is not None:
+            self._cliente.cerrar_sesion()
+        self._cliente = None
+        self._sesion = Sesion()
+        self._instalar_catalogo(nuevo, ModoConexion.LOCAL)
+        self._mensaje = f"Archivo local: {ruta}" if ruta else "Catálogo local vacío. Guarde un archivo para conservar los cambios."
+        return self.estado()
+
+    def guardar_local(self, ruta: str) -> str:
+        from pea.datos.archivo_local import guardar_archivo, serializar_catalogo
+        guardar_archivo(ruta, serializar_catalogo(self._catalogo))
+        return f"Catálogo guardado en {ruta}"
+
+    def datos_indicador(self, ambito: str, codigo: str, corte: int, desde: int | None = None,
+                       referencia: dict | None = None) -> dict:
+        from pea.datos.archivo_local import serializar_catalogo
+        from pea.servicios.indicadores import calcular_indicador
+        return calcular_indicador(serializar_catalogo(self._catalogo), ambito, codigo, corte, desde, referencia)
+
+    def productos_puntuables(self, ambito: str, codigo: str) -> list[dict]:
+        from pea.servicios.indicadores import puntaje_producto
+        resultado = []
+        for n in self._catalogo.multilista_productos.iterar_nodos():
+            if (ambito == "grupo" and getattr(n.grupo, "codigo_gruplac", None) == codigo) or (
+                ambito == "investigador" and any(a.codigo_rh == codigo for a in n.autores)
+            ):
+                p = n.producto.model_dump(mode="json")
+                resultado.append({**p, **puntaje_producto(p)})
+        return resultado
+
+    def clasificar_producto(self, codigo: str, categoria: str) -> str:
+        from pea.servicios.indicadores import modelo
+        regla = next((r for r in modelo()["categorias"] if r["codigo"] == categoria), None)
+        p = self._catalogo.buscar_producto(codigo)
+        if regla is None or p is None:
+            raise ErrorValidacion("Seleccione un producto y una categoría válidos.")
+        if p.tipo_mayor != regla["tipo_mayor"]:
+            raise ErrorValidacion(f"La categoría pertenece a {regla['tipo_mayor']}; edite primero la tipología del producto.")
+        detalles = {**p.detalles, "categoria_minciencias": categoria}
+        return self.actualizar_producto(codigo, {"detalles": detalles})
+
+    def campos_entidad(self, entidad: str, codigo: str) -> dict:
+        buscar = {"grupo": self._catalogo.buscar_grupo, "investigador": self._catalogo.buscar_investigador,
+                  "producto": self._catalogo.buscar_producto}
+        if entidad not in buscar or (objeto := buscar[entidad](codigo)) is None:
+            raise RecursoNoEncontrado("La entidad seleccionada no existe.")
+        editables = {"grupo": _CAMPOS_EDITABLES_GRUPO, "investigador": _CAMPOS_EDITABLES_INVESTIGADOR,
+                     "producto": _CAMPOS_EDITABLES_PRODUCTO}[entidad]
+        return {k: v for k, v in objeto.model_dump(mode="json").items() if k in editables}
+
+    def editar_campos_entidad(self, entidad: str, codigo: str, cambios: dict) -> str:
+        originales = self.campos_entidad(entidad, codigo)
+        if not cambios or set(cambios) - set(originales):
+            raise ErrorValidacion("Hay campos desconocidos o protegidos en la edición.")
+        clase = {"grupo": Grupo, "investigador": Investigador, "producto": Producto}[entidad]
+        buscar = {"grupo": self._catalogo.buscar_grupo, "investigador": self._catalogo.buscar_investigador,
+                  "producto": self._catalogo.buscar_producto}[entidad]
+        objeto = buscar(codigo)
+        candidato = clase.model_validate({**objeto.model_dump(), **cambios})
+        valores = {k: getattr(candidato, k) for k in cambios}
+        valores.setdefault("nombre" if entidad == "grupo" else "nombre_completo" if entidad == "investigador" else "titulo",
+                           getattr(candidato, "nombre" if entidad == "grupo" else "nombre_completo" if entidad == "investigador" else "titulo"))
+        return {"grupo": self.actualizar_grupo, "investigador": self.actualizar_investigador,
+                "producto": self.actualizar_producto}[entidad](codigo, valores)
 
     def _instalar_catalogo(self, catalogo: CatalogoInvestigacion, modo: ModoConexion) -> None:
         self._catalogo = catalogo

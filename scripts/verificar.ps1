@@ -30,6 +30,9 @@ if ($LASTEXITCODE -eq 0) {
     $codigo_salida = 1
 }
 
+& $py_cmd -m ruff check src tests tools entrega
+if ($LASTEXITCODE -ne 0) { $codigo_salida = 1 }
+
 # 2. Pruebas de Python
 Write-Host "`n[2/4] Ejecutando pruebas de Python..." -ForegroundColor Yellow
 $pytest_args = @("-v")
@@ -69,13 +72,20 @@ if ($cpp_build_dir -ne "") {
             if (Test-Path $ejecutable_cpp) {
                 & $ejecutable_cpp --autoprueba
                 if ($LASTEXITCODE -eq 0) {
-                    $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "OK"; Detalle = "32 pantallas renderizadas y capturadas" }
+                    $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "OK"; Detalle = "36 combinaciones de pantalla/tamaño" }
                 } else {
                     $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "FALLA"; Detalle = "Hallazgos de renderizado o captura" }
                     $codigo_salida = 1
                 }
             } else {
                 $tabla_resultados += [PSCustomObject]@{ Componente = "Autoprueba TUI"; Estado = "FALLA"; Detalle = "No existe pea-cpp.exe" }
+                $codigo_salida = 1
+            }
+            & $py_cmd tools/interop/verificar_parcial.py --cpp $ejecutable_cpp
+            if ($LASTEXITCODE -eq 0) {
+                $tabla_resultados += [PSCustomObject]@{ Componente = "Parcial Python/C++"; Estado = "OK"; Detalle = "Fórmulas, lectura cruzada de archivos y PDF" }
+            } else {
+                $tabla_resultados += [PSCustomObject]@{ Componente = "Parcial Python/C++"; Estado = "FALLA"; Detalle = "Diferencias entre aplicaciones" }
                 $codigo_salida = 1
             }
         }

@@ -41,3 +41,4 @@ Este registro documenta todas las decisiones no triviales de diseño, arquitectu
 | [[ADR-0023-Entrega-reproducible-Windows]] | Entrega Windows instalable y portable en GitHub sin credenciales | Revisado | 2026-10-21 | [[Despliegue]], [[Seguridad-y-credenciales]] |
 | [[ADR-0024-Acceso-automatico-evaluacion]] | Sesión automática, lectura real y escritura limitada a evaluación | Revisado | 2026-10-21 | [[Despliegue]], [[Seguridad-y-credenciales]] |
 | [[ADR-0025-Acceso-academico-completo]] | Acceso completo automático solicitado para la calificación | Aprobado | 2026-10-21 | [[ADR-0024-Acceso-automatico-evaluacion]], [[Seguridad-y-credenciales]] |
+| [[ADR-0026-Indicadores-parcial-y-archivos-locales]] | Indicadores, catálogo normativo y archivos locales del Parcial 2 | Aprobado | 2026-10-25 | [[Arquitectura]], [[Paridad-Python-Cpp]] |

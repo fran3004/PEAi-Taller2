@@ -30,7 +30,7 @@ try {
 
     if (-not $SoloPython) {
         $bin = Join-Path $Msys2 "ucrt64\bin"
-        foreach ($herramienta in @("cmake.exe", "ninja.exe", "g++.exe", "Qt6Core.dll")) {
+        foreach ($herramienta in @("cmake.exe", "ninja.exe", "g++.exe", "Qt6Core.dll", "pdftotext.exe")) {
             if (-not (Test-Path (Join-Path $bin $herramienta))) {
                 throw "Falta $herramienta en $bin. Instale los paquetes MSYS2 UCRT64 indicados en README.md."
             }

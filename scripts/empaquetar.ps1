@@ -24,6 +24,8 @@ try {
     $cpp = Join-Path $salida "PEAi-Cpp"
     New-Item -ItemType Directory -Path $cpp | Out-Null
     Copy-Item $ejecutableCpp $cpp
+    if (-not (Test-Path "$bin\pdftotext.exe")) { throw "Instale mingw-w64-ucrt-x86_64-poppler para incluir el lector PDF C++." }
+    Copy-Item "$bin\pdftotext.exe" $cpp
     & "$bin\windeployqt6.exe" --release --force-openssl --no-translations --no-system-d3d-compiler --no-opengl-sw "$cpp\pea-cpp.exe"
     if ($LASTEXITCODE -ne 0) { throw "Fallo al desplegar Qt Core/Network." }
     # OpenSSL se carga dinamicamente; no siempre aparece en la tabla de importaciones PE.
@@ -37,10 +39,14 @@ try {
     Copy-Item README.md $salida
     # Evidencia remota y documentos académicos de la misma versión del programa.
     New-Item -ItemType Directory -Path "$salida\docs\evidencias" -Force | Out-Null
-    Copy-Item docs/verificacion-autorias-csv.md,docs/entrega-0.1.7.md "$salida\docs"
+    Copy-Item docs/verificacion-autorias-csv.md,docs/entrega-0.2.0.md,docs/parcial-2.md "$salida\docs"
     Copy-Item docs/evidencias/autorias-csv-20261025-*.json "$salida\docs\evidencias"
     New-Item -ItemType Directory -Path "$salida\entrega" | Out-Null
-    Copy-Item entrega/Especificacion_Tecnica_PEAi.docx,entrega/integrantes.txt,entrega/Taller2_FF_SM.py,entrega/Taller2_FF_SM.cpp "$salida\entrega"
+    Copy-Item entrega/integrantes.txt,entrega/Parcial2_FF_SM.py,entrega/Parcial2_FF_SM.cpp "$salida\entrega"
+    New-Item -ItemType Directory -Path "$salida\datos" | Out-Null
+    Copy-Item datos/ejemplo-parcial.json "$salida\datos"
+    New-Item -ItemType Directory -Path "$salida\pruebas" | Out-Null
+    Copy-Item tests/fixtures/parcial/texto.pdf "$salida\pruebas"
     $commit = (& $gitExe rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar el commit de la entrega." }
     $version = (& $python -c "from pea.version import APP_VERSION; print(APP_VERSION)").Trim()
@@ -65,6 +71,10 @@ try {
     Copy-Item config/pea.config.json "$salida\config"
     # Textos de licencias del toolchain y de FTXUI, sin copiar configuracion local.
     Copy-Item (Join-Path $Msys2 "ucrt64\share\licenses") "$cpp\licencias" -Recurse
+    $versionPoppler = ((& (Join-Path $Msys2 "usr\bin\pacman.exe") -Q mingw-w64-ucrt-x86_64-poppler) -split '\s+')[1]
+    if ($LASTEXITCODE -ne 0) { throw "No se pudo identificar Poppler." }
+    & $python tools/empaquetado/licencias_poppler.py "$cpp\licencias\Poppler" $versionPoppler
+    if ($LASTEXITCODE -ne 0) { throw "No se pudieron incluir las fuentes correspondientes de Poppler." }
     $licenciasQt = Join-Path $Msys2 "ucrt64\share\qt6\LICENSES"
     if (Test-Path $licenciasQt) { Copy-Item $licenciasQt "$cpp\licencias-qt" -Recurse }
     $licenciaFtxui = Join-Path $DirectorioCpp "_deps\ftxui-src\LICENSE"

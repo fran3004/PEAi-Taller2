@@ -13,6 +13,19 @@ origen: "Matriz de paridad funcional y operativa entre la lógica de Python y el
 
 # Matriz de paridad Python ↔ C++
 
+## Ampliación del Parcial 2, versión 0.2.0
+
+La guía vigente de esta ampliación es `docs/parcial-2.md`, respaldada por
+[[ADR-0026-Indicadores-parcial-y-archivos-locales]]. Ambos lenguajes incorporan
+indicador grupal/individual, 169 categorías compartidas, desglose de puntajes,
+referencias externas y catálogos JSON locales. La comparación entre procesos
+incluye seis escenarios y lectura cruzada de archivos. C++ procesa PDF mediante
+Poppler; su salida conserva texto alineado por páginas, mientras Python también
+extrae celdas. La ingesta C++ corrige el año bibliográfico y la lectura de libros
+de CvLAC. Los resultados históricos siguientes conservan la fecha y alcance en
+que se registraron; las diferencias PDF aquí descritas sustituyen el pendiente
+de ausencia total de procesamiento PDF en C++.
+
 ## Propósito
 
 Esta matriz contrasta las operaciones públicas de Python con el código C++ inspeccionado. `igual` indica que existe una implementación equivalente y debe acompañarse de pruebas; no certifica por sí solo paridad byte a byte, persistencia remota ni aceptación de interfaz. La evidencia de la iteración se limita a los tests C++ indicados y a `pea-cpp --autoprueba`.

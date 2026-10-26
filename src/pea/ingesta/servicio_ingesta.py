@@ -369,16 +369,9 @@ class ServicioIngesta:
                     investigador_ing.codigo_rh
                 )
                 if inv is not None:
-                    self.catalogo.multilista_productos.agregar_autor_a_producto(
-                        producto_existente.codigo_identificador,
-                        inv,
-                    )
-                    if (
-                        persistir
-                        and producto_existente.id
-                        and inv.id
-                        and self.catalogo.repo_productos is not None
-                    ):
+                    if persistir:
+                        if not producto_existente.id or not inv.id or self.catalogo.repo_productos is None:
+                            raise ErrorConexion("No se puede guardar la autoría CvLAC: faltan identificadores remotos o repositorio.")
                         self._ejecutar_con_reintento_revision(
                             lambda prod_id=producto_existente.id,
                             inv_id=inv.id,
@@ -390,6 +383,11 @@ class ServicioIngesta:
                                 )
                             )
                         )
+                    self.catalogo.multilista_productos.agregar_autor_a_producto(
+                        producto_existente.codigo_identificador,
+                        inv,
+                    )
+
     def _procesar_tarea_url(self, tarea: TareaIngesta) -> InformeIngesta:
         detalles = tarea.detalles or {}
         persistir = bool(detalles.get("persistir", False))

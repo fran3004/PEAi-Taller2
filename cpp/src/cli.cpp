@@ -7,6 +7,10 @@
 #include "pea/version.hpp"
 #include "pea/datos/configuracion_conexion.hpp"
 #include "pea/datos/exportador_csv.hpp"
+#include "pea/servicios/parcial_cli.hpp"
+#include "pea/ingesta/extractor_pdf.hpp"
+#include "pea/datos/archivo_local.hpp"
+#include <QJsonArray>
 
 #include <iostream>
 #include <memory>
@@ -29,6 +33,9 @@ void mostrarAyuda() {
     std::cout << "PEA-i · Programa Estadístico de Análisis de Investigación (" << INSTITUCION << ")\n"
               << "Uso: pea-cpp [COMANDO] [OPCIONES]\n\n"
               << "Comandos disponibles:\n"
+              << "  indicador --ambito grupo|investigador --codigo <c> [--archivo <JSON>|--url <SCIENTI>] [--corte <año>] [--desde <año>] [--referencia <JSON>] [--salida <JSON>] [--json]\n"
+              << "  guardar-local --salida <JSON> Guarda el catálogo remoto como archivo local\n"
+              << "  importar-pdf --archivo <PDF> --salida <JSON> Extrae texto por página y conserva tablas como texto alineado\n"
               << "  info                     Muestra información del sistema y arquitectura\n"
               << "  verificar                Verifica conectividad HTTPS, TLS y número de revisión\n"
               << "  ping                     Alias de verificar\n"
@@ -357,6 +364,23 @@ static int ejecutar_interno(
     }
 
     const QString& comando = args[0];
+    if (comando == "importar-pdf") {
+        auto valor = [&args](const QString& opcion) {
+            auto indice = args.indexOf(opcion);
+            return indice >= 0 && indice + 1 < args.size() ? args[indice + 1] : QString();
+        };
+        auto archivo = valor("--archivo");
+        if (archivo.isEmpty()) archivo = valor("-a");
+        if (archivo.isEmpty()) throw std::invalid_argument("Falta --archivo PDF.");
+        auto salida = valor("--salida");
+        if (salida.isEmpty()) throw std::invalid_argument("Falta --salida JSON.");
+        auto documento = ingesta::procesar_pdf(archivo);
+        datos::guardar_archivo(salida, documento);
+        std::cout << documento["total_paginas"].toInt() << " páginas procesadas; extracción guardada.\n";
+        for (const auto& a : documento["advertencias"].toArray()) std::cout << a.toString().toStdString() << '\n';
+        return 0;
+    }
+    if (comando == "indicador" || comando == "guardar-local") return ejecutar_parcial(args);
 
     if (comando == "-h" || comando == "--help" || comando == "help") {
         mostrarAyuda();

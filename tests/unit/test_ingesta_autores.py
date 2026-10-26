@@ -10,6 +10,7 @@ from pea.dominio.producto import Producto
 from pea.estructuras.cola import EstadoTarea
 from pea.excepciones import ConflictoRevision, ErrorConexion
 from pea.gui.pantallas.importar import PantallaImportar
+from pea.ingesta.modelos import InformeIngesta, InvestigadorIngesta, ProductoIngesta
 from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
@@ -27,6 +28,22 @@ def escenario(tmp_path):
     ruta = tmp_path / "autores.csv"
     ruta.write_text("producto_codigo,investigador_codigo,orden_autoria\nPRUEBA-P,PRUEBA-I,2\n", encoding="utf-8")
     return catalogo, servicio, ruta, producto, investigador
+
+
+def test_cvlac_error_al_guardar_autoria_preserva_memoria(escenario, monkeypatch):
+    catalogo, servicio, _, producto, inv = escenario
+    from pea.dominio.producto import generar_codigo_producto_cvlac
+    cita = "Autor, Producto científico verificable, 2024 vol: 1"
+    producto.codigo_identificador = generar_codigo_producto_cvlac(inv.codigo_rh, cita=cita)
+    perfil = InvestigadorIngesta(codigo_rh=inv.codigo_rh, nombre_completo=inv.nombre_completo,
+                                origen={"url": "https://scienti.minciencias.gov.co/cvlac/", "sha256": "0" * 64},
+                                articulos=[ProductoIngesta(tipo="Articulo", titulo=cita, detalles=cita, ano=2024)])
+    monkeypatch.setattr(catalogo, "actualizar_investigador", lambda *args, **kwargs: inv)
+    catalogo.repo_productos.asociar_autor.side_effect = ErrorConexion("No se guardó la autoría")
+    informe = InformeIngesta(origen=perfil.origen.url, tipo_fuente="url_cvlac")
+    with pytest.raises(ErrorConexion):
+        servicio._ingestar_cvlac(perfil, perfil.origen.url, True, informe)
+    assert not list(catalogo.multilista_productos.buscar_nodo(producto.codigo_identificador).autores)
 
 
 def test_autor_con_error_de_conexion_no_se_cuenta_ni_se_agrega(escenario):
