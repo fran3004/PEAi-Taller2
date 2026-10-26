@@ -7,11 +7,13 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
     QFileDialog,
+    QFrame,
     QGridLayout,
     QHeaderView,
     QLabel,
@@ -28,6 +30,7 @@ from PySide6.QtWidgets import (
 
 from pea.datos.archivo_local import guardar_archivo
 from pea.excepciones import ErrorPEA
+from pea.gui import estilo
 from pea.ingesta.servicio_ingesta import ServicioIngesta
 from pea.servicios.indicadores import calcular_indicador, modelo
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
@@ -48,7 +51,15 @@ class PantallaIndicadores(QWidget):
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         cuerpo = QWidget()
+        # Fondo claro explícito: con el tema oscuro de Windows el área quedaba negra y el texto ilegible.
+        for widget in (scroll, scroll.viewport(), cuerpo):
+            paleta = widget.palette()
+            paleta.setColor(QPalette.ColorRole.Window, QColor(estilo.FONDO_APP))
+            paleta.setColor(QPalette.ColorRole.WindowText, QColor(estilo.TEXTO))
+            widget.setPalette(paleta)
+            widget.setAutoFillBackground(True)
         layout = QVBoxLayout(cuerpo)
         layout.setContentsMargins(24, 20, 24, 24)
         titulo = QLabel("Producción científica · Parcial 2")
@@ -98,6 +109,13 @@ class PantallaIndicadores(QWidget):
             "se puntúa con la categoría de menor peso de su tipología y el resultado se marca como estimado."
         )
         self.estimar.setAccessibleName("Estimar categorías faltantes")
+        self.estimar.setStyleSheet(
+            f"QCheckBox {{ color: {estilo.TEXTO}; spacing: 8px; background: transparent; }}"
+            f"QCheckBox::indicator {{ width: 14px; height: 14px; border-radius: 3px;"
+            f" border: 2px solid {estilo.LINEA_FUERTE}; background-color: {estilo.SUPERFICIE}; }}"
+            f"QCheckBox::indicator:hover {{ border-color: {estilo.ACENTO}; }}"
+            f"QCheckBox::indicator:checked {{ border-color: {estilo.PRIMARIO}; background-color: {estilo.ACENTO}; }}"
+        )
         self.estimar.toggled.connect(lambda _: self._invalidar_calculo())
         controles.addWidget(self.estimar, 5, 0, 1, 2)
         self.calcular = QPushButton("Calcular catálogo")
