@@ -33,7 +33,8 @@ void mostrarAyuda() {
     std::cout << "PEA-i · Programa Estadístico de Análisis de Investigación (" << INSTITUCION << ")\n"
               << "Uso: pea-cpp [COMANDO] [OPCIONES]\n\n"
               << "Comandos disponibles:\n"
-              << "  indicador --ambito grupo|investigador --codigo <c> [--archivo <JSON>|--url <SCIENTI>] [--corte <año>] [--desde <año>] [--referencia <JSON>] [--salida <JSON>] [--json]\n"
+              << "  indicador --ambito grupo|investigador --codigo <c> [--archivo <JSON>|--url <SCIENTI>] [--corte <año>] [--desde <año>] [--referencia <JSON>] [--salida <JSON>] [--guardar-catalogo <JSON>] [--estimar-categorias] [--json]\n"
+              << "  respuestas-parcial [--corte <año>]  Calcula el indicador del grupo y del investigador del enunciado (URL oficiales)\n"
               << "  guardar-local --salida <JSON> Guarda el catálogo remoto como archivo local\n"
               << "  importar-pdf --archivo <PDF> --salida <JSON> Extrae texto por página y conserva tablas como texto alineado\n"
               << "  info                     Muestra información del sistema y arquitectura\n"
@@ -380,7 +381,7 @@ static int ejecutar_interno(
         for (const auto& a : documento["advertencias"].toArray()) std::cout << a.toString().toStdString() << '\n';
         return 0;
     }
-    if (comando == "indicador" || comando == "guardar-local") return ejecutar_parcial(args);
+    if (comando == "indicador" || comando == "guardar-local" || comando == "respuestas-parcial") return ejecutar_parcial(args);
 
     if (comando == "-h" || comando == "--help" || comando == "help") {
         mostrarAyuda();

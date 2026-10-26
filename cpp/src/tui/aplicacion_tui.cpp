@@ -68,7 +68,7 @@ constexpr std::array<const char*, 14> ACCIONES_FORMULARIO{
 constexpr int FILAS_POR_PAGINA = 12;
 
 std::vector<std::string> campos_formulario(int entidad, int accion) {
-    if (accion == 9) return {"Ámbito: grupo/investigador", "Código GrupLAC o CvLAC", "Año de corte (vacío: 2023)", "Desde (opcional)"};
+    if (accion == 9) return {"Ámbito: grupo/investigador", "Código GrupLAC o CvLAC", "Año de corte (vacío: 2023)", "Desde (opcional)", "Estimar categorías faltantes (si/no)"};
     if (accion == 10) return {"Código de la entidad", "Campos a actualizar como objeto JSON"};
     if (accion == 11 || accion == 12) return {"Ruta al catálogo JSON"};
     if (accion == 13) return {"Ruta al PDF", "Ruta de salida JSON"};
@@ -640,7 +640,7 @@ Element panel_contenido(
                          text("s: guardar catálogo JSON · o: abrir archivo local"),
                          text("a: editar campos JSON desde un directorio"),
                          paragraph("Los nueve componentes se normalizan contra el catálogo cargado. Use el comando indicador --referencia para máximos externos."),
-                         paragraph("Categoría exacta en subtipo o detalles.categoria_minciencias; los productos sin calidad verificable se muestran como excluidos.")}) | flex;
+                         paragraph("Categoría exacta en subtipo o detalles.categoria_minciencias; los productos sin calidad verificable se muestran como excluidos, salvo que se active «Estimar categorías faltantes» (categoría base de la tipología, resultado marcado como estimado).")}) | flex;
         default:
             return vbox({
                        color_si(text("Acerca de PEA-i") | bold, Color::Cyan, color_activo),
@@ -1067,7 +1067,9 @@ int ejecutar(bool datos_demostracion, bool ejecutar_autoprueba, bool sin_color, 
                         desde = campo(3).toInt(&ok);
                         if (!ok) throw std::invalid_argument("Año inicial inválido.");
                     }
-                    auto r = servicios::calcular_indicador(datos::serializar_catalogo(catalogo), campo(0), campo(1), corte, desde);
+                    auto r = servicios::calcular_indicador(
+                        datos::serializar_catalogo(catalogo), campo(0), campo(1), corte, desde, {},
+                        campo(4).compare("si", Qt::CaseInsensitive) == 0 || campo(4).compare("sí", Qt::CaseInsensitive) == 0);
                     QStringList lineas;
                     lineas << QString("%1 · Indicador %2").arg(r["nombre"].toString()).arg(r["indicador"].toDouble(), 0, 'f', 6)
                            << r["referencia"].toString();

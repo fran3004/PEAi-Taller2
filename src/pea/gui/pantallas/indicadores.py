@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
     QFileDialog,
     QGridLayout,
@@ -91,10 +92,18 @@ class PantallaIndicadores(QWidget):
         self.url.setPlaceholderText("URL HTTPS de GrupLAC o CvLAC")
         self.url.setAccessibleName("URL SCIENTI para calcular el indicador")
         controles.addWidget(self.url, 4, 0, 1, 2)
+        self.estimar = QCheckBox("Estimar categorías faltantes (supuesto declarado)")
+        self.estimar.setToolTip(
+            "SCIENTI no publica el cuartil ni el nivel de calidad. Con esta opción, cada producto sin categoría "
+            "se puntúa con la categoría de menor peso de su tipología y el resultado se marca como estimado."
+        )
+        self.estimar.setAccessibleName("Estimar categorías faltantes")
+        self.estimar.toggled.connect(lambda _: self._invalidar_calculo())
+        controles.addWidget(self.estimar, 5, 0, 1, 2)
         self.calcular = QPushButton("Calcular catálogo")
         self.descargar = QPushButton("Calcular desde URL")
-        controles.addWidget(self.calcular, 5, 0)
-        controles.addWidget(self.descargar, 5, 1)
+        controles.addWidget(self.calcular, 6, 0)
+        controles.addWidget(self.descargar, 6, 1)
         layout.addLayout(controles)
         self.estado = QLabel("Seleccione una entidad o introduzca su URL SCIENTI.")
         self.estado.setWordWrap(True)
@@ -284,14 +293,18 @@ class PantallaIndicadores(QWidget):
         ambito, codigo = self.ambito.currentData(), self.entidad.currentData()
         corte, desde = self._parametros()
         referencia = self._referencia
+        estimar = self.estimar.isChecked()
         if not codigo:
             return self._error(ValueError("No hay una entidad seleccionada."))
-        self._ejecutar(lambda: self.servicio.datos_indicador(ambito, codigo, corte, desde, referencia), self._mostrar)
+        self._ejecutar(
+            lambda: self.servicio.datos_indicador(ambito, codigo, corte, desde, referencia, estimar), self._mostrar
+        )
 
     def _desde_url(self):
         url = self.url.text().strip()
         corte, desde = self._parametros()
         referencia = self._referencia
+        estimar = self.estimar.isChecked()
 
         def calcular():
             from pea.datos.archivo_local import serializar_catalogo
@@ -307,7 +320,7 @@ class PantallaIndicadores(QWidget):
             if errores:
                 raise ValueError("; ".join(errores))
             datos = serializar_catalogo(catalogo)
-            return datos, calcular_indicador(datos, ambito, codigo, corte, desde, referencia)
+            return datos, calcular_indicador(datos, ambito, codigo, corte, desde, referencia, estimar)
 
         def terminado(res):
             datos, resultado = res

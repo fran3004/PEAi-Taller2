@@ -583,7 +583,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = crear_parser()
     args = parser.parse_args(argv)
 
-    if args.comando in ("indicador", "guardar-local"):
+    if args.comando in ("indicador", "guardar-local", "respuestas-parcial"):
         return ejecutar_comando(args, _obtener_cliente_desde_entorno)
     if args.comando == "info":
         comando_info()

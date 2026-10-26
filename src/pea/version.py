@@ -1,7 +1,7 @@
 """Definición de versión e identidad institucional de PEA-i."""
 
 APP_NAME = "PEA-i"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.2.1"
 INSTITUCION = "Universidad Popular del Cesar"
 NOMBRE_COMPLETO = "Programa Estadístico de Análisis de Investigación"
 ESLOGAN_LINEA_1 = "Programa Estadístico de Análisis"

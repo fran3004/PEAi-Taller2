@@ -2,8 +2,9 @@
 
 Fuente: «Parcial 2 EdD (2026-10-19)», páginas 1–3, y el Modelo
 M601PR04G01 versión 02 de 2024 conservado en `docs/entrada/Modelo-2024.original.pdf`.
-La especificación Word, los diagramas UML y el video están excluidos por indicación
-del propietario. Esta entrega conserva la arquitectura modular Python/C++.
+La especificación Word IEEE 830 (con diagramas UML) está en
+`entrega/Especificacion_Tecnica_PEAi.docx`; el video queda fuera de este repositorio.
+Esta entrega conserva la arquitectura modular Python/C++.
 
 ## Uso de la nueva sección
 
@@ -35,6 +36,33 @@ En C++, la pestaña **9 Indicadores** ofrece `c` para el cálculo; `s` guarda el
 catálogo y `o` abre un archivo cuando se está trabajando en memoria. En los
 directorios, `a` abre la edición de campos complementarios como objeto JSON.
 Las CLI permiten exportar el detalle completo y utilizar referencias externas.
+
+## Respuestas del parcial con las URL del enunciado
+
+```powershell
+.\PEAi-Python\pea-cli.exe respuestas-parcial     # o: python entrega/Parcial2_FF_SM.py --respuestas
+.\PEAi-Cpp\pea-cpp.exe respuestas-parcial        # o: Parcial2_FF_SM --respuestas
+```
+
+Descarga el GrupLAC `00000000002099` y el CvLAC `0000494917` (solo lectura) y calcula ambos
+indicadores en modo estricto y en modo estimado. Resultados del 25/10/2026, corte 2023, idénticos
+en Python y C++ (`docs/evidencias/parcial-urls-20261025.json` y `respuestas-parcial-*.txt`):
+
+| Caso | Estricto | Estimado |
+|---|---|---|
+| Grupo GISICO | 0 (160 productos sin categoría) | 0,4 (78 productos estimados) |
+| Investigador (CvLAC 0000494917) | 0 (97 productos sin categoría) | 0,6 (20 productos estimados) |
+
+## Estimación declarada de categorías
+
+SCIENTI no publica el cuartil ni el nivel de calidad. Con `--estimar-categorias` (CLI), la casilla
+«Estimar categorías faltantes» (GUI) o el campo `si/no` del formulario (TUI C++), cada producto
+sin categoría se puntúa con la de **menor peso de su tipología**: artículo ART_D, libro LIB_C,
+capítulo CAP_LIB_C, software SF y trabajo dirigido TD_B, TM_B o TP_B según el texto («doctor»,
+«maestría», otro). Nunca sustituye una categoría informada, no se aplica a proyectos ni a trabajos
+en curso, no modifica el catálogo, lista cada producto estimado (`estimadas`) y marca el resultado
+como estimado e incompleto. Con un solo grupo en el catálogo cada componente no nulo tiene índice 1;
+una referencia externa (`--referencia`) o las categorías reales cambian el valor.
 
 ## Fórmulas y origen de los valores
 
@@ -183,6 +211,7 @@ SCIENTI. Los PDF escaneados requieren OCR previo; no se simula una extracción.
 | Puntos 9 y 11 | CRUD, validación, activación, borrado, edición complementaria y deshacer mediante servicios |
 | Punto 10 | Filtros descriptivos existentes y corte/límite inicial para indicadores |
 | Punto 12 | Dashboard, histogramas y barras Python; resúmenes, tablas e indicadores C++ |
+| Nota 2. Word con casos de uso y secuencia UML | `entrega/Especificacion_Tecnica_PEAi.docx` (IEEE 830, 29 figuras) |
 | Notas 1, 4 y 8 | Entradas académicas `Parcial2_FF_SM.py/.cpp` e identificación existente; requieren el código modular completo |
 | Notas 9–10 | Catálogo JSON interoperable, ejemplo sintético, elección de archivo o inicio vacío |
 | Notas 5–7 | Publicación GitHub y paquete descargable; el envío por correo y los plazos del docente son acciones de entrega externas |

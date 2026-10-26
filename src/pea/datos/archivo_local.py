@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -12,6 +13,9 @@ from pea.dominio.integrante import IntegranteGrupo
 from pea.dominio.investigador import Investigador
 from pea.dominio.producto import Producto
 from pea.servicios.servicio_dominio import CatalogoInvestigacion
+
+# SCIENTI publica AAAA/M o AAAA-MM además de fechas ISO; «Actual» marca un vínculo vigente.
+_FECHA_VINCULO = re.compile(r"\d{4}(?:[-/]\d{1,2}(?:[-/]\d{1,2})?)?|actual", re.IGNORECASE)
 
 
 def serializar_catalogo(cat: CatalogoInvestigacion) -> dict:
@@ -62,10 +66,8 @@ def restaurar_catalogo(datos: dict) -> CatalogoInvestigacion:
         if not cat.buscar_grupo(m.codigo_gruplac) or not cat.buscar_investigador(m.codigo_rh) or par in vistos_miembros:
             raise ValueError("La membresía contiene una referencia inexistente o duplicada.")
         for fecha in (m.fecha_inicio, m.fecha_fin):
-            if fecha:
-                import datetime
-
-                datetime.date.fromisoformat(fecha)
+            if fecha and not _FECHA_VINCULO.fullmatch(str(fecha).strip()):
+                raise ValueError(f"Fecha de membresía inválida: {fecha}")
         vistos_miembros.add(par)
         cat.integrantes.insertar_final(m)
     relaciones = {r["codigo_identificador"]: r for r in datos["relaciones"]}

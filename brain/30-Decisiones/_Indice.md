@@ -42,3 +42,4 @@ Este registro documenta todas las decisiones no triviales de diseño, arquitectu
 | [[ADR-0024-Acceso-automatico-evaluacion]] | Sesión automática, lectura real y escritura limitada a evaluación | Revisado | 2026-10-21 | [[Despliegue]], [[Seguridad-y-credenciales]] |
 | [[ADR-0025-Acceso-academico-completo]] | Acceso completo automático solicitado para la calificación | Aprobado | 2026-10-21 | [[ADR-0024-Acceso-automatico-evaluacion]], [[Seguridad-y-credenciales]] |
 | [[ADR-0026-Indicadores-parcial-y-archivos-locales]] | Indicadores, catálogo normativo y archivos locales del Parcial 2 | Aprobado | 2026-10-25 | [[Arquitectura]], [[Paridad-Python-Cpp]] |
+| [[ADR-0027-Estimacion-declarada-y-entrega-Word]] | Estimación declarada de categorías, respuestas del parcial y especificación Word | Aprobado | 2026-10-25 | [[Arquitectura]], [[Paridad-Python-Cpp]] |

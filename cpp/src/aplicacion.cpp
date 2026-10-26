@@ -36,6 +36,8 @@ int ejecutar_aplicacion(int argc, char* argv[]) {
         argumentos.clear();
     }
 
+    if (!argumentos.isEmpty() && argumentos[0] == "--respuestas") argumentos[0] = "respuestas-parcial";
+
     if (argumentos.isEmpty() || demo || autoprueba) {
         return pea::tui::ejecutar(demo, autoprueba, sin_color, ascii, archivo_local, vacio);
     }

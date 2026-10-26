@@ -11,16 +11,64 @@
 #include <QJsonParseError>
 #include <QUrl>
 #include <QUrlQuery>
+#include <array>
 #include <iostream>
+#include <tuple>
 #include <stdexcept>
 
 namespace pea::cli {
+namespace {
+void imprimir_resultado(const QJsonObject& r, const QString& etiqueta) {
+    std::cout << etiqueta.toStdString() << " · " << r["nombre"].toString().toStdString()
+              << (r["completo"].toBool() ? " · Indicador: " : " · Indicador parcial: ") << r["indicador"].toDouble() << "\n";
+    std::cout << "  Componente | Bruto | Máximo | Índice | Coef. | Aporte\n";
+    for (const auto& v : r["componentes"].toArray()) {
+        const auto c = v.toObject();
+        std::cout << "  " << c["componente"].toString().toStdString() << " | " << c["bruto"].toDouble() << " | " << c["maximo"].toDouble()
+                  << " | " << c["indice"].toDouble() << " | " << c["coeficiente"].toDouble() << " | " << c["aporte"].toDouble() << "\n";
+    }
+    std::cout << "  Incluidos: " << r["incluidos"].toArray().size() << " · excluidos: " << r["excluidos"].toArray().size()
+              << " · estimados: " << r["estimadas"].toArray().size() << "\n";
+}
+
+// Respuestas del PARCIAL 1 y 2: descarga las URL del enunciado y calcula ambos indicadores.
+int ejecutar_respuestas(const QStringList& args) {
+    int corte = 2023;
+    for (int i = 1; i < args.size(); ++i) {
+        bool ok = false;
+        if (args[i] == "--corte" && i + 1 < args.size()) corte = args[++i].toInt(&ok); else ok = false;
+        if (!ok) throw std::invalid_argument("Uso: respuestas-parcial [--corte <año>]");
+    }
+    const std::array<std::tuple<QString, QString, QString>, 2> casos{{
+        {"grupo", "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099", "00000000002099"},
+        {"investigador", "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917", "0000494917"}}};
+    for (const auto& [ambito, url, codigo] : casos) {
+        std::cout << "Descargando " << url.toStdString() << "\n";
+        auto cat = std::make_shared<servicios::CatalogoInvestigacion>();
+        ingesta::ServicioIngesta ingesta(cat);
+        ingesta.encolar_url(url, false);
+        const auto informes = ingesta.procesar_todas();
+        if (informes.isEmpty()) throw std::runtime_error("La URL no devolvió resultados.");
+        for (const auto& i : informes) if (!i.exito) throw std::runtime_error(i.mensaje.toStdString());
+        const auto datos = datos::serializar_catalogo(*cat);
+        for (const bool estimar : {false, true}) {
+            const QString modo = estimar ? "estimado (categoría base)" : "estricto (solo categorías publicadas)";
+            imprimir_resultado(servicios::calcular_indicador(datos, ambito, codigo, corte, std::nullopt, {}, estimar),
+                               ambito.left(1).toUpper() + ambito.mid(1) + " " + modo);
+        }
+    }
+    return 0;
+}
+}  // namespace
+
 int ejecutar_parcial(const QStringList& args) {
+    if (args[0] == "respuestas-parcial") return ejecutar_respuestas(args);
     QMap<QString, QString> opciones;
-    bool json = false;
+    bool json = false, estimar = false;
     const QSet<QString> admitidas{"--archivo", "--url", "--ambito", "--codigo", "--corte", "--desde", "--referencia", "--salida", "--guardar-catalogo"};
     for (int i = 1; i < args.size(); ++i) {
         if (args[i] == "--json") { json = true; continue; }
+        if (args[i] == "--estimar-categorias") { estimar = true; continue; }
         if (!admitidas.contains(args[i]) || i + 1 >= args.size() || opciones.contains(args[i]))
             throw std::invalid_argument("Opción desconocida, repetida o sin valor en indicador/guardar-local.");
         const auto clave = args[i]; opciones[clave] = args[++i];
@@ -69,7 +117,7 @@ int ejecutar_parcial(const QStringList& args) {
         referencia = doc.object();
     }
     auto resultado = servicios::calcular_indicador(snapshot, ambito, codigo, entero("--corte", 2023),
-        opciones.contains("--desde") ? std::optional<int>(entero("--desde", 1970)) : std::nullopt, referencia);
+        opciones.contains("--desde") ? std::optional<int>(entero("--desde", 1970)) : std::nullopt, referencia, estimar);
     if (opciones.contains("--guardar-catalogo")) datos::guardar_archivo(opciones["--guardar-catalogo"], snapshot);
     if (opciones.contains("--salida")) datos::guardar_archivo(opciones["--salida"], resultado);
     if (json) std::cout << QJsonDocument(resultado).toJson().toStdString();
@@ -83,6 +131,11 @@ int ejecutar_parcial(const QStringList& args) {
                       << " | " << c["indice"].toDouble() << " | " << c["coeficiente"].toDouble() << " | " << c["aporte"].toDouble() << "\n";
         }
         for (const auto& a : resultado["avisos"].toArray()) std::cout << "Aviso: " << a.toString().toStdString() << "\n";
+        for (const auto& v : resultado["estimadas"].toArray()) {
+            auto e = v.toObject();
+            std::cout << "Estimado " << e["codigo"].toString().toStdString() << ": " << e["categoria"].toString().toStdString()
+                      << " · " << e["regla"].toString().toStdString() << "\n";
+        }
         for (const auto& v : resultado["excluidos"].toArray()) {
             auto p = v.toObject();
             std::cout << "Excluido " << p["codigo"].toString().toStdString() << ": " << p["motivo"].toString().toStdString() << "\n";

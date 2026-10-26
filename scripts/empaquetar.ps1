@@ -39,10 +39,10 @@ try {
     Copy-Item README.md $salida
     # Evidencia remota y documentos académicos de la misma versión del programa.
     New-Item -ItemType Directory -Path "$salida\docs\evidencias" -Force | Out-Null
-    Copy-Item docs/verificacion-autorias-csv.md,docs/entrega-0.2.0.md,docs/parcial-2.md "$salida\docs"
-    Copy-Item docs/evidencias/autorias-csv-20261025-*.json "$salida\docs\evidencias"
+    Copy-Item docs/verificacion-autorias-csv.md,docs/entrega-0.2.0.md,docs/entrega-0.2.1.md,docs/parcial-2.md "$salida\docs"
+    Copy-Item docs/evidencias/autorias-csv-20261025-*.json,docs/evidencias/parcial-urls-20261025.json,docs/evidencias/respuestas-parcial-python.txt,docs/evidencias/respuestas-parcial-cpp.txt "$salida\docs\evidencias"
     New-Item -ItemType Directory -Path "$salida\entrega" | Out-Null
-    Copy-Item entrega/integrantes.txt,entrega/Parcial2_FF_SM.py,entrega/Parcial2_FF_SM.cpp "$salida\entrega"
+    Copy-Item entrega/integrantes.txt,entrega/Parcial2_FF_SM.py,entrega/Parcial2_FF_SM.cpp,entrega/Especificacion_Tecnica_PEAi.docx "$salida\entrega"
     New-Item -ItemType Directory -Path "$salida\datos" | Out-Null
     Copy-Item datos/ejemplo-parcial.json "$salida\datos"
     New-Item -ItemType Directory -Path "$salida\pruebas" | Out-Null

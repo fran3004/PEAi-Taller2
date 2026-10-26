@@ -10,12 +10,35 @@ La entrega portable permite elegir **pea-prod**, un archivo de trabajo local o u
 catálogo sin datos. No hay que escribir claves, crear cuentas, configurar variables ni
 instalar herramientas de desarrollo. Necesita Windows x64; la conexión y las descargas requieren Internet.
 
-La entrega **0.2.0 · Parcial 2** añade el indicador de producción científica por
+La entrega **0.2.1 · Parcial 2 completo** incluye el indicador de producción científica por
 grupo e investigador, 169 categorías del Modelo original, desglose de puntajes,
-archivos locales interoperables y procesamiento PDF en C++.
-Consulte [la guía del parcial](docs/parcial-2.md) y [las notas de entrega](docs/entrega-0.2.0.md).
+archivos locales interoperables, procesamiento PDF en C++, la **estimación declarada de
+categorías** y la **especificación técnica en Word (IEEE 830)** con diagramas UML y capturas.
+Consulte [la guía del parcial](docs/parcial-2.md), [las notas de la entrega](docs/entrega-0.2.1.md)
+y el documento [`Especificacion_Tecnica_PEAi.docx`](entrega/Especificacion_Tecnica_PEAi.docx).
 La [verificación remota de autorías](docs/verificacion-autorias-csv.md) conserva la
 evidencia de la versión 0.1.7; no representa una nueva ejecución contra datos reales.
+
+## Parcial 2 en un vistazo
+
+| Entregable del enunciado | Dónde está |
+|---|---|
+| Dos programas (Python y C++) | `entrega/Parcial2_FF_SM.py` y `entrega/Parcial2_FF_SM.cpp` sobre el proyecto modular `src/pea` y `cpp/` |
+| Documento Word de especificación (plantilla IEEE 830, casos de uso y secuencia UML) | [`entrega/Especificacion_Tecnica_PEAi.docx`](entrega/Especificacion_Tecnica_PEAi.docx); plantilla en `docs/plantilla/`; figuras en `docs/imagenes/` |
+| Persistencia de datos | `datos/ejemplo-parcial.json` (catálogo `pea-catalogo` v1) y Supabase |
+| Identificación de estudiantes | `entrega/integrantes.txt` |
+| PARCIAL 1 y 2 (indicador del grupo y del investigador de las URL) | `pea-cli respuestas-parcial` / `pea-cpp respuestas-parcial` |
+
+Resultados con las URL del enunciado (GrupLAC `00000000002099`, CvLAC `0000494917`, corte 2023; idénticos en
+Python y C++): modo estricto **0** (SCIENTI no publica la categoría de calidad de los productos) y modo
+estimado **0,4** para el grupo y **0,6** para el investigador. Ver [docs/parcial-2.md](docs/parcial-2.md)
+y `docs/evidencias/parcial-urls-20261025.json`.
+
+```powershell
+.\PEAi-Python\pea-cli.exe respuestas-parcial
+.\PEAi-Cpp\pea-cpp.exe respuestas-parcial
+.\PEAi-Cpp\pea-cpp.exe indicador --archivo datos/ejemplo-parcial.json --ambito grupo --codigo PRUEBA-G1 --corte 2023
+```
 
 ## 1. Para el profesor: descargar, extraer y abrir
 
@@ -259,7 +282,10 @@ de dependencias para conservar juntos los ejecutables y su código fuente.
 | `tests/` | Pruebas Python y fixtures ficticios |
 | `supabase/migrations/` | Esquema SQL histórico; no aplicarlo para conectarse al proyecto existente |
 | `scripts/`, `tools/empaquetado/`, `requirements/` | Instalación, conexión, verificación y empaquetado |
-| `entrega/Parcial2_FF_SM.py`, `entrega/Parcial2_FF_SM.cpp` | Entradas académicas e índice; necesitan el proyecto modular completo |
+| `entrega/Parcial2_FF_SM.py`, `entrega/Parcial2_FF_SM.cpp` | Entradas académicas e índice (`--respuestas` calcula el PARCIAL 1 y 2); necesitan el proyecto modular completo |
+| `entrega/Especificacion_Tecnica_PEAi.docx` | Especificación de requisitos IEEE 830 con UML, capturas y trazabilidad |
+| `docs/imagenes/`, `docs/plantilla/` | Diagramas UML, capturas de la GUI/TUI y plantilla del enunciado |
+| `tools/diagramas_documento.py`, `tools/capturas_documento.py`, `tools/generar_especificacion.py` | Regeneran los diagramas, las capturas y el Word |
 | `datos/ejemplo-parcial.json` | Persistencia sintética para practicar sin conexión |
 | `entrega/integrantes.txt` | Identificación de autores |
 | `docs/entrada/` | Enunciado y Modelo Minciencias 2024 |
@@ -271,8 +297,17 @@ se calculan en memoria sobre productos únicos y vínculos de la multilista.
 La presentación llama a servicios y los repositorios usan REST/RPC. No hay base SQLite local.
 
 Agentes, preferencias del editor, entornos virtuales, cachés, capturas,
-exportaciones y secretos quedan fuera de Git. El Word, UML y video quedan fuera
-del alcance de esta entrega por indicación del propietario.
+exportaciones y secretos quedan fuera de Git. El video de sustentación no forma parte
+del repositorio.
+
+Para regenerar el Word (requiere Python con `python-docx`, `matplotlib` y `Pillow`, y Microsoft Word
+para actualizar el índice):
+
+```powershell
+py -3 tools/diagramas_documento.py
+.\.venv\Scripts\python.exe tools/capturas_documento.py
+py -3 tools/generar_especificacion.py
+```
 
 ## 8. Solución de problemas
 

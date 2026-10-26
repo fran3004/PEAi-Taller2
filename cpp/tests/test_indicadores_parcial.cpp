@@ -91,3 +91,48 @@ TEST_CASE("URL C++ toma el año bibliográfico y conserva libros y formación") 
     REQUIRE(perfil.trabajos_dirigidos.size() == 1);
     CHECK(perfil.trabajos_dirigidos[0].ano == 2021);
 }
+
+TEST_CASE("Estimación declarada de categorías faltantes") {
+    auto datos = ejemplo();
+    auto estricto = pea::servicios::calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023);
+    CHECK_FALSE(estricto["estimado"].toBool());
+    auto estimado = pea::servicios::calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023, {}, {}, true);
+    CHECK(estimado["estimado"].toBool());
+    CHECK_FALSE(estimado["completo"].toBool());
+    REQUIRE(estimado["estimadas"].toArray().size() == 1);
+    CHECK(estimado["estimadas"].toArray()[0].toObject()["categoria"].toString() == "ART_D");
+    CHECK(estimado["incluidos"].toArray().size() == 4);
+    CHECK(estimado["excluidos"].toArray().size() == 1);
+    CHECK(estimado["brutos"].toObject()["Nc.B"].toDouble() == doctest::Approx((280 + 45) * std::log1p(1.0 / 5)));
+    CHECK(estimado["brutos"].toObject()["Nc.Top"].toDouble() == doctest::Approx(estricto["brutos"].toObject()["Nc.Top"].toDouble()));
+}
+
+TEST_CASE("Un vínculo con fecha final «Actual» sigue vigente") {
+    auto datos = ejemplo();
+    QJsonArray integrantes;
+    for (const auto& v : datos["integrantes"].toArray()) {
+        auto m = v.toObject();
+        m["fecha_inicio"] = "2013/1"; m["fecha_fin"] = "Actual";
+        integrantes.append(m);
+    }
+    datos["integrantes"] = integrantes;
+    CHECK(pea::servicios::calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023, {}, {}, true)["indicador"].toDouble() > 0);
+}
+
+TEST_CASE("El archivo local acepta fechas de vínculo de SCIENTI y rechaza texto arbitrario") {
+    for (const auto& [inicio, fin] : std::vector<std::pair<QString, QString>>{
+             {"2013/1", "Actual"}, {"2013-05", ""}, {"2013", "2020/12"}, {"2013-05-01", ""}}) {
+        auto datos = ejemplo();
+        QJsonArray integrantes;
+        for (const auto& v : datos["integrantes"].toArray()) {
+            auto m = v.toObject(); m["fecha_inicio"] = inicio; m["fecha_fin"] = fin; integrantes.append(m);
+        }
+        datos["integrantes"] = integrantes;
+        CHECK_NOTHROW(pea::datos::restaurar_catalogo(datos));
+    }
+    auto malo = ejemplo();
+    auto integrantes = malo["integrantes"].toArray();
+    auto primero = integrantes[0].toObject(); primero["fecha_inicio"] = "ayer"; integrantes[0] = primero;
+    malo["integrantes"] = integrantes;
+    CHECK_THROWS(pea::datos::restaurar_catalogo(malo));
+}

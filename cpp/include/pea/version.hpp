@@ -5,7 +5,7 @@
 namespace pea {
 
 constexpr const char* APP_NAME = "PEA-i";
-constexpr const char* APP_VERSION = "0.2.0";
+constexpr const char* APP_VERSION = "0.2.1";
 constexpr const char* INSTITUCION = "Universidad Popular del Cesar";
 
 inline std::string obtener_version() {

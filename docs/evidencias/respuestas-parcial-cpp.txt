@@ -1,0 +1,50 @@
+Descargando https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099
+Grupo estricto (solo categorías publicadas) · GRUPO DE INVESTIGACION EN SISTEMAS Y COMPUTACIÓN -GISICO- · Indicador parcial: 0
+  Componente | Bruto | Máximo | Índice | Coef. | Aporte
+  Nc.Top | 0 | 0 | 0 | 3.7 | 0
+  Nc.A | 0 | 0 | 0 | 2.3 | 0
+  Nc.B | 0 | 0 | 0 | 0.4 | 0
+  AP | 0 | 0 | 0 | 1.5 | 0
+  DPC | 0 | 0 | 0 | 0.5 | 0
+  Fr.A | 0 | 0 | 0 | 1 | 0
+  Fr.B | 0 | 0 | 0 | 0.2 | 0
+  Cohe | 0 | 0 | 0 | 0.1 | 0
+  Coop | 0 | 0 | 0 | 0.3 | 0
+  Incluidos: 0 · excluidos: 160 · estimados: 0
+Grupo estimado (categoría base) · GRUPO DE INVESTIGACION EN SISTEMAS Y COMPUTACIÓN -GISICO- · Indicador parcial: 0.4
+  Componente | Bruto | Máximo | Índice | Coef. | Aporte
+  Nc.Top | 0 | 0 | 0 | 3.7 | 0
+  Nc.A | 0 | 0 | 0 | 2.3 | 0
+  Nc.B | 785.648 | 785.648 | 1 | 0.4 | 0.4
+  AP | 0 | 0 | 0 | 1.5 | 0
+  DPC | 0 | 0 | 0 | 0.5 | 0
+  Fr.A | 0 | 0 | 0 | 1 | 0
+  Fr.B | 0 | 0 | 0 | 0.2 | 0
+  Cohe | 0 | 0 | 0 | 0.1 | 0
+  Coop | 0 | 0 | 0 | 0.3 | 0
+  Incluidos: 78 · excluidos: 0 · estimados: 78
+Descargando https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917
+Investigador estricto (solo categorías publicadas) · Adith Bismarck Pérez Orozco · Indicador parcial: 0
+  Componente | Bruto | Máximo | Índice | Coef. | Aporte
+  Nc.Top | 0 | 0 | 0 | 3.7 | 0
+  Nc.A | 0 | 0 | 0 | 2.3 | 0
+  Nc.B | 0 | 0 | 0 | 0.4 | 0
+  AP | 0 | 0 | 0 | 1.5 | 0
+  DPC | 0 | 0 | 0 | 0.5 | 0
+  Fr.A | 0 | 0 | 0 | 1 | 0
+  Fr.B | 0 | 0 | 0 | 0.2 | 0
+  Cohe | 0 | 0 | 0 | 0.1 | 0
+  Coop | 0 | 0 | 0 | 0.3 | 0
+  Incluidos: 0 · excluidos: 97 · estimados: 0
+Investigador estimado (categoría base) · Adith Bismarck Pérez Orozco · Indicador parcial: 0.6
+  Componente | Bruto | Máximo | Índice | Coef. | Aporte
+  Nc.Top | 0 | 0 | 0 | 3.7 | 0
+  Nc.A | 0 | 0 | 0 | 2.3 | 0
+  Nc.B | 54.9072 | 54.9072 | 1 | 0.4 | 0.4
+  AP | 0 | 0 | 0 | 1.5 | 0
+  DPC | 0 | 0 | 0 | 0.5 | 0
+  Fr.A | 0 | 0 | 0 | 1 | 0
+  Fr.B | 243.347 | 243.347 | 1 | 0.2 | 0.2
+  Cohe | 0 | 0 | 0 | 0.1 | 0
+  Coop | 0 | 0 | 0 | 0.3 | 0
+  Incluidos: 20 · excluidos: 0 · estimados: 20

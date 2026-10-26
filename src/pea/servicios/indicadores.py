@@ -37,6 +37,52 @@ def categoria_producto(producto: dict) -> dict | None:
     return next((r for r in modelo()["categorias"] if r["codigo"] == codigo), None)
 
 
+# Supuesto conservador y declarado: cuando la fuente pública no informa la calidad
+# (cuartil, indexación, nivel de formación), se usa la categoría de menor peso
+# del Modelo para esa tipología. Nunca sustituye una categoría informada.
+_CATEGORIA_BASE = {
+    "ARTICULO": ("ART_D", "Artículo sin cuartil publicado: categoría base ART_D."),
+    "LIBRO": ("LIB_C", "Libro sin calidad publicada: categoría base LIB_C."),
+    "CAPITULO": ("CAP_LIB_C", "Capítulo sin calidad publicada: categoría base CAP_LIB_C."),
+    "SOFTWARE": ("SF", "Software sin registro verificable: categoría base SF."),
+}
+
+
+def categoria_estimada(producto: dict) -> tuple[str, str] | None:
+    """Categoría supuesta para un producto sin calidad declarada, o ``None``."""
+    if categoria_producto(producto) is not None:
+        return None
+    subtipo = normalizar(str(producto.get("subtipo") or "")).replace("TRABAJODIRIGIDO", "TRABAJO_DIRIGIDO")
+    if subtipo in _CATEGORIA_BASE:
+        return _CATEGORIA_BASE[subtipo]
+    if subtipo == "TRABAJO_DIRIGIDO":
+        detalle = producto.get("detalles") or {}
+        texto = normalizar(f"{detalle.get('referencia_original') or ''} {producto.get('titulo') or ''}")
+        if "EN_CURSO" in texto or "EN_EJECUCION" in texto:
+            return None
+        if "DOCTORA" in texto:
+            return "TD_B", "Tesis doctoral sin calificación: categoría base TD_B."
+        if "MAESTRIA" in texto or "MAGISTER" in texto:
+            return "TM_B", "Trabajo de maestría sin calificación: categoría base TM_B."
+        return "TP_B", "Trabajo de grado sin calificación: categoría base TP_B."
+    return None
+
+
+def aplicar_estimacion(datos: dict) -> tuple[dict, list[dict]]:
+    """Copia del catálogo con las categorías supuestas; no modifica el original."""
+    estimadas, productos = [], []
+    for p in datos["productos"]:
+        supuesta = categoria_estimada(p)
+        if supuesta is None:
+            productos.append(p)
+            continue
+        codigo, regla = supuesta
+        detalles = {**(p.get("detalles") or {}), "categoria_minciencias": codigo, "categoria_estimada": True}
+        productos.append({**p, "detalles": detalles})
+        estimadas.append({"codigo": p["codigo_identificador"], "categoria": codigo, "regla": regla})
+    return {**datos, "productos": productos}, estimadas
+
+
 def puntaje_producto(producto: dict) -> dict:
     regla = categoria_producto(producto)
     if regla is None:
@@ -64,14 +110,19 @@ def puntaje_producto(producto: dict) -> dict:
     }
 
 
+def _anio(valor: Any) -> int | None:
+    """Año de una fecha AAAA o AAAA-MM; «Actual» o vacío no son años."""
+    texto = str(valor or "")[:4]
+    return int(texto) if len(texto) == 4 and texto.isdigit() else None
+
+
 def _vinculado(m: dict, anio: int) -> bool:
-    inicio = str(m.get("fecha_inicio") or "")[:4]
-    fin = str(m.get("fecha_fin") or "")[:4]
+    inicio, fin = _anio(m.get("fecha_inicio")), _anio(m.get("fecha_fin"))
     # Un vínculo terminado conserva su valor histórico en el año de producción.
     return (
-        (not inicio or int(inicio) <= anio)
-        and (not fin or int(fin) >= anio)
-        and (bool(m.get("activo", True)) or bool(fin))
+        (inicio is None or inicio <= anio)
+        and (fin is None or fin >= anio)
+        and (bool(m.get("activo", True)) or fin is not None)
     )
 
 
@@ -179,12 +230,21 @@ def _componentes(datos: dict, ambito: str, codigo: str, corte: int, desde: int |
 
 
 def calcular_indicador(
-    datos: dict, ambito: str, codigo: str, corte: int, desde: int | None = None, referencia: dict | None = None
+    datos: dict,
+    ambito: str,
+    codigo: str,
+    corte: int,
+    desde: int | None = None,
+    referencia: dict | None = None,
+    estimar: bool = False,
 ) -> dict[str, Any]:
     if ambito not in {"grupo", "investigador"}:
         raise ValueError("El ámbito debe ser grupo o investigador.")
     if not 1970 <= corte <= 2100 or (desde is not None and not 1970 <= desde <= corte):
         raise ValueError("El rango temporal del indicador es inválido.")
+    estimadas: list[dict] = []
+    if estimar:
+        datos, estimadas = aplicar_estimacion(datos)
     resultado = _componentes(datos, ambito, codigo, corte, desde)
     coeficientes = modelo()["coeficientes"]
     if referencia is None:
@@ -235,6 +295,13 @@ def calcular_indicador(
                 "aporte": aporte,
             }
         )
+    usadas = {i["codigo"] for i in resultado["incluidos"]}
+    estimadas = [e for e in estimadas if e["codigo"] in usadas]
+    if estimadas:
+        avisos.append(
+            f"{len(estimadas)} productos puntuados con categoría estimada (la de menor peso de su tipología); "
+            "el cuartil o nivel real exige los soportes del Modelo."
+        )
     if resultado["excluidos"]:
         avisos.append(f"{len(resultado['excluidos'])} productos excluidos por categoría o validación insuficientes.")
     if not resultado["colaboracion_completa"]:
@@ -255,6 +322,11 @@ def calcular_indicador(
         "maximos": maximos,
         "componentes": componentes,
         "indicador": total,
-        "completo": not resultado["excluidos"] and resultado["colaboracion_completa"] and resultado["periodo_completo"],
+        "estimado": bool(estimadas),
+        "estimadas": estimadas,
+        "completo": not resultado["excluidos"]
+        and not estimadas
+        and resultado["colaboracion_completa"]
+        and resultado["periodo_completo"],
         "avisos": avisos,
     }

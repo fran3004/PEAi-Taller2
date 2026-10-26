@@ -1,0 +1,263 @@
+{
+  "fecha": "2026-10-25",
+  "corte": 2023,
+  "urls": {
+    "grupo": "https://scienti.minciencias.gov.co/gruplac/jsp/visualiza/visualizagr.jsp?nro=00000000002099",
+    "investigador": "https://scienti.minciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000494917"
+  },
+  "nota": "Descarga real de SCIENTI sin escritura remota. SCIENTI no publica cuartil ni nivel de calidad: el modo estricto excluye esos productos; el modo estimado usa la categoría base de cada tipología.",
+  "resultados": {
+    "grupo_estricto": {
+      "python": {
+        "indicador": 0.0,
+        "completo": false,
+        "incluidos": 0,
+        "excluidos": 160,
+        "estimadas": 0,
+        "brutos": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.0,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "componentes": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.0,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "nombre": "GISICO-"
+      },
+      "cpp": {
+        "indicador": 0,
+        "completo": false,
+        "incluidos": 0,
+        "excluidos": 160,
+        "estimadas": 0,
+        "brutos": {
+          "AP": 0,
+          "Cohe": 0,
+          "Coop": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Nc.A": 0,
+          "Nc.B": 0,
+          "Nc.Top": 0
+        },
+        "componentes": {
+          "Nc.Top": 0,
+          "Nc.A": 0,
+          "Nc.B": 0,
+          "AP": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Cohe": 0,
+          "Coop": 0
+        },
+        "nombre": "GRUPO DE INVESTIGACION EN SISTEMAS Y COMPUTACIÓN -GISICO-"
+      },
+      "equivalentes": true
+    },
+    "grupo_estimado": {
+      "python": {
+        "indicador": 0.4,
+        "completo": false,
+        "incluidos": 78,
+        "excluidos": 0,
+        "estimadas": 78,
+        "brutos": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 785.648279,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "componentes": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.4,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "nombre": "GISICO-"
+      },
+      "cpp": {
+        "indicador": 0.4,
+        "completo": false,
+        "incluidos": 78,
+        "excluidos": 0,
+        "estimadas": 78,
+        "brutos": {
+          "AP": 0,
+          "Cohe": 0,
+          "Coop": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Nc.A": 0,
+          "Nc.B": 785.648279,
+          "Nc.Top": 0
+        },
+        "componentes": {
+          "Nc.Top": 0,
+          "Nc.A": 0,
+          "Nc.B": 0.4,
+          "AP": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Cohe": 0,
+          "Coop": 0
+        },
+        "nombre": "GRUPO DE INVESTIGACION EN SISTEMAS Y COMPUTACIÓN -GISICO-"
+      },
+      "equivalentes": true
+    },
+    "investigador_estricto": {
+      "python": {
+        "indicador": 0.0,
+        "completo": false,
+        "incluidos": 0,
+        "excluidos": 97,
+        "estimadas": 0,
+        "brutos": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.0,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "componentes": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.0,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.0,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "nombre": "Adith Bismarck Pérez Orozco"
+      },
+      "cpp": {
+        "indicador": 0,
+        "completo": false,
+        "incluidos": 0,
+        "excluidos": 97,
+        "estimadas": 0,
+        "brutos": {
+          "AP": 0,
+          "Cohe": 0,
+          "Coop": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Nc.A": 0,
+          "Nc.B": 0,
+          "Nc.Top": 0
+        },
+        "componentes": {
+          "Nc.Top": 0,
+          "Nc.A": 0,
+          "Nc.B": 0,
+          "AP": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0,
+          "Cohe": 0,
+          "Coop": 0
+        },
+        "nombre": "Adith Bismarck Pérez Orozco"
+      },
+      "equivalentes": true
+    },
+    "investigador_estimado": {
+      "python": {
+        "indicador": 0.6,
+        "completo": false,
+        "incluidos": 20,
+        "excluidos": 0,
+        "estimadas": 20,
+        "brutos": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 54.9072,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 243.347006,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "componentes": {
+          "Nc.Top": 0.0,
+          "Nc.A": 0.0,
+          "Nc.B": 0.4,
+          "AP": 0.0,
+          "DPC": 0.0,
+          "Fr.A": 0.0,
+          "Fr.B": 0.2,
+          "Cohe": 0.0,
+          "Coop": 0.0
+        },
+        "nombre": "Adith Bismarck Pérez Orozco"
+      },
+      "cpp": {
+        "indicador": 0.6,
+        "completo": false,
+        "incluidos": 20,
+        "excluidos": 0,
+        "estimadas": 20,
+        "brutos": {
+          "AP": 0,
+          "Cohe": 0,
+          "Coop": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 243.347006,
+          "Nc.A": 0,
+          "Nc.B": 54.9072,
+          "Nc.Top": 0
+        },
+        "componentes": {
+          "Nc.Top": 0,
+          "Nc.A": 0,
+          "Nc.B": 0.4,
+          "AP": 0,
+          "DPC": 0,
+          "Fr.A": 0,
+          "Fr.B": 0.2,
+          "Cohe": 0,
+          "Coop": 0
+        },
+        "nombre": "Adith Bismarck Pérez Orozco"
+      },
+      "equivalentes": true
+    }
+  }
+}

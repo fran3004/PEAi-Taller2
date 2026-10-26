@@ -342,10 +342,12 @@ class ServicioAplicacion:
         return f"Catálogo guardado en {ruta}"
 
     def datos_indicador(self, ambito: str, codigo: str, corte: int, desde: int | None = None,
-                       referencia: dict | None = None) -> dict:
+                       referencia: dict | None = None, estimar: bool = False) -> dict:
         from pea.datos.archivo_local import serializar_catalogo
         from pea.servicios.indicadores import calcular_indicador
-        return calcular_indicador(serializar_catalogo(self._catalogo), ambito, codigo, corte, desde, referencia)
+        return calcular_indicador(
+            serializar_catalogo(self._catalogo), ambito, codigo, corte, desde, referencia, estimar
+        )
 
     def productos_puntuables(self, ambito: str, codigo: str) -> list[dict]:
         from pea.servicios.indicadores import puntaje_producto

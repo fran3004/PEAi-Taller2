@@ -40,7 +40,9 @@ def comprobar(cpp: Path):
     with TemporaryDirectory(prefix="pea-parcial-") as carpeta:
         temporal = Path(carpeta)
         for ambito, codigo in [("grupo", "PRUEBA-G1"), ("investigador", "PRUEBA-I1")]:
-            for corte, desde in [(2023, None), (2023, 2023), (2026, 2022)]:
+            for corte, desde, estimar in [
+                (2023, None, False), (2023, 2023, False), (2026, 2022, False), (2023, None, True), (2026, 2022, True)
+            ]:
                 args = [
                     "indicador",
                     "--archivo",
@@ -55,6 +57,8 @@ def comprobar(cpp: Path):
                 ]
                 if desde:
                     args += ["--desde", str(desde)]
+                if estimar:
+                    args.append("--estimar-categorias")
                 resultados = []
                 for nombre, comando in [("python", [sys.executable, "-m", "pea.cli"]), ("cpp", [str(cpp)])]:
                     salida = subprocess.run(
@@ -91,7 +95,7 @@ def comprobar(cpp: Path):
         doc = json.loads((temporal / "pdf.json").read_text(encoding="utf-8"))
         if doc["total_paginas"] != 1 or "PEA-i Parcial 2" not in doc["paginas"][0]["texto"]:
             raise AssertionError("La extracción PDF C++ no conserva la página de prueba.")
-    print(f"Parcial 2: {casos} casos con JSON equivalente, 12 lecturas cruzadas y PDF C++ aprobados; sin red.")
+    print(f"Parcial 2: {casos} casos (con y sin estimación) con JSON equivalente, {casos * 2} lecturas cruzadas y PDF C++ aprobados; sin red.")
 
 
 if __name__ == "__main__":

@@ -16,6 +16,11 @@
 
 namespace pea::ingesta {
 namespace {
+// Misma etiqueta que la ingesta Python para que ambos catálogos sean intercambiables.
+QString subtipo_de_tipo(const QString& tipo) {
+    return (tipo == QStringLiteral("TrabajoDirigido") ? QStringLiteral("Trabajo dirigido") : tipo).left(100);
+}
+
 
 QString normalizar_categoria_cvlac(const std::optional<QString>& declarada) {
     const QString texto = declarada.value_or(QString()).toLower();
@@ -319,7 +324,7 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 p.titulo = p_ing.titulo;
                 p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") :
                     (p_ing.tipo == QStringLiteral("TrabajoDirigido") || p_ing.tipo_trabajo.has_value()) ? QStringLiteral("FRH") : QStringLiteral("GNC");
-                p.subtipo = p_ing.tipo.isEmpty() ? QStringLiteral("Producto GrupLAC") : p_ing.tipo.left(100);
+                p.subtipo = p_ing.tipo.isEmpty() ? QStringLiteral("Producto GrupLAC") : subtipo_de_tipo(p_ing.tipo);
                 p.ano = *p_ing.ano;
                 p.estado_validacion = QStringLiteral("Avalado");
                 p.detalles[QStringLiteral("fuente")] = tarea.origen;
@@ -463,7 +468,7 @@ InformeIngesta ServicioIngesta::procesar_tarea_url(estructuras::TareaIngesta& ta
                 p.titulo = p_ing.titulo;
                 p.tipo_mayor = p_ing.tipo.contains(QStringLiteral("Software")) ? QStringLiteral("DTI") :
                     (p_ing.tipo == QStringLiteral("TrabajoDirigido") || p_ing.tipo_trabajo.has_value()) ? QStringLiteral("FRH") : QStringLiteral("GNC");
-                p.subtipo = p_ing.tipo.left(100);
+                p.subtipo = subtipo_de_tipo(p_ing.tipo);
                 p.ano = *p_ing.ano;
                 p.estado_validacion = QStringLiteral("Avalado");
                 p.detalles[QStringLiteral("origen")] = QStringLiteral("CvLAC");

@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from pea.datos.archivo_local import cargar_archivo, guardar_archivo, restaurar_catalogo, serializar_catalogo
-from pea.servicios.indicadores import calcular_indicador, modelo, puntaje_producto
+from pea.servicios.indicadores import (
+    aplicar_estimacion,
+    calcular_indicador,
+    categoria_estimada,
+    modelo,
+    puntaje_producto,
+)
 from pea.servicios.servicio_aplicacion import ServicioAplicacion
 from pea.servicios.vistas import ModoConexion
 
@@ -111,3 +117,58 @@ def test_modo_local_edicion_clasificacion_persistencia_y_undo(tmp_path):
     with pytest.raises(ValueError):
         servicio.iniciar_local(str(ruta))
     assert servicio._catalogo.buscar_producto("PRUEBA-P4") is not None
+
+
+def test_estimacion_es_opcional_declarada_y_no_pisa_categorias_informadas(datos):
+    estricto = calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023)
+    assert not estricto["estimado"] and estricto["estimadas"] == []
+    estimado = calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023, estimar=True)
+    # Solo PRUEBA-P4 («Artículo» sin cuartil) recibe la categoría base ART_D (5 × 9 = 45).
+    assert estimado["estimado"] and not estimado["completo"]
+    assert [e["codigo"] for e in estimado["estimadas"]] == ["PRUEBA-P4"]
+    assert estimado["estimadas"][0]["categoria"] == "ART_D"
+    assert len(estimado["incluidos"]) == 4 and len(estimado["excluidos"]) == 1
+    assert estimado["brutos"]["Nc.B"] == pytest.approx((280 + 45) * math.log1p(1 / 5))
+    assert estimado["brutos"]["Nc.Top"] == estricto["brutos"]["Nc.Top"]
+    assert any("estimada" in a for a in estimado["avisos"])
+    # El catálogo de entrada no se altera.
+    assert "categoria_estimada" not in json.dumps(datos)
+
+
+def test_categoria_estimada_por_tipologia():
+    base = {"detalles": {}, "titulo": ""}
+    esperado = {
+        "Articulo": "ART_D",
+        "Libro": "LIB_C",
+        "Capitulo": "CAP_LIB_C",
+        "Software": "SF",
+    }
+    for subtipo, categoria in esperado.items():
+        assert categoria_estimada({**base, "subtipo": subtipo})[0] == categoria
+    trabajo = {**base, "subtipo": "Trabajo dirigido"}
+    assert categoria_estimada({**trabajo, "titulo": "Tesis de Doctorado concluida"})[0] == "TD_B"
+    assert categoria_estimada({**trabajo, "titulo": "Trabajo de grado de maestría"})[0] == "TM_B"
+    assert categoria_estimada({**trabajo, "titulo": "Tesis concluida pregrado"})[0] == "TP_B"
+    assert categoria_estimada({**trabajo, "titulo": "Estado: En curso"}) is None
+    assert categoria_estimada({**base, "subtipo": "Proyecto"}) is None
+    assert categoria_estimada({**base, "subtipo": "ART_A1"}) is None
+    declarado = {**base, "subtipo": "Articulo", "detalles": {"categoria_minciencias": "ART_B"}}
+    assert categoria_estimada(declarado) is None
+    nuevo, estimadas = aplicar_estimacion({"productos": [declarado]})
+    assert estimadas == [] and nuevo["productos"][0]["detalles"] == {"categoria_minciencias": "ART_B"}
+
+
+def test_vinculo_con_fecha_actual_no_rompe_el_calculo(datos):
+    for m in datos["integrantes"]:
+        m["fecha_inicio"], m["fecha_fin"] = "2013/1", "Actual"
+    assert calcular_indicador(datos, "grupo", "PRUEBA-G1", 2023, estimar=True)["indicador"] > 0
+
+
+def test_archivo_local_acepta_fechas_de_vinculo_de_scienti_y_rechaza_basura(datos):
+    for inicio, fin in [("2013/1", "Actual"), ("2013-05", None), ("2013", "2020/12"), ("2013-05-01", "")]:
+        for m in datos["integrantes"]:
+            m["fecha_inicio"], m["fecha_fin"] = inicio, fin
+        restaurar_catalogo(datos)
+    datos["integrantes"][0]["fecha_inicio"] = "ayer"
+    with pytest.raises(ValueError, match="Fecha de membresía"):
+        restaurar_catalogo(datos)

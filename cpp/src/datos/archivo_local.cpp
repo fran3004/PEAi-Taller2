@@ -5,10 +5,20 @@
 #include <QJsonParseError>
 #include <QSaveFile>
 #include <QSet>
-#include <QDate>
+#include <QRegularExpression>
 #include <stdexcept>
 
 namespace pea::datos {
+namespace {
+// SCIENTI publica AAAA/M o AAAA-MM además de fechas ISO; «Actual» marca un vínculo vigente.
+bool fecha_vinculo_valida(const QString& fecha) {
+    static const QRegularExpression patron(
+        QStringLiteral("^(?:\\d{4}(?:[-/]\\d{1,2}(?:[-/]\\d{1,2})?)?|actual)$"),
+        QRegularExpression::CaseInsensitiveOption);
+    return patron.match(fecha.trimmed()).hasMatch();
+}
+}  // namespace
+
 QJsonObject serializar_catalogo(const servicios::CatalogoInvestigacion& cat) {
     QJsonArray grupos, investigadores, integrantes, productos, relaciones;
     for (const auto& g : cat.grupos) grupos.append(g->aJson());
@@ -52,7 +62,7 @@ servicios::CatalogoInvestigacion restaurar_catalogo(const QJsonObject& datos) {
         if (!cat.buscar_grupo(m.codigo_gruplac) || !cat.buscar_investigador(m.codigo_rh) || miembros.contains(clave))
             throw std::invalid_argument("Membresía inexistente o duplicada.");
         for (const auto& f : {m.fecha_inicio, m.fecha_fin})
-            if (!f.isEmpty() && !QDate::fromString(f, Qt::ISODate).isValid())
+            if (!f.isEmpty() && !fecha_vinculo_valida(f))
                 throw std::invalid_argument("Fecha de membresía inválida.");
         miembros.insert(clave);
         cat.integrantes.insertar_final(m);
