@@ -1288,7 +1288,7 @@ class VentanaPrincipal(QMainWindow):
                 self._lbl_estado_conexion.setText(f"● Conectado a Supabase · Revisión {rev}")
                 self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {EXITO};")
         elif estado.modo == ModoConexion.LOCAL:
-            self._lbl_estado_conexion.setText("● Archivo local · guardar para conservar cambios")
+            self._lbl_estado_conexion.setText("● Archivo local")
         elif es_demo:
             self._lbl_estado_conexion.setText("● Datos de demostración")
             self._lbl_estado_conexion.setStyleSheet(f"font-size: {estilo.TAMANO_AUXILIAR}pt; font-weight: bold; color: {AVISO};")
